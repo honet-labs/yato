@@ -42,6 +42,10 @@ export class CreateTaskDto {
   @IsString({ each: true })
   @IsOptional()
   followers?: string[];
+
+  @IsString()
+  @IsOptional()
+  templateId?: string;
 }
 
 export class UpdateTaskDto {
@@ -85,6 +89,10 @@ export class UpdateTaskDto {
   @IsString({ each: true })
   @IsOptional()
   followers?: string[];
+
+  @IsString()
+  @IsOptional()
+  templateId?: string;
 }
 
 export class CommentAttachmentDto {

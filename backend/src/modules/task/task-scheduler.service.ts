@@ -1,12 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
+import { replaceDatePlaceholders } from './task.service';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class TaskSchedulerService {
   private readonly logger = new Logger(TaskSchedulerService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   // Run scheduler every 10 minutes to check precision scheduling
   @Cron('*/10 * * * *')
@@ -113,15 +118,16 @@ export class TaskSchedulerService {
 
           // Create the Task
           await this.prisma.$transaction(async (tx) => {
-            await tx.task.create({
+            const task = await tx.task.create({
               data: {
-                title: template.title,
+                title: replaceDatePlaceholders(template.title),
                 description: template.description || '',
                 status: 'NOT_STARTED',
                 priority: template.priority,
                 taskType: template.taskType,
                 checklist: template.checklist || [],
                 createdById: template.createdById,
+                templateId: template.id,
               },
             });
 
@@ -130,6 +136,16 @@ export class TaskSchedulerService {
               where: { id: template.id },
               data: { lastGeneratedAt: now },
             });
+
+            try {
+              await this.auditService.log(template.createdById, 'CREATE_TASK', 'Task', task.id, {
+                title: task.title,
+                templateId: template.id,
+                reason: 'AUTOMATED_SCHEDULE',
+              });
+            } catch (err) {
+              // Safe catch
+            }
           });
 
           this.logger.log(`Successfully generated task for template ID: ${template.id}`);

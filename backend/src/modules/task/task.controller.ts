@@ -67,8 +67,8 @@ export class TaskController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete specific task' })
-  async delete(@Param('id') id: string) {
-    return this.taskService.delete(id);
+  async delete(@Param('id') id: string, @Request() req: any) {
+    return this.taskService.delete(id, req.user.id);
   }
 
   @Post(':id/comments')

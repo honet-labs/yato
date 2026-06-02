@@ -3,6 +3,24 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskDto, UpdateTaskDto, CreateTaskCommentDto, CreateTaskTemplateDto, UpdateTaskTemplateDto } from './dto/task.dto';
 import { StorageService } from '../storage/storage.service';
 import { NotificationService } from '../notification/notification.service';
+import { AuditService } from '../audit/audit.service';
+
+export function replaceDatePlaceholders(title: string): string {
+  if (!title) return title;
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yyyy = String(now.getFullYear());
+  const yy = yyyy.substring(2);
+
+  return title
+    .replace(/dd\/mm\/yyyy/gi, `${dd}/${mm}/${yyyy}`)
+    .replace(/dd-mm-yyyy/gi, `${dd}-${mm}-${yyyy}`)
+    .replace(/yyyy-mm-dd/gi, `${yyyy}-${mm}-${dd}`)
+    .replace(/yyyy\/mm\/dd/gi, `${yyyy}/${mm}/${dd}`)
+    .replace(/dd\/mm\/yy/gi, `${dd}/${mm}/${yy}`)
+    .replace(/dd-mm-yy/gi, `${dd}-${mm}-${yy}`);
+}
 
 @Injectable()
 export class TaskService {
@@ -10,6 +28,7 @@ export class TaskService {
     private prisma: PrismaService,
     private storageService: StorageService,
     private notificationService: NotificationService,
+    private auditService: AuditService,
   ) {}
 
   async findAll(user: any) {
@@ -24,6 +43,12 @@ export class TaskService {
     return this.prisma.task.findMany({
       where,
       include: {
+        template: {
+          select: {
+            id: true,
+            templateName: true,
+          },
+        },
         assignee: {
           select: {
             id: true,
@@ -75,6 +100,12 @@ export class TaskService {
     const task = await this.prisma.task.findUnique({
       where: { id },
       include: {
+        template: {
+          select: {
+            id: true,
+            templateName: true,
+          },
+        },
         assignee: {
           select: {
             id: true,
@@ -200,13 +231,14 @@ export class TaskService {
 
   async create(dto: CreateTaskDto, creatorId: string) {
     const data: any = {
-      title: dto.title,
+      title: dto.templateId ? replaceDatePlaceholders(dto.title) : dto.title,
       description: dto.description || '',
       status: dto.status || 'NOT_STARTED',
       priority: dto.priority || 'MEDIUM',
       taskType: dto.taskType || 'TASK',
       createdById: creatorId,
       checklist: dto.checklist || [],
+      templateId: dto.templateId || null,
     };
 
     if (dto.dueDate) {
@@ -230,6 +262,12 @@ export class TaskService {
     const task = await this.prisma.task.create({
       data,
       include: {
+        template: {
+          select: {
+            id: true,
+            templateName: true,
+          },
+        },
         assignee: {
           select: {
             id: true,
@@ -254,6 +292,15 @@ export class TaskService {
         },
       },
     });
+
+    try {
+      await this.auditService.log(creatorId, 'CREATE_TASK', 'Task', task.id, {
+        title: task.title,
+        templateId: dto.templateId || null,
+      });
+    } catch (err) {
+      // Safe catch
+    }
 
     const frontendUrl = process.env.FRONTEND_URL || 'https://yato.honet.web.id';
     const taskUrl = `${frontendUrl}/tasks?taskId=${task.id}`;
@@ -306,6 +353,7 @@ export class TaskService {
     if (dto.priority !== undefined) data.priority = dto.priority;
     if (dto.taskType !== undefined) data.taskType = dto.taskType;
     if (dto.checklist !== undefined) data.checklist = dto.checklist;
+    if (dto.templateId !== undefined) data.templateId = dto.templateId;
     
     if (dto.dueDate !== undefined) {
       data.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
@@ -336,6 +384,12 @@ export class TaskService {
       where: { id },
       data,
       include: {
+        template: {
+          select: {
+            id: true,
+            templateName: true,
+          },
+        },
         assignee: {
           select: {
             id: true,
@@ -367,6 +421,14 @@ export class TaskService {
         },
       },
     });
+
+    try {
+      await this.auditService.log(updaterId, 'UPDATE_TASK', 'Task', updatedTask.id, {
+        dto,
+      });
+    } catch (err) {
+      // Safe catch
+    }
 
     const frontendUrl = process.env.FRONTEND_URL || 'https://yato.honet.web.id';
     const taskUrl = `${frontendUrl}/tasks?taskId=${updatedTask.id}`;
@@ -408,11 +470,21 @@ export class TaskService {
     return updatedTask;
   }
 
-  async delete(id: string) {
-    await this.findOne(id);
-    return this.prisma.task.delete({
+  async delete(id: string, userId?: string) {
+    const task = await this.findOne(id);
+    const deletedTask = await this.prisma.task.delete({
       where: { id },
     });
+    if (userId) {
+      try {
+        await this.auditService.log(userId, 'DELETE_TASK', 'Task', id, {
+          title: task.title,
+        });
+      } catch (err) {
+        // Safe catch
+      }
+    }
+    return deletedTask;
   }
 
   async createComment(taskId: string, dto: CreateTaskCommentDto, authorId: string) {
@@ -585,7 +657,7 @@ export class TaskService {
   }
 
   async createTemplate(dto: CreateTaskTemplateDto, creatorId: string) {
-    return this.prisma.taskTemplate.create({
+    const template = await this.prisma.taskTemplate.create({
       data: {
         templateName: dto.templateName,
         title: dto.title,
@@ -600,6 +672,14 @@ export class TaskService {
         createdById: creatorId,
       },
     });
+    try {
+      await this.auditService.log(creatorId, 'CREATE_TEMPLATE', 'TaskTemplate', template.id, {
+        templateName: template.templateName,
+      });
+    } catch (err) {
+      // Safe catch
+    }
+    return template;
   }
 
   async updateTemplate(id: string, dto: UpdateTaskTemplateDto, userId: string) {
@@ -617,16 +697,33 @@ export class TaskService {
     if (dto.repeatDayOfWeek !== undefined) data.repeatDayOfWeek = dto.repeatDayOfWeek !== null ? Number(dto.repeatDayOfWeek) : null;
     if (dto.repeatDayOfMonth !== undefined) data.repeatDayOfMonth = dto.repeatDayOfMonth !== null ? Number(dto.repeatDayOfMonth) : null;
 
-    return this.prisma.taskTemplate.update({
+    const template = await this.prisma.taskTemplate.update({
       where: { id },
       data,
     });
+    try {
+      await this.auditService.log(userId, 'UPDATE_TEMPLATE', 'TaskTemplate', id, {
+        templateName: template.templateName,
+        dto,
+      });
+    } catch (err) {
+      // Safe catch
+    }
+    return template;
   }
 
   async deleteTemplate(id: string, userId: string) {
-    await this.findOneTemplate(id, userId);
-    return this.prisma.taskTemplate.delete({
+    const template = await this.findOneTemplate(id, userId);
+    const deleted = await this.prisma.taskTemplate.delete({
       where: { id },
     });
+    try {
+      await this.auditService.log(userId, 'DELETE_TEMPLATE', 'TaskTemplate', id, {
+        templateName: template.templateName,
+      });
+    } catch (err) {
+      // Safe catch
+    }
+    return deleted;
   }
 }

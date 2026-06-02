@@ -428,6 +428,9 @@ model Task {
   dueDate     DateTime?
   checklist   Json?    // Subtask items stored as JSON: [{ id, text, isDone }]
   
+  templateId  String?
+  template    TaskTemplate? @relation("TemplateTasks", fields: [templateId], references: [id], onDelete: SetNull)
+
   createdById String
   createdBy   User     @relation("UserCreatedTasks", fields: [createdById], references: [id])
   
@@ -481,6 +484,8 @@ model TaskTemplate {
   repeatDayOfWeek Int?      // e.g. 1-7 (Monday-Sunday)
   repeatDayOfMonth Int?     // e.g. 1-31
   lastGeneratedAt DateTime?
+
+  tasks           Task[]    @relation("TemplateTasks")
 
   createdById     String
   createdBy       User      @relation("UserCreatedTemplates", fields: [createdById], references: [id])

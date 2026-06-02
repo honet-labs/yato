@@ -252,6 +252,7 @@ export default function TasksPage() {
         priority: template.priority || "MEDIUM",
         taskType: template.taskType || "TASK",
         checklist: template.checklist || [],
+        templateId: template.id,
       };
       const res = await api.post("/tasks", payload);
       return res.data;
@@ -1686,6 +1687,36 @@ export default function TasksPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Template Blueprint (If exists) */}
+                    {taskDetail?.templateId && (
+                      <div className="grid grid-cols-3 items-center gap-4 border-t border-slate-100/60 pt-3">
+                        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Template
+                        </span>
+                        <div className="col-span-2 flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-lg">
+                            {taskDetail?.template?.templateName || "Blueprint"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const matchingTemplate = templates?.find(t => t.id === taskDetail.templateId);
+                              if (matchingTemplate) {
+                                handleEditTemplateStart(matchingTemplate);
+                              } else {
+                                alert("Template blueprint not found or has been deleted.");
+                              }
+                            }}
+                            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-3 py-1 rounded-lg flex items-center gap-1.5 transition-all shadow-sm text-[10px] font-bold cursor-pointer"
+                            title="Edit original template blueprint"
+                          >
+                            <Edit className="w-3.5 h-3.5 text-slate-500" />
+                            <span>Edit Template</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Audit Logs Row */}
