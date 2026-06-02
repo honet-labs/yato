@@ -552,6 +552,134 @@ export class SystemConfigService {
     return { success: true, message: 'Tuning configurations saved successfully. Restart required to apply some changes.' };
   }
 
+  async getSystemLogs(file?: string, limit: number = 200, search?: string, level?: string) {
+    const fs = require('fs');
+    const path = require('path');
+    const readline = require('readline');
+
+    // 1. Determine logs directory
+    let logsDir = path.join(process.cwd(), 'logs');
+    if (!fs.existsSync(logsDir)) {
+      logsDir = path.join(process.cwd(), 'backend', 'logs');
+    }
+
+    if (!fs.existsSync(logsDir)) {
+      return {
+        success: false,
+        message: `Logs directory not found. Checked: ${path.join(process.cwd(), 'logs')} and ${path.join(process.cwd(), 'backend', 'logs')}`,
+        files: [],
+        logs: [],
+      };
+    }
+
+    // 2. List available log files
+    let files: string[] = [];
+    try {
+      files = fs.readdirSync(logsDir)
+        .filter((f: string) => f.endsWith('.log'))
+        .sort((a: string, b: string) => b.localeCompare(a)); // Newest first
+    } catch (e: any) {
+      return {
+        success: false,
+        message: `Failed to read logs directory: ${e.message}`,
+        files: [],
+        logs: [],
+      };
+    }
+
+    if (files.length === 0) {
+      return {
+        success: true,
+        message: 'No log files found in logs directory.',
+        files: [],
+        logs: [],
+      };
+    }
+
+    // 3. Determine target file (default to the newest application log)
+    const targetFile = file || files.find(f => f.startsWith('application-')) || files[0];
+    const targetFilePath = path.join(logsDir, targetFile);
+
+    if (!fs.existsSync(targetFilePath)) {
+      return {
+        success: false,
+        message: `Requested log file does not exist: ${targetFile}`,
+        files,
+        logs: [],
+      };
+    }
+
+    // 4. Read file content safely line-by-line
+    const parsedLogs: any[] = [];
+    try {
+      const fileStream = fs.createReadStream(targetFilePath);
+      const rl = readline.createInterface({
+        input: fileStream,
+        crlfDelay: Infinity
+      });
+
+      for await (const line of rl) {
+        if (!line.trim()) continue;
+        try {
+          const logEntry = JSON.parse(line);
+          
+          // Apply log level filter if provided
+          if (level && logEntry.level && logEntry.level.toLowerCase() !== level.toLowerCase()) {
+            continue;
+          }
+
+          // Apply text search filter if provided
+          if (search) {
+            const searchLower = search.toLowerCase();
+            const messageMatch = logEntry.message && String(logEntry.message).toLowerCase().includes(searchLower);
+            const contextMatch = logEntry.context && String(logEntry.context).toLowerCase().includes(searchLower);
+            if (!messageMatch && !contextMatch) {
+              continue;
+            }
+          }
+
+          parsedLogs.push(logEntry);
+        } catch (jsonErr) {
+          // Fallback to raw text parsing
+          const rawEntry = {
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            message: line,
+            isRaw: true,
+          };
+          
+          if (level && level.toLowerCase() !== 'info') {
+            continue;
+          }
+          if (search && !line.toLowerCase().includes(search.toLowerCase())) {
+            continue;
+          }
+          parsedLogs.push(rawEntry);
+        }
+      }
+    } catch (e: any) {
+      return {
+        success: false,
+        message: `Failed to read log file: ${e.message}`,
+        files,
+        logs: [],
+      };
+    }
+
+    // Newest logs first
+    const sortedLogs = parsedLogs.reverse();
+    const paginatedLogs = sortedLogs.slice(0, limit);
+
+    return {
+      success: true,
+      currentFile: targetFile,
+      files,
+      logs: paginatedLogs,
+      totalCount: parsedLogs.length,
+      returnedCount: paginatedLogs.length,
+    };
+  }
+
   triggerRestart() {
     const logger = new Logger('SystemConfigService');
     logger.warn('SYSTEM RESTART INITIATED: Container will exit in 2 seconds to trigger Docker self-restart.');

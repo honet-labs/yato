@@ -13,7 +13,11 @@ import {
   ShieldCheck,
   Check,
   RefreshCw,
-  X
+  X,
+  Terminal,
+  Search,
+  Play,
+  Pause
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -39,7 +43,7 @@ interface EngineGroup {
 }
 
 export default function SystemStatusPage() {
-  const [activeTab, setActiveTab] = useState<'cores' | 'docker' | 'systemd'>('cores');
+  const [activeTab, setActiveTab] = useState<'cores' | 'docker' | 'systemd' | 'logs'>('cores');
 
   const { data: statusData, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["system-status"],
@@ -48,6 +52,28 @@ export default function SystemStatusPage() {
       return response.data;
     },
     refetchInterval: 10000, // Refresh every 10s
+  });
+
+  // System logs state
+  const [selectedFile, setSelectedFile] = useState<string>("");
+  const [logLimit, setLogLimit] = useState<number>(200);
+  const [logSearch, setLogSearch] = useState<string>("");
+  const [logLevel, setLogLevel] = useState<string>("");
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
+  const [expandedLogIdx, setExpandedLogIdx] = useState<number | null>(null);
+
+  const { data: logsData, isLoading: isLogsLoading, refetch: refetchLogs, isRefetching: isLogsRefetching } = useQuery({
+    queryKey: ["system-logs", selectedFile, logLimit, logSearch, logLevel],
+    queryFn: async () => {
+      let url = `/system/config/logs?limit=${logLimit}`;
+      if (selectedFile) url += `&file=${selectedFile}`;
+      if (logSearch) url += `&search=${encodeURIComponent(logSearch)}`;
+      if (logLevel) url += `&level=${logLevel}`;
+      const response = await api.get(url);
+      return response.data;
+    },
+    refetchInterval: autoRefresh ? 4000 : false, // auto refresh every 4s
+    enabled: activeTab === 'logs',
   });
 
   const coresList = statusData?.cores || [];
@@ -293,6 +319,21 @@ export default function SystemStatusPage() {
             >
               Systemd Services ({systemdServices.length})
             </button>
+            <button
+              onClick={() => {
+                setActiveTab('logs');
+                setExpandedLogIdx(null);
+              }}
+              className={cn(
+                "pb-3.5 px-4 font-bold text-xs uppercase tracking-widest border-b-2 transition-all outline-none flex items-center gap-1.5",
+                activeTab === 'logs' 
+                  ? "border-blue-600 text-blue-600" 
+                  : "border-transparent text-slate-400 hover:text-slate-600"
+              )}
+            >
+              <Terminal className="w-3.5 h-3.5" />
+              Runtime Logs
+            </button>
           </div>
 
           {/* Dynamic Content Panel */}
@@ -465,6 +506,218 @@ export default function SystemStatusPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'logs' && (
+              <>
+                <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900 tracking-tight">System Runtime Logs</h2>
+                    <p className="text-slate-500 text-xs mt-0.5">Live console output and application debugger records from Winston transport logs.</p>
+                  </div>
+                  
+                  {/* Controls Header */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* Log File Selector */}
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Log Target</span>
+                      <select 
+                        value={selectedFile || (logsData?.currentFile || "")}
+                        onChange={(e) => {
+                          setSelectedFile(e.target.value);
+                          setExpandedLogIdx(null);
+                        }}
+                        className="bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 transition-all cursor-pointer"
+                      >
+                        {logsData?.files?.map((f: string) => (
+                          <option key={f} value={f}>{f}</option>
+                        ))}
+                        {!logsData?.files?.length && (
+                          <option value="">No log files</option>
+                        )}
+                      </select>
+                    </div>
+
+                    {/* Limit Selector */}
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Limit</span>
+                      <select
+                        value={logLimit}
+                        onChange={(e) => setLogLimit(Number(e.target.value))}
+                        className="bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 transition-all cursor-pointer"
+                      >
+                        <option value={100}>100 lines</option>
+                        <option value={200}>200 lines</option>
+                        <option value={500}>500 lines</option>
+                        <option value={1000}>1000 lines</option>
+                      </select>
+                    </div>
+
+                    {/* Level Selector */}
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Severity</span>
+                      <select
+                        value={logLevel}
+                        onChange={(e) => setLogLevel(e.target.value)}
+                        className="bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 transition-all cursor-pointer"
+                      >
+                        <option value="">All Levels</option>
+                        <option value="info">Info</option>
+                        <option value="warn">Warn</option>
+                        <option value="error">Error</option>
+                        <option value="debug">Debug</option>
+                      </select>
+                    </div>
+
+                    {/* Auto Refresh toggle */}
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Auto stream</span>
+                      <button
+                        onClick={() => setAutoRefresh(!autoRefresh)}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95",
+                          autoRefresh 
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-600" 
+                            : "bg-slate-50 border-slate-200 text-slate-500"
+                        )}
+                      >
+                        {autoRefresh ? (
+                          <>
+                            <Play className="w-3 h-3 text-emerald-500 fill-emerald-500 animate-pulse" />
+                            Streaming
+                          </>
+                        ) : (
+                          <>
+                            <Pause className="w-3 h-3 text-slate-400" />
+                            Paused
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Force Refresh */}
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Action</span>
+                      <button
+                        onClick={() => refetchLogs()}
+                        className="btn-secondary py-1.5 px-3 font-semibold text-xs text-slate-700 bg-white"
+                        disabled={isLogsLoading || isLogsRefetching}
+                      >
+                        {isLogsLoading || isLogsRefetching ? (
+                          <Loader2 className="w-3 h-3 text-blue-600 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-3 h-3 text-slate-500" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filter and Search Bar */}
+                <div className="p-4 border-b border-slate-100 bg-slate-50/20 flex items-center gap-4">
+                  <div className="relative flex-1 group">
+                    <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                    <input 
+                      type="text" 
+                      className="input-field pl-11 py-2 w-full bg-white !text-xs font-medium" 
+                      placeholder="Search log messages, query parameters, stack traces, IP, or context..." 
+                      value={logSearch}
+                      onChange={(e) => setLogSearch(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Terminal Console View */}
+                <div className="bg-slate-950 p-4 font-mono text-xs overflow-y-auto max-h-[500px] min-h-[350px] custom-scrollbar text-slate-300 select-text relative">
+                  {isLogsLoading && !logsData ? (
+                    <div className="flex flex-col items-center justify-center py-20 gap-3">
+                      <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                      <span className="text-slate-500 font-sans font-bold">Streaming backend log output...</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {logsData?.logs?.map((log: any, idx: number) => {
+                        const level = String(log.level).toLowerCase();
+                        const isExpanded = expandedLogIdx === idx;
+                        
+                        return (
+                          <div 
+                            key={idx} 
+                            className={cn(
+                              "border-l-2 pl-3 py-1 hover:bg-slate-900/60 transition-colors rounded-r-md cursor-pointer",
+                              level === 'error' ? "border-rose-500/80 bg-rose-950/10" : 
+                              level === 'warn' ? "border-amber-500/80 bg-amber-950/10" : 
+                              level === 'debug' ? "border-purple-500/80 bg-purple-950/10" : 
+                              "border-sky-500/80 bg-sky-950/5"
+                            )}
+                            onClick={() => setExpandedLogIdx(isExpanded ? null : idx)}
+                          >
+                            <div className="flex items-start justify-between flex-wrap gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {/* Timestamp */}
+                                <span className="text-[10px] text-slate-500 font-bold whitespace-nowrap">
+                                  {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'N/A'}
+                                </span>
+                                
+                                {/* Severity Badge */}
+                                <span className={cn(
+                                  "px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider",
+                                  level === 'error' ? "bg-rose-900/40 text-rose-300 border border-rose-800/40" :
+                                  level === 'warn' ? "bg-amber-900/40 text-amber-300 border border-amber-800/40" :
+                                  level === 'debug' ? "bg-purple-900/40 text-purple-300 border border-purple-800/40" :
+                                  "bg-sky-900/40 text-sky-300 border border-sky-800/40"
+                                )}>
+                                  {log.level || 'info'}
+                                </span>
+
+                                {/* Context */}
+                                {log.context && (
+                                  <span className="text-[10px] bg-slate-900 text-slate-400 px-1 py-0.5 rounded border border-slate-800/60 font-bold font-sans">
+                                    [{log.context}]
+                                  </span>
+                                )}
+
+                                {/* Message */}
+                                <span className="text-[11px] font-medium break-all whitespace-pre-wrap leading-relaxed text-slate-200">
+                                  {log.message}
+                                </span>
+                              </div>
+                              
+                              {/* Log Meta Helper (eg execution duration) */}
+                              {log.ms && (
+                                <span className="text-[10px] text-slate-500 font-bold italic ml-auto">
+                                  {log.ms}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Expanded JSON details & trace */}
+                            {isExpanded && (
+                              <motion.div 
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="mt-2.5 p-3 bg-slate-900/80 rounded-lg border border-slate-800/80 overflow-x-auto text-[10px] space-y-2 text-slate-400"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="font-sans font-bold text-slate-500 uppercase tracking-widest text-[8px]">LOG METADATA</div>
+                                <pre className="text-slate-300 custom-scrollbar max-h-48 overflow-y-auto whitespace-pre-wrap break-all">
+                                  {JSON.stringify(log, null, 2)}
+                                </pre>
+                              </motion.div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {logsData?.logs?.length === 0 && (
+                        <div className="text-center py-12 text-slate-500 italic font-semibold">
+                          No matching logs found in console buffer
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </>
             )}

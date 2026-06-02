@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, UseGuards, Req, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SystemConfigService } from './system-config.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -61,6 +61,21 @@ export class SystemConfigController {
   @ApiOperation({ summary: 'Get real-time system status' })
   getStatus() {
     return this.systemConfigService.getSystemStatus();
+  }
+
+  @Get('logs')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('MANAGE_CONFIG')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get system runtime logs from Winston file transports' })
+  getLogs(
+    @Query('file') file?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('level') level?: string,
+  ) {
+    const parsedLimit = limit ? parseInt(limit, 10) : 200;
+    return this.systemConfigService.getSystemLogs(file, parsedLimit, search, level);
   }
 
   @Get('tuning')
