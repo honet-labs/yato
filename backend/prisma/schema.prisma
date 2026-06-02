@@ -427,6 +427,7 @@ model Task {
   taskType    String   @default("TASK")        // TASK, TROUBLESHOOT, UPDATE, BACKUP
   dueDate     DateTime?
   checklist   Json?    // Subtask items stored as JSON: [{ id, text, isDone }]
+  tags        String[] // Multiple tags / labels
   
   templateId  String?
   template    TaskTemplate? @relation("TemplateTasks", fields: [templateId], references: [id], onDelete: SetNull)
@@ -479,6 +480,7 @@ model TaskTemplate {
   priority        String    @default("MEDIUM")      // LOW, MEDIUM, HIGH
   taskType        String    @default("TASK")        // TASK, TROUBLESHOOT, UPDATE, BACKUP
   checklist       Json?     // Subtask items stored as JSON: [{ id, text, isDone }]
+  tags            String[]  // Multiple tags / labels
   repeatInterval  String?   // NONE, DAILY, WEEKLY, MONTHLY
   repeatTime      String?   // e.g. "09:00"
   repeatDayOfWeek Int?      // e.g. 1-7 (Monday-Sunday)

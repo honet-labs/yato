@@ -43,6 +43,11 @@ export class CreateTaskDto {
   @IsOptional()
   followers?: string[];
 
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  tags?: string[];
+
   @IsString()
   @IsOptional()
   templateId?: string;
@@ -89,6 +94,11 @@ export class UpdateTaskDto {
   @IsString({ each: true })
   @IsOptional()
   followers?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  tags?: string[];
 
   @IsString()
   @IsOptional()
@@ -145,6 +155,11 @@ export class CreateTaskTemplateDto {
   @IsOptional()
   checklist?: any;
 
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  tags?: string[];
+
   @IsString()
   @IsOptional()
   repeatInterval?: string;
@@ -183,6 +198,11 @@ export class UpdateTaskTemplateDto {
 
   @IsOptional()
   checklist?: any;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  tags?: string[];
 
   @IsString()
   @IsOptional()

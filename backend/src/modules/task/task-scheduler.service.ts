@@ -128,6 +128,7 @@ export class TaskSchedulerService {
                 checklist: template.checklist || [],
                 createdById: template.createdById,
                 templateId: template.id,
+                tags: (template as any).tags || [],
               },
             });
 

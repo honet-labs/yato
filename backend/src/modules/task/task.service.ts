@@ -239,6 +239,7 @@ export class TaskService {
       createdById: creatorId,
       checklist: dto.checklist || [],
       templateId: dto.templateId || null,
+      tags: dto.tags || [],
     };
 
     if (dto.dueDate) {
@@ -354,6 +355,7 @@ export class TaskService {
     if (dto.taskType !== undefined) data.taskType = dto.taskType;
     if (dto.checklist !== undefined) data.checklist = dto.checklist;
     if (dto.templateId !== undefined) data.templateId = dto.templateId;
+    if (dto.tags !== undefined) data.tags = dto.tags;
     
     if (dto.dueDate !== undefined) {
       data.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
@@ -665,6 +667,7 @@ export class TaskService {
         priority: dto.priority || 'MEDIUM',
         taskType: dto.taskType || 'TASK',
         checklist: dto.checklist || [],
+        tags: dto.tags || [],
         repeatInterval: dto.repeatInterval || 'NONE',
         repeatTime: dto.repeatTime || null,
         repeatDayOfWeek: dto.repeatDayOfWeek !== undefined ? Number(dto.repeatDayOfWeek) : null,
@@ -692,6 +695,7 @@ export class TaskService {
     if (dto.priority !== undefined) data.priority = dto.priority;
     if (dto.taskType !== undefined) data.taskType = dto.taskType;
     if (dto.checklist !== undefined) data.checklist = dto.checklist;
+    if (dto.tags !== undefined) data.tags = dto.tags;
     if (dto.repeatInterval !== undefined) data.repeatInterval = dto.repeatInterval;
     if (dto.repeatTime !== undefined) data.repeatTime = dto.repeatTime;
     if (dto.repeatDayOfWeek !== undefined) data.repeatDayOfWeek = dto.repeatDayOfWeek !== null ? Number(dto.repeatDayOfWeek) : null;

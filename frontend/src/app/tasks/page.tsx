@@ -59,6 +59,7 @@ export default function TasksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("ALL");
   const [typeFilter, setTypeFilter] = useState("ALL");
+  const [tagFilter, setTagFilter] = useState("ALL");
   
   // Fetch dynamic task types from settings catalog
   const { data: catalogTaskTypes } = useQuery<any[]>({
@@ -86,7 +87,8 @@ export default function TasksPage() {
     repeatInterval: "NONE",
     repeatTime: "09:00",
     repeatDayOfWeek: 1,
-    repeatDayOfMonth: 1
+    repeatDayOfMonth: 1,
+    tags: [] as string[]
   });
 
   // State for Create Modal
@@ -98,6 +100,9 @@ export default function TasksPage() {
   const [newTaskType, setNewTaskType] = useState("TASK");
   const [newTaskDueDate, setNewTaskDueDate] = useState("");
   const [newTaskAssignees, setNewTaskAssignees] = useState<string[]>([]);
+  const [newTaskTags, setNewTaskTags] = useState<string[]>([]);
+  const [newTagInput, setNewTagInput] = useState("");
+  const [templateTagInput, setTemplateTagInput] = useState("");
 
   // State for Task Detail Side-Drawer
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
@@ -253,6 +258,7 @@ export default function TasksPage() {
         taskType: template.taskType || "TASK",
         checklist: template.checklist || [],
         templateId: template.id,
+        tags: template.tags || [],
       };
       const res = await api.post("/tasks", payload);
       return res.data;
@@ -329,6 +335,8 @@ export default function TasksPage() {
       setNewTaskType("TASK");
       setNewTaskDueDate("");
       setNewTaskAssignees([]);
+      setNewTaskTags([]);
+      setNewTagInput("");
       setIsCreateOpen(false);
     }
   });
@@ -403,7 +411,8 @@ export default function TasksPage() {
       repeatInterval: "NONE",
       repeatTime: "09:00",
       repeatDayOfWeek: 1,
-      repeatDayOfMonth: 1
+      repeatDayOfMonth: 1,
+      tags: []
     });
     setIsTemplateEditorOpen(true);
   };
@@ -420,7 +429,8 @@ export default function TasksPage() {
       repeatInterval: template.repeatInterval || "NONE",
       repeatTime: template.repeatTime || "09:00",
       repeatDayOfWeek: template.repeatDayOfWeek !== null && template.repeatDayOfWeek !== undefined ? template.repeatDayOfWeek : 1,
-      repeatDayOfMonth: template.repeatDayOfMonth !== null && template.repeatDayOfMonth !== undefined ? template.repeatDayOfMonth : 1
+      repeatDayOfMonth: template.repeatDayOfMonth !== null && template.repeatDayOfMonth !== undefined ? template.repeatDayOfMonth : 1,
+      tags: template.tags || []
     });
     setIsTemplateEditorOpen(true);
   };
@@ -460,7 +470,8 @@ export default function TasksPage() {
       priority: newTaskPriority,
       taskType: newTaskType,
       dueDate: newTaskDueDate || undefined,
-      assigneeIds: newTaskAssignees
+      assigneeIds: newTaskAssignees,
+      tags: newTaskTags
     });
   };
 
@@ -589,13 +600,17 @@ export default function TasksPage() {
     }
   };
 
+  // Get all unique tags from active tasks
+  const uniqueTags = Array.from(new Set(tasks?.flatMap((t: any) => t.tags || []) || [])) as string[];
+
   // Filtering tasks locally
   const filteredTasks = tasks?.filter((task: any) => {
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesPriority = priorityFilter === "ALL" || task.priority === priorityFilter;
     const matchesType = typeFilter === "ALL" || task.taskType === typeFilter;
-    return matchesSearch && matchesPriority && matchesType;
+    const matchesTag = tagFilter === "ALL" || (task.tags && task.tags.includes(tagFilter));
+    return matchesSearch && matchesPriority && matchesType && matchesTag;
   }) || [];
 
   return (
@@ -675,6 +690,21 @@ export default function TasksPage() {
                   <option value="ALL">All Types</option>
                   {TASK_TYPES.map(t => (
                     <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+              </div>
+
+              {/* Filter Tags */}
+              <div className="relative">
+                <select
+                  value={tagFilter}
+                  onChange={(e) => setTagFilter(e.target.value)}
+                  className="input-field pr-10 w-40 appearance-none bg-white !py-2 cursor-pointer"
+                >
+                  <option value="ALL">All Tags</option>
+                  {uniqueTags.map(tag => (
+                    <option key={tag} value={tag}>#{tag}</option>
                   ))}
                 </select>
                 <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
@@ -847,6 +877,16 @@ export default function TasksPage() {
                                   </p>
                                 )}
 
+                                {task.tags && task.tags.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {task.tags.map((tag: string) => (
+                                      <span key={tag} className="bg-slate-50 text-slate-500 border border-slate-200/50 px-2 py-0.5 rounded-md text-[8px] font-extrabold uppercase tracking-wider">
+                                        #{tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+
                                 {/* Footer details */}
                                 <div className="flex items-center justify-between border-t border-slate-50 pt-3 mt-1 gap-2">
                                   <div className="flex flex-wrap items-center gap-1.5">
@@ -955,6 +995,15 @@ export default function TasksPage() {
                                 <p className="text-[10px] text-slate-400 font-medium truncate max-w-lg mt-0.5">
                                   {task.description}
                                 </p>
+                              )}
+                              {task.tags && task.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {task.tags.map((tag: string) => (
+                                    <span key={tag} className="bg-slate-50 text-slate-500 border border-slate-200/50 px-1.5 py-0.5 rounded-md text-[8px] font-extrabold uppercase tracking-wider">
+                                      #{tag}
+                                    </span>
+                                  ))}
+                                </div>
                               )}
                             </div>
                           </div>
@@ -1155,6 +1204,57 @@ export default function TasksPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Tags</label>
+                    <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200/80 rounded-xl min-h-[42px] items-center">
+                      {newTaskTags.map((tag) => (
+                        <span key={tag} className="bg-white text-slate-600 border border-slate-200 px-2 py-0.5 rounded-lg text-[9px] font-bold flex items-center gap-1 shadow-sm">
+                          #{tag}
+                          <button
+                            type="button"
+                            onClick={() => setNewTaskTags(prev => prev.filter(t => t !== tag))}
+                            className="text-slate-400 hover:text-slate-600 p-0.5 rounded animate-none"
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </span>
+                      ))}
+                      <input
+                        type="text"
+                        placeholder={newTaskTags.length === 0 ? "Type tag and press Enter..." : ""}
+                        value={newTagInput}
+                        onChange={(e) => setNewTagInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ',') {
+                            e.preventDefault();
+                            const val = newTagInput.trim().replace(/,/g, '');
+                            if (val && !newTaskTags.includes(val)) {
+                              setNewTaskTags(prev => [...prev, val]);
+                            }
+                            setNewTagInput("");
+                          }
+                        }}
+                        className="bg-transparent border-none focus:outline-none focus:ring-0 p-0 text-[10px] font-bold text-slate-700 placeholder-slate-400 flex-1 outline-none min-w-[120px]"
+                      />
+                    </div>
+                    {/* Suggested Existing Tags */}
+                    {uniqueTags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 items-center pt-1">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider mr-1">Suggestions:</span>
+                        {uniqueTags.filter(t => !newTaskTags.includes(t)).slice(0, 5).map(tag => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => setNewTaskTags(prev => [...prev, tag])}
+                            className="bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700 px-1.5 py-0.5 rounded text-[8px] font-bold border border-slate-200/50 transition-all cursor-pointer animate-none"
+                          >
+                            +{tag}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex justify-end gap-3 pt-4 border-t border-slate-50">
@@ -1368,6 +1468,58 @@ export default function TasksPage() {
                         <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                       </div>
                     </div>
+                  </div>
+
+                  {/* Tags blueprint section */}
+                  <div className="space-y-1.5 pt-2 border-t border-slate-50">
+                    <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Default Tags Blueprint</label>
+                    <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200/80 rounded-xl min-h-[42px] items-center">
+                      {templateForm.tags?.map((tag) => (
+                        <span key={tag} className="bg-white text-slate-600 border border-slate-200 px-2 py-0.5 rounded-lg text-[9px] font-bold flex items-center gap-1 shadow-sm animate-none">
+                          #{tag}
+                          <button
+                            type="button"
+                            onClick={() => setTemplateForm(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }))}
+                            className="text-slate-400 hover:text-slate-600 p-0.5 rounded animate-none"
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </span>
+                      ))}
+                      <input
+                        type="text"
+                        placeholder={(!templateForm.tags || templateForm.tags.length === 0) ? "Type tag and press Enter..." : ""}
+                        value={templateTagInput}
+                        onChange={(e) => setTemplateTagInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ',') {
+                            e.preventDefault();
+                            const val = templateTagInput.trim().replace(/,/g, '');
+                            if (val && !templateForm.tags?.includes(val)) {
+                              setTemplateForm(prev => ({ ...prev, tags: [...(prev.tags || []), val] }));
+                            }
+                            setTemplateTagInput("");
+                          }
+                        }}
+                        className="bg-transparent border-none focus:outline-none focus:ring-0 p-0 text-[10px] font-bold text-slate-700 placeholder-slate-400 flex-1 outline-none min-w-[120px]"
+                      />
+                    </div>
+                    {/* Suggested Existing Tags */}
+                    {uniqueTags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 items-center pt-1">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider mr-1">Suggestions:</span>
+                        {uniqueTags.filter(t => !templateForm.tags?.includes(t)).slice(0, 5).map(tag => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => setTemplateForm(prev => ({ ...prev, tags: [...(prev.tags || []), tag] }))}
+                            className="bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700 px-1.5 py-0.5 rounded text-[8px] font-bold border border-slate-200/50 transition-all cursor-pointer animate-none"
+                          >
+                            +{tag}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Checklist blueprint section */}
@@ -1683,6 +1835,78 @@ export default function TasksPage() {
                                 </button>
                               );
                             })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tags Input */}
+                    <div className="grid grid-cols-3 items-start gap-4">
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mt-1.5">
+                        <Tag className="w-3.5 h-3.5" /> Tags
+                      </span>
+                      <div className="col-span-2 flex flex-wrap items-center gap-2">
+                        {taskDetail?.tags?.map((tag: string) => (
+                          <div key={tag} className="bg-slate-100 text-slate-700 text-[9px] font-extrabold px-2 py-0.5 rounded-lg flex items-center gap-1 border border-slate-200/40 relative group">
+                            #{tag}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newTags = taskDetail.tags.filter((t: string) => t !== tag);
+                                handleFieldUpdate("tags", newTags);
+                              }}
+                              className="text-slate-400 hover:text-slate-600 p-0.5 rounded animate-none"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                        
+                        {/* Add Tag Dropdown / Input inline */}
+                        <div className="relative group/tag-adder">
+                          <button type="button" className="w-6 h-6 rounded-full border border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-400 hover:bg-blue-50/30 transition-all">
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                          {/* Hover/Focus overlay input to type new tag or select existing ones */}
+                          <div className="absolute left-0 top-full mt-1.5 w-48 bg-white border border-slate-200/80 rounded-xl shadow-xl p-2.5 z-30 opacity-0 pointer-events-none group-focus-within/tag-adder:opacity-100 group-focus-within/tag-adder:pointer-events-auto group-hover/tag-adder:opacity-100 group-hover/tag-adder:pointer-events-auto transition-all space-y-2">
+                            <input
+                              type="text"
+                              placeholder="New tag..."
+                              onKeyDown={(e: any) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  const val = e.target.value.trim();
+                                  if (val) {
+                                    const currentTags = taskDetail?.tags || [];
+                                    if (!currentTags.includes(val)) {
+                                      handleFieldUpdate("tags", [...currentTags, val]);
+                                    }
+                                    e.target.value = "";
+                                  }
+                                }
+                              }}
+                              className="input-field w-full bg-slate-50 text-[10px] font-bold !py-1"
+                            />
+                            {uniqueTags.length > 0 && (
+                              <div className="space-y-1">
+                                <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Select Existing</div>
+                                <div className="max-h-24 overflow-y-auto custom-scrollbar flex flex-col gap-0.5">
+                                  {uniqueTags.filter(t => !taskDetail?.tags?.includes(t)).map(tag => (
+                                    <button
+                                      key={tag}
+                                      type="button"
+                                      onClick={() => {
+                                        const currentTags = taskDetail?.tags || [];
+                                        handleFieldUpdate("tags", [...currentTags, tag]);
+                                      }}
+                                      className="w-full text-left px-2 py-1 hover:bg-slate-50 rounded-lg text-[9px] font-bold text-slate-700 cursor-pointer animate-none"
+                                    >
+                                      #{tag}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
