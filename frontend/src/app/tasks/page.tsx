@@ -880,7 +880,7 @@ export default function TasksPage() {
                                 {task.tags && task.tags.length > 0 && (
                                   <div className="flex flex-wrap gap-1">
                                     {task.tags.map((tag: string) => (
-                                      <span key={tag} className="bg-slate-50 text-slate-500 border border-slate-200/50 px-2 py-0.5 rounded-md text-[8px] font-extrabold uppercase tracking-wider">
+                                      <span key={tag} className="bg-slate-50 text-slate-500 border border-slate-200/50 px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide">
                                         #{tag}
                                       </span>
                                     ))}
@@ -999,7 +999,7 @@ export default function TasksPage() {
                               {task.tags && task.tags.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {task.tags.map((tag: string) => (
-                                    <span key={tag} className="bg-slate-50 text-slate-500 border border-slate-200/50 px-1.5 py-0.5 rounded-md text-[8px] font-extrabold uppercase tracking-wider">
+                                    <span key={tag} className="bg-slate-50 text-slate-500 border border-slate-200/50 px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide">
                                       #{tag}
                                     </span>
                                   ))}
@@ -1210,14 +1210,14 @@ export default function TasksPage() {
                     <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Tags</label>
                     <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200/80 rounded-xl min-h-[42px] items-center">
                       {newTaskTags.map((tag) => (
-                        <span key={tag} className="bg-white text-slate-600 border border-slate-200 px-2 py-0.5 rounded-lg text-[9px] font-bold flex items-center gap-1 shadow-sm">
+                        <span key={tag} className="bg-white text-slate-600 border border-slate-200 px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 shadow-sm">
                           #{tag}
                           <button
                             type="button"
                             onClick={() => setNewTaskTags(prev => prev.filter(t => t !== tag))}
                             className="text-slate-400 hover:text-slate-600 p-0.5 rounded animate-none"
                           >
-                            <X className="w-2.5 h-2.5" />
+                            <X className="w-3 h-3" />
                           </button>
                         </span>
                       ))}
@@ -1236,19 +1236,19 @@ export default function TasksPage() {
                             setNewTagInput("");
                           }
                         }}
-                        className="bg-transparent border-none focus:outline-none focus:ring-0 p-0 text-[10px] font-bold text-slate-700 placeholder-slate-400 flex-1 outline-none min-w-[120px]"
+                        className="bg-transparent border-none focus:outline-none focus:ring-0 p-0 text-xs font-bold text-slate-700 placeholder-slate-400 flex-1 outline-none min-w-[120px]"
                       />
                     </div>
                     {/* Suggested Existing Tags */}
                     {uniqueTags.length > 0 && (
                       <div className="flex flex-wrap gap-1 items-center pt-1">
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider mr-1">Suggestions:</span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider mr-1">Suggestions:</span>
                         {uniqueTags.filter(t => !newTaskTags.includes(t)).slice(0, 5).map(tag => (
                           <button
                             key={tag}
                             type="button"
                             onClick={() => setNewTaskTags(prev => [...prev, tag])}
-                            className="bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700 px-1.5 py-0.5 rounded text-[8px] font-bold border border-slate-200/50 transition-all cursor-pointer animate-none"
+                            className="bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700 px-2 py-1 rounded text-[11px] font-bold border border-slate-200/50 transition-all cursor-pointer animate-none"
                           >
                             +{tag}
                           </button>
@@ -1475,14 +1475,14 @@ export default function TasksPage() {
                     <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Default Tags Blueprint</label>
                     <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200/80 rounded-xl min-h-[42px] items-center">
                       {templateForm.tags?.map((tag) => (
-                        <span key={tag} className="bg-white text-slate-600 border border-slate-200 px-2 py-0.5 rounded-lg text-[9px] font-bold flex items-center gap-1 shadow-sm animate-none">
+                        <span key={tag} className="bg-white text-slate-600 border border-slate-200 px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 shadow-sm animate-none">
                           #{tag}
                           <button
                             type="button"
                             onClick={() => setTemplateForm(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }))}
                             className="text-slate-400 hover:text-slate-600 p-0.5 rounded animate-none"
                           >
-                            <X className="w-2.5 h-2.5" />
+                            <X className="w-3 h-3" />
                           </button>
                         </span>
                       ))}
@@ -1501,19 +1501,19 @@ export default function TasksPage() {
                             setTemplateTagInput("");
                           }
                         }}
-                        className="bg-transparent border-none focus:outline-none focus:ring-0 p-0 text-[10px] font-bold text-slate-700 placeholder-slate-400 flex-1 outline-none min-w-[120px]"
+                        className="bg-transparent border-none focus:outline-none focus:ring-0 p-0 text-xs font-bold text-slate-700 placeholder-slate-400 flex-1 outline-none min-w-[120px]"
                       />
                     </div>
                     {/* Suggested Existing Tags */}
                     {uniqueTags.length > 0 && (
                       <div className="flex flex-wrap gap-1 items-center pt-1">
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider mr-1">Suggestions:</span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider mr-1">Suggestions:</span>
                         {uniqueTags.filter(t => !templateForm.tags?.includes(t)).slice(0, 5).map(tag => (
                           <button
                             key={tag}
                             type="button"
                             onClick={() => setTemplateForm(prev => ({ ...prev, tags: [...(prev.tags || []), tag] }))}
-                            className="bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700 px-1.5 py-0.5 rounded text-[8px] font-bold border border-slate-200/50 transition-all cursor-pointer animate-none"
+                            className="bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700 px-2 py-1 rounded text-[11px] font-bold border border-slate-200/50 transition-all cursor-pointer animate-none"
                           >
                             +{tag}
                           </button>
@@ -1847,7 +1847,7 @@ export default function TasksPage() {
                       </span>
                       <div className="col-span-2 flex flex-wrap items-center gap-2">
                         {taskDetail?.tags?.map((tag: string) => (
-                          <div key={tag} className="bg-slate-100 text-slate-700 text-[9px] font-extrabold px-2 py-0.5 rounded-lg flex items-center gap-1 border border-slate-200/40 relative group">
+                          <div key={tag} className="bg-slate-100 text-slate-700 text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border border-slate-200/40 relative group">
                             #{tag}
                             <button
                               type="button"
