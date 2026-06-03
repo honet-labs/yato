@@ -9,8 +9,8 @@ import { motion } from "framer-motion";
 import { useBranding } from "@/context/branding-context";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@yato.local");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
