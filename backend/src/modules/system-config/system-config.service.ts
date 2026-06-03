@@ -181,10 +181,22 @@ export class SystemConfigService {
 
     const getDockerContainers = async (): Promise<any[]> => {
       return new Promise((resolve) => {
+        let dockerHost = 'docker-proxy';
+        let dockerPort = 2375;
+        if (process.env.DOCKER_HOST_URL) {
+          try {
+            const parsedUrl = new URL(process.env.DOCKER_HOST_URL);
+            dockerHost = parsedUrl.hostname;
+            dockerPort = parsedUrl.port ? parseInt(parsedUrl.port, 10) : 2375;
+          } catch (e) {
+            // Ignore URL parsing errors
+          }
+        }
+
         const options: any = process.env.DOCKER_HOST_URL
           ? {
-              host: 'yato-docker-proxy',
-              port: 2375,
+              host: dockerHost,
+              port: dockerPort,
               path: '/containers/json?all=1',
               method: 'GET',
               timeout: 1000,
@@ -411,8 +423,13 @@ export class SystemConfigService {
   }
 
   async getBrandingConfig() {
-    const setting = await this.prisma.systemSetting.findUnique({ where: { key: 'BRANDING_CONFIG' } });
-    const branding: any = setting?.value || {};
+    let branding: any = {};
+    try {
+      const setting = await this.prisma.systemSetting.findUnique({ where: { key: 'BRANDING_CONFIG' } });
+      branding = setting?.value || {};
+    } catch (e) {
+      // Suppress DB errors before migrations have run
+    }
     
     // Fallbacks
     if (!branding.appName) branding.appName = 'YATO';
@@ -421,10 +438,14 @@ export class SystemConfigService {
     if (!branding.appFavicon) branding.appFavicon = '';
 
     // Retrieve active timezone config
-    const tzSetting = await this.prisma.systemSetting.findUnique({ where: { key: 'TIMEZONE_CONFIG' } });
-    const tzConfig: any = tzSetting?.value || {};
-    const serverTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    branding.appTimezone = tzConfig.mode === 'MANUAL' ? (tzConfig.manualValue || 'Asia/Jakarta') : serverTz;
+    try {
+      const tzSetting = await this.prisma.systemSetting.findUnique({ where: { key: 'TIMEZONE_CONFIG' } });
+      const tzConfig: any = tzSetting?.value || {};
+      const serverTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      branding.appTimezone = tzConfig.mode === 'MANUAL' ? (tzConfig.manualValue || 'Asia/Jakarta') : serverTz;
+    } catch (e) {
+      branding.appTimezone = 'Asia/Jakarta';
+    }
 
     return branding;
   }
