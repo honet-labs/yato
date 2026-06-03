@@ -10,6 +10,30 @@ NC='\033[0m'
 
 echo -e "${GREEN}🚀 Starting YATO Modular Installation...${NC}"
 
+# Helper: Check if a port is in use on the host
+is_port_in_use() {
+    local port=$1
+    if command -v ss >/dev/null 2>&1; then
+        ss -tln | grep -q ":$port " && return 0
+    elif command -v netstat >/dev/null 2>&1; then
+        netstat -tln | grep -q ":$port " && return 0
+    elif command -v lsof >/dev/null 2>&1; then
+        lsof -i :$port -sTCP:LISTEN -t >/dev/null 2>&1 && return 0
+    elif command -v nc >/dev/null 2>&1; then
+        nc -z 127.0.0.1 $port >/dev/null 2>&1 && return 0
+    fi
+    return 1
+}
+
+# Helper: Find the next available TCP port
+find_free_port() {
+    local port=$1
+    while is_port_in_use $port; do
+        port=$((port + 1))
+    done
+    echo $port
+}
+
 # Default Options
 INFRA_MODE="docker" # docker | standalone
 COMPONENT_ALL=true
@@ -92,6 +116,25 @@ else
     echo "TZ=\"$HOST_TZ\"" >> .env
 fi
 
+
+# Ensure dynamic free ports are assigned if they are not already set in .env
+write_port_if_missing() {
+    local var_name=$1
+    local default_port=$2
+    if ! grep -q "^${var_name}=" .env; then
+        local free_port=$(find_free_port $default_port)
+        echo "${var_name}=\"${free_port}\"" >> .env
+        echo -e "   • Port variable ${YELLOW}${var_name}${NC} initialized to free port: ${GREEN}${free_port}${NC}"
+    fi
+}
+
+write_port_if_missing "POSTGRES_PORT" 5440
+write_port_if_missing "REDIS_PORT" 6380
+write_port_if_missing "BACKEND_PORT" 4000
+write_port_if_missing "FRONTEND_PORT" 4001
+write_port_if_missing "NGINX_HTTP_PORT" 9090
+write_port_if_missing "NGINX_HTTPS_PORT" 9443
+write_port_if_missing "DOCKER_PROXY_PORT" 2375
 
 # IP Detection
 SERVER_IP=$(hostname -I | awk '{print $1}')
@@ -242,24 +285,34 @@ fi
 
 # Detailed Success & Access Information Display
 show_access_info() {
+    # Load configuration if available
+    [ -f ".env" ] && source .env
+    
+    # Use config values with fallbacks
+    local pg_port=${POSTGRES_PORT:-5440}
+    local redis_port=${REDIS_PORT:-6380}
+    local backend_port=${BACKEND_PORT:-4000}
+    local frontend_port=${FRONTEND_PORT:-4001}
+    local nginx_port=${NGINX_HTTP_PORT:-9090}
+
     echo -e ""
     echo -e "${GREEN}================================================================${NC}"
     echo -e "   🚀  ${GREEN}YATO (Unified Infrastructure Platform) is READY!${NC}"
     echo -e "${GREEN}================================================================${NC}"
     echo -e ""
     echo -e "🌐 ${YELLOW}ACCESS URLS:${NC}"
-    echo -e "   • ${GREEN}Frontend Web Portal:${NC}  http://${SERVER_IP}:4001  or  http://${SERVER_IP}:9090 (Nginx Gateway)"
-    echo -e "   • ${GREEN}Backend API Gateway:${NC}  http://${SERVER_IP}:4000"
-    echo -e "   • ${GREEN}API Swagger Explorer:${NC} http://${SERVER_IP}:4000/docs"
+    echo -e "   • ${GREEN}Frontend Web Portal:${NC}  http://${SERVER_IP}:${frontend_port}  or  http://${SERVER_IP}:${nginx_port} (Nginx Gateway)"
+    echo -e "   • ${GREEN}Backend API Gateway:${NC}  http://${SERVER_IP}:${backend_port}"
+    echo -e "   • ${GREEN}API Swagger Explorer:${NC} http://${SERVER_IP}:${backend_port}/docs"
     echo -e ""
     echo -e "🔐 ${YELLOW}ADMINISTRATOR ACCESS:${NC}"
     echo -e "   • Refer to the ${GREEN}README.md${NC} for default access keys and configuration instructions."
     echo -e ""
     echo -e "🗄️  ${YELLOW}DATABASE & SYSTEM INFO:${NC}"
-    echo -e "   • ${GREEN}Database Engine:${NC}      PostgreSQL 15 (on port 5440)"
+    echo -e "   • ${GREEN}Database Engine:${NC}      PostgreSQL 15 (on port ${pg_port})"
     echo -e "   • ${GREEN}PostgreSQL User:${NC}      yato"
     echo -e "   • ${GREEN}PostgreSQL DB Name:${NC}   yato"
-    echo -e "   • ${GREEN}Redis Cache Port:${NC}    6380"
+    echo -e "   • ${GREEN}Redis Cache Port:${NC}    ${redis_port}"
     echo -e ""
     echo -e "💡 ${YELLOW}USEFUL COMMANDS:${NC}"
     echo -e "   • ${GREEN}View Logs:${NC}           $DOCKER_COMPOSE logs -f"
