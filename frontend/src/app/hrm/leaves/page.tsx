@@ -320,7 +320,7 @@ export default function LeaveHubPage() {
                   <Coffee className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Allocated Cuti</div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Allocated Leave</div>
                   <div className="text-sm font-bold text-slate-850 mt-0.5">
                     {leaveBalance ? `${leaveBalance.allocated} Days` : "12 Days"}
                   </div>
@@ -344,7 +344,7 @@ export default function LeaveHubPage() {
                   <Clock className="w-6 h-6 text-indigo-600" />
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Remaining Cuti</div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Remaining Leave</div>
                   <div className="text-sm font-bold text-slate-850 mt-0.5">
                     {leaveBalance ? `${leaveBalance.remaining} Days` : "12 Days"}
                   </div>
@@ -406,14 +406,14 @@ export default function LeaveHubPage() {
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
                     return (
                       <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3.5 flex items-center justify-between text-xs select-none">
-                        <span className="font-bold text-slate-500">Total Durasi Cuti:</span>
+                        <span className="font-bold text-slate-500">Total Leave Duration:</span>
                         <span className={cn(
                           "px-3 py-1 rounded-lg font-black text-[10px] uppercase tracking-wider border",
                           diffDays <= 0 
                             ? "bg-rose-50 text-rose-600 border-rose-100" 
                             : "bg-blue-100 text-blue-800 border-blue-200"
                         )}>
-                          {diffDays <= 0 ? "Tanggal Tidak Valid" : `${diffDays} Hari`}
+                          {diffDays <= 0 ? "Invalid Date" : `${diffDays} Days`}
                         </span>
                       </div>
                     );
@@ -421,7 +421,7 @@ export default function LeaveHubPage() {
 
                   {customFormSettings.requireAttachment && (
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Dokumen Pendukung / Attachment URL (Required)</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Supporting Document / Attachment URL (Required)</label>
                       <input
                         type="url"
                         required
@@ -438,7 +438,7 @@ export default function LeaveHubPage() {
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Backup / Handover Person</label>
                       <input
                         type="text"
-                        placeholder="Nama Karyawan Pengganti..."
+                        placeholder="Backup Employee Name..."
                         value={leaveForm.backupEmployee}
                         onChange={(e) => setLeaveForm((prev: any) => ({ ...prev, backupEmployee: e.target.value }))}
                         className="input-field w-full bg-slate-50 text-xs py-2 border-slate-200"
@@ -451,7 +451,7 @@ export default function LeaveHubPage() {
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Emergency Contact Phone</label>
                       <input
                         type="text"
-                        placeholder="Contoh: 08123456789"
+                        placeholder="Example: 08123456789"
                         value={leaveForm.emergencyContact}
                         onChange={(e) => setLeaveForm((prev: any) => ({ ...prev, emergencyContact: e.target.value }))}
                         className="input-field w-full bg-slate-50 text-xs py-2 border-slate-200"
@@ -627,14 +627,14 @@ export default function LeaveHubPage() {
                   <Users className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Karyawan Sedang Cuti</div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Employees on Leave</div>
                   <div className="text-sm font-bold text-slate-850 mt-0.5">
                     {adminRequests.filter((r: any) => {
                       const today = new Date();
                       const start = new Date(r.startDate);
                       const end = new Date(r.endDate);
                       return r.status === "APPROVED" && today >= start && today <= end;
-                    }).length} Orang
+                    }).length} People
                   </div>
                 </div>
               </div>
@@ -644,9 +644,9 @@ export default function LeaveHubPage() {
                   <Clock className="w-6 h-6 text-amber-600" />
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pengajuan Pending Oversight</div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pending Requests Oversight</div>
                   <div className="text-sm font-bold text-slate-850 mt-0.5">
-                    {adminRequests.filter((r: any) => r.status === "PENDING").length} Pengajuan
+                    {adminRequests.filter((r: any) => r.status === "PENDING").length} Requests
                   </div>
                 </div>
               </div>
@@ -656,9 +656,9 @@ export default function LeaveHubPage() {
                   <CheckCircle2 className="w-6 h-6 text-emerald-600" />
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Terdaftar Aktif</div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Registered Active</div>
                   <div className="text-sm font-bold text-slate-850 mt-0.5">
-                    {adminBalances.length} Karyawan
+                    {adminBalances.length} Employees
                   </div>
                 </div>
               </div>
@@ -668,7 +668,7 @@ export default function LeaveHubPage() {
             <div className="bg-white border border-slate-150/60 rounded-[2rem] p-8 shadow-sm space-y-4">
               <div className="text-sm font-bold text-slate-850 flex items-center gap-2 border-b border-slate-100 pb-3">
                 <Calendar className="w-4.5 h-4.5 text-blue-600" />
-                <span>Karyawan yang Sedang Cuti Hari Ini</span>
+                <span>Employees on Leave Today</span>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -683,7 +683,7 @@ export default function LeaveHubPage() {
                   if (onLeaveUsers.length === 0) {
                     return (
                       <div className="col-span-full py-8 text-center text-slate-400 font-semibold text-xs">
-                        Tidak ada karyawan yang sedang cuti hari ini.
+                        No employees are on leave today.
                       </div>
                     );
                   }
@@ -695,7 +695,7 @@ export default function LeaveHubPage() {
                         {req.user.division?.name || "No Division"} • {req.type.replace(/_/g, " ")}
                       </div>
                       <div className="text-[11px] text-slate-655 font-medium">
-                        Tanggal: {new Date(req.startDate).toLocaleDateString()} s/d {new Date(req.endDate).toLocaleDateString()}
+                        Date: {new Date(req.startDate).toLocaleDateString()} to {new Date(req.endDate).toLocaleDateString()}
                       </div>
                       <div className="text-[11px] italic text-slate-500 truncate mt-1">
                         "{req.reason}"
@@ -711,12 +711,12 @@ export default function LeaveHubPage() {
               <div className="bg-white border border-slate-150/60 rounded-[2rem] p-8 shadow-sm space-y-6">
                 <div className="text-sm font-bold text-slate-850 flex items-center gap-2 border-b border-slate-100 pb-3">
                   <Settings className="w-4.5 h-4.5 text-blue-600" />
-                  <span>Kustomisasi Form Cuti</span>
+                  <span>Leave Form Customization</span>
                 </div>
 
                 {/* Form Settings Toggles */}
                 <div className="space-y-4">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block border-b pb-1">Aktifkan Field Kustom</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block border-b pb-1">Enable Custom Fields</label>
                   
                   <label className="flex items-center gap-3 bg-slate-50 border border-slate-100 p-3 rounded-2xl cursor-pointer hover:bg-slate-100 transition-all select-none">
                     <input
@@ -726,8 +726,8 @@ export default function LeaveHubPage() {
                       className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                     />
                     <div>
-                      <div className="text-xs font-bold text-slate-700">Wajib Lampiran Dokumen</div>
-                      <div className="text-[10px] text-slate-400 font-medium">Meminta upload URL surat keterangan/pdf pendukung.</div>
+                      <div className="text-xs font-bold text-slate-700">Require Document Attachment</div>
+                      <div className="text-[10px] text-slate-400 font-medium">Requires uploading supporting certificate URL/PDF.</div>
                     </div>
                   </label>
 
@@ -739,8 +739,8 @@ export default function LeaveHubPage() {
                       className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                     />
                     <div>
-                      <div className="text-xs font-bold text-slate-700">Field Karyawan Handover/Backup</div>
-                      <div className="text-[10px] text-slate-400 font-medium">Input nama karyawan yang membackup tugas selama cuti.</div>
+                      <div className="text-xs font-bold text-slate-700">Handover Employee Field</div>
+                      <div className="text-[10px] text-slate-400 font-medium">Input backup employee name during leave.</div>
                     </div>
                   </label>
 
@@ -752,20 +752,20 @@ export default function LeaveHubPage() {
                       className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                     />
                     <div>
-                      <div className="text-xs font-bold text-slate-700">Field Kontak Darurat</div>
-                      <div className="text-[10px] text-slate-400 font-medium">Nomor telepon alternatif yang bisa dihubungi saat darurat.</div>
+                      <div className="text-xs font-bold text-slate-700">Emergency Contact Field</div>
+                      <div className="text-[10px] text-slate-400 font-medium">Alternative phone number for emergency contact.</div>
                     </div>
                   </label>
                 </div>
 
                 {/* Custom Leave Types Options */}
                 <div className="space-y-4 pt-4 border-t border-slate-100">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Tambah/Edit Jenis Cuti</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Add/Edit Leave Types</label>
                   
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      placeholder="Contoh: Cuti Melahirkan..."
+                      placeholder="Example: Maternity Leave..."
                       value={newLeaveType}
                       onChange={(e) => setNewLeaveType(e.target.value)}
                       className="input-field flex-1 bg-slate-50 text-xs py-2 border-slate-200"
@@ -807,18 +807,18 @@ export default function LeaveHubPage() {
                 <div className="bg-white border border-slate-150/60 rounded-[2rem] p-8 shadow-sm space-y-4">
                   <div className="text-sm font-bold text-slate-850 flex items-center gap-2 border-b border-slate-100 pb-3">
                     <Users className="w-4.5 h-4.5 text-blue-600" />
-                    <span>Daftar Sisa & Jatah Cuti Karyawan</span>
+                    <span>Employee Leave Balances</span>
                   </div>
 
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
                         <tr className="border-b border-slate-100 text-slate-400 uppercase tracking-widest text-[9px] font-bold">
-                          <th className="pb-3 text-left">Karyawan</th>
-                          <th className="pb-3 text-center">Jatah Mula</th>
-                          <th className="pb-3 text-center">Digunakan</th>
-                          <th className="pb-3 text-center">Sisa Cuti</th>
-                          <th className="pb-3 text-center">Aksi</th>
+                          <th className="pb-3 text-left">Employee</th>
+                          <th className="pb-3 text-center">Initial Balance</th>
+                          <th className="pb-3 text-center">Used</th>
+                          <th className="pb-3 text-center">Remaining Leave</th>
+                          <th className="pb-3 text-center">Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -828,9 +828,9 @@ export default function LeaveHubPage() {
                               <div className="font-extrabold text-slate-800">{bal.fullName}</div>
                               <div className="text-[10px] text-slate-400 font-medium">{bal.divisionName} • {bal.email}</div>
                             </td>
-                            <td className="py-3 text-center font-bold text-slate-700">{bal.allocated} Hari</td>
-                            <td className="py-3 text-center font-bold text-amber-600">{bal.used} Hari</td>
-                            <td className="py-3 text-center font-black text-blue-600">{bal.remaining} Hari</td>
+                            <td className="py-3 text-center font-bold text-slate-700">{bal.allocated} Days</td>
+                            <td className="py-3 text-center font-bold text-amber-600">{bal.used} Days</td>
+                            <td className="py-3 text-center font-black text-blue-600">{bal.remaining} Days</td>
                             <td className="py-3 text-center">
                               <button
                                 onClick={() => {
@@ -853,7 +853,7 @@ export default function LeaveHubPage() {
                 <div className="bg-white border border-slate-150/60 rounded-[2rem] p-8 shadow-sm space-y-4">
                   <div className="text-sm font-bold text-slate-850 flex items-center gap-2 border-b border-slate-100 pb-3">
                     <Shield className="w-4.5 h-4.5 text-blue-600" />
-                    <span>Semua Pengajuan Cuti (Log Admin)</span>
+                    <span>All Leave Requests (Admin Log)</span>
                   </div>
 
                   <div className="space-y-4 max-h-[420px] overflow-y-auto custom-scrollbar pr-1">
@@ -875,22 +875,22 @@ export default function LeaveHubPage() {
                         </div>
 
                         <div className="text-xs text-slate-655 font-bold">
-                          Jenis: {req.type.replace(/_/g, " ")} • 📅 {new Date(req.startDate).toLocaleDateString()} s/d {new Date(req.endDate).toLocaleDateString()}
+                          Type: {req.type.replace(/_/g, " ")} • 📅 {new Date(req.startDate).toLocaleDateString()} to {new Date(req.endDate).toLocaleDateString()}
                         </div>
                         <div className="text-xs text-slate-500 italic bg-white border border-slate-100 rounded-xl p-2.5">
-                          Alasan: "{req.reason}"
+                          Reason: "{req.reason}"
                         </div>
 
                         {/* Admin Action Override controls */}
                         <div className="flex items-center justify-between gap-4 pt-3 border-t border-slate-100">
                           <div className="text-[10px] text-slate-400 font-medium">
-                            Dibuat: {new Date(req.createdAt).toLocaleString()}
+                            Created: {new Date(req.createdAt).toLocaleString()}
                           </div>
                           
                           <div className="flex gap-2">
                             <button
                               onClick={() => {
-                                const notes = prompt("Catatan admin untuk persetujuan:");
+                                const notes = prompt("Admin notes for approval:");
                                 if (notes === null) return;
                                 adminOverrideRequestMutation.mutate({ requestId: req.id, status: "APPROVED", notes });
                               }}
@@ -900,7 +900,7 @@ export default function LeaveHubPage() {
                             </button>
                             <button
                               onClick={() => {
-                                const notes = prompt("Catatan admin untuk penolakan:");
+                                const notes = prompt("Admin notes for rejection:");
                                 if (notes === null) return;
                                 adminOverrideRequestMutation.mutate({ requestId: req.id, status: "REJECTED", notes });
                               }}
@@ -915,7 +915,7 @@ export default function LeaveHubPage() {
 
                     {adminRequests.length === 0 && (
                       <div className="py-16 text-center text-slate-400 font-semibold text-xs">
-                        Belum ada aktivitas pengajuan cuti sama sekali.
+                        No leave request activity yet.
                       </div>
                     )}
                   </div>
@@ -964,7 +964,7 @@ export default function LeaveHubPage() {
 
                     <div className="space-y-4 relative z-10">
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Total Jatah Cuti Mula (Allocated)</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Total Initial Leave Quota (Allocated)</label>
                         <input
                           type="number"
                           min="0"
@@ -975,7 +975,7 @@ export default function LeaveHubPage() {
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Jatah yang Sudah Digunakan (Used)</label>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Used Leave (Used)</label>
                         <input
                           type="number"
                           min="0"
@@ -986,8 +986,8 @@ export default function LeaveHubPage() {
                       </div>
 
                       <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-slate-100 text-xs font-bold text-slate-700">
-                        <span>Sisa Kuota Cuti Baru:</span>
-                        <span className="text-blue-600 font-extrabold text-sm">{adjustForm.allocated - adjustForm.used} Hari</span>
+                        <span>New Remaining Leave Quota:</span>
+                        <span className="text-blue-600 font-extrabold text-sm">{adjustForm.allocated - adjustForm.used} Days</span>
                       </div>
 
                       <button
@@ -1039,27 +1039,27 @@ export default function LeaveHubPage() {
           {/* Document Title */}
           <div className="text-center mb-8">
             <h2 className="text-lg font-black uppercase tracking-widest text-slate-900 decoration-double underline underline-offset-4">
-              FORMULIR PENGAJUAN CUTI KARYAWAN
+              EMPLOYEE LEAVE APPLICATION FORM
             </h2>
-            <p className="text-xs text-slate-500 mt-1">Status Dokumen: <strong className="uppercase">{selectedPrintLeave.status}</strong></p>
+            <p className="text-xs text-slate-500 mt-1">Document Status: <strong className="uppercase">{selectedPrintLeave.status}</strong></p>
           </div>
 
           {/* Information Section */}
           <div className="grid grid-cols-2 gap-8 mb-8 border border-slate-200 rounded-2xl p-6">
             <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 border-b pb-1">PROFIL KARYAWAN</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 border-b pb-1">EMPLOYEE PROFILE</h3>
               <table className="w-full text-xs text-left">
                 <tbody>
                   <tr className="border-b border-slate-100">
-                    <td className="py-2 font-bold text-slate-500">Nama Lengkap</td>
-                    <td className="py-2 text-slate-900 font-extrabold">{selectedPrintLeave.user?.fullName || "Karyawan YATO"}</td>
+                    <td className="py-2 font-bold text-slate-500">Full Name</td>
+                    <td className="py-2 text-slate-900 font-extrabold">{selectedPrintLeave.user?.fullName || "YATO Employee"}</td>
                   </tr>
                   <tr className="border-b border-slate-100">
-                    <td className="py-2 font-bold text-slate-500">Departemen / Divisi</td>
+                    <td className="py-2 font-bold text-slate-500">Department / Division</td>
                     <td className="py-2 text-slate-900">{selectedPrintLeave.user?.division?.name || "Unassigned"}</td>
                   </tr>
                   <tr>
-                    <td className="py-2 font-bold text-slate-500">Alamat Email</td>
+                    <td className="py-2 font-bold text-slate-500">Email Address</td>
                     <td className="py-2 text-slate-900">{selectedPrintLeave.user?.email || "-"}</td>
                   </tr>
                 </tbody>
@@ -1067,21 +1067,21 @@ export default function LeaveHubPage() {
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 border-b pb-1">RINCIAN PENGAJUAN</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 border-b pb-1">APPLICATION DETAILS</h3>
               <table className="w-full text-xs text-left">
                 <tbody>
                   <tr className="border-b border-slate-100">
-                    <td className="py-2 font-bold text-slate-500">Tipe Cuti</td>
+                    <td className="py-2 font-bold text-slate-500">Leave Type</td>
                     <td className="py-2 text-slate-900 font-bold uppercase">{selectedPrintLeave.type}</td>
                   </tr>
                   <tr className="border-b border-slate-100">
-                    <td className="py-2 font-bold text-slate-500">Durasi Cuti</td>
+                    <td className="py-2 font-bold text-slate-500">Leave Duration</td>
                     <td className="py-2 text-slate-900 font-bold">
-                      {new Date(selectedPrintLeave.startDate).toLocaleDateString()} s/d {new Date(selectedPrintLeave.endDate).toLocaleDateString()}
+                      {new Date(selectedPrintLeave.startDate).toLocaleDateString()} to {new Date(selectedPrintLeave.endDate).toLocaleDateString()}
                     </td>
                   </tr>
                   <tr>
-                    <td className="py-2 font-bold text-slate-500">Alasan / Detail</td>
+                    <td className="py-2 font-bold text-slate-500">Reason / Detail</td>
                     <td className="py-2 text-slate-900 italic">"{selectedPrintLeave.reason}"</td>
                   </tr>
                 </tbody>
@@ -1091,15 +1091,15 @@ export default function LeaveHubPage() {
 
           {/* Workflow Tracker */}
           <div className="space-y-4 mb-12">
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 border-b pb-2">WORKFLOW APPROVAL TRACKER (PERSETUJUAN BERJENJANG)</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 border-b pb-2">WORKFLOW APPROVAL TRACKER (HIERARCHICAL APPROVAL)</h3>
             <table className="w-full text-xs border border-slate-200 rounded-xl overflow-hidden">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="p-3 text-left font-black text-slate-600">LEVEL</th>
-                  <th className="p-3 text-left font-black text-slate-600">ROLE JABATAN</th>
+                  <th className="p-3 text-left font-black text-slate-600">POSITION ROLE</th>
                   <th className="p-3 text-left font-black text-slate-600">APPROVER</th>
                   <th className="p-3 text-left font-black text-slate-600">STATUS</th>
-                  <th className="p-3 text-left font-black text-slate-600">CATATAN PENINJAUAN</th>
+                  <th className="p-3 text-left font-black text-slate-600">REVIEW NOTES</th>
                 </tr>
               </thead>
               <tbody>
@@ -1120,30 +1120,30 @@ export default function LeaveHubPage() {
           <div className="grid grid-cols-2 gap-12 pt-8 border-t border-slate-200">
             <div className="text-center space-y-16">
               <div>
-                <p className="text-xs font-bold text-slate-400">Pemohon (Karyawan),</p>
+                <p className="text-xs font-bold text-slate-400">Applicant (Employee),</p>
               </div>
               <div>
-                <p className="text-xs font-black text-slate-900 underline underline-offset-4">{selectedPrintLeave.user?.fullName || "Karyawan YATO"}</p>
-                <p className="text-[10px] text-slate-400 mt-1">Tanda Tangan & Tanggal</p>
+                <p className="text-xs font-black text-slate-900 underline underline-offset-4">{selectedPrintLeave.user?.fullName || "YATO Employee"}</p>
+                <p className="text-[10px] text-slate-400 mt-1">Signature & Date</p>
               </div>
             </div>
 
             <div className="text-center space-y-16">
               <div>
-                <p className="text-xs font-bold text-slate-400">Penyetuju Akhir (Dept Head),</p>
+                <p className="text-xs font-bold text-slate-400">Final Approver (Dept Head),</p>
               </div>
               <div>
                 <p className="text-xs font-black text-slate-900 underline underline-offset-4">
                   {selectedPrintLeave.approvals?.find((a: any) => a.level === 3)?.approver?.fullName || "________________________"}
                 </p>
-                <p className="text-[10px] text-slate-400 mt-1">Tanda Tangan & Tanggal</p>
+                <p className="text-[10px] text-slate-400 mt-1">Signature & Date</p>
               </div>
             </div>
           </div>
 
           {/* Footnote */}
           <div className="mt-20 text-center text-[9px] text-slate-400 border-t pt-4">
-            <p>Formulir ini adalah dokumen digital resmi yang dihasilkan secara otomatis oleh {appName || "YATO"} Platform.</p>
+            <p>This form is an official digital document generated automatically by {appName || "YATO"} Platform.</p>
             <p className="font-mono mt-0.5">Checksum: MD5-{selectedPrintLeave.id.substring(0, 8).toUpperCase()}</p>
           </div>
 

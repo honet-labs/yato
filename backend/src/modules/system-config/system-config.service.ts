@@ -451,63 +451,90 @@ export class SystemConfigService {
   }
 
   private updateEnvFile(updates: Record<string, string>) {
-    const fs = require('fs');
-    const path = require('path');
-    const envPath = path.join(process.cwd(), '.env');
-    
-    let envContent = '';
-    if (fs.existsSync(envPath)) {
-      envContent = fs.readFileSync(envPath, 'utf8');
-    }
-    
-    let lines = envContent.split(/\r?\n/);
-    
-    for (const [key, value] of Object.entries(updates)) {
-      const regex = new RegExp(`^${key}=.*`);
-      let found = false;
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const envPath = path.join(process.cwd(), '.env');
       
-      lines = lines.map(line => {
-        if (regex.test(line.trim())) {
-          found = true;
-          return `${key}="${value}"`;
-        }
-        return line;
-      });
-      
-      if (!found) {
-        lines.push(`${key}="${value}"`);
+      let envContent = '';
+      if (fs.existsSync(envPath)) {
+        envContent = fs.readFileSync(envPath, 'utf8');
       }
+      
+      let lines = envContent.split(/\r?\n/);
+      
+      for (const [key, value] of Object.entries(updates)) {
+        const regex = new RegExp(`^${key}=.*`);
+        let found = false;
+        
+        lines = lines.map(line => {
+          if (regex.test(line.trim())) {
+            found = true;
+            return `${key}="${value}"`;
+          }
+          return line;
+        });
+        
+        if (!found) {
+          lines.push(`${key}="${value}"`);
+        }
+      }
+      
+      fs.writeFileSync(envPath, lines.join('\n'));
+    } catch (e: any) {
+      const logger = new Logger('SystemConfigService');
+      logger.warn(`Failed to write updates to .env file (permissions EACCES): ${e.message}. Settings are saved in Database and applied in-memory.`);
     }
-    
-    fs.writeFileSync(envPath, lines.join('\n'));
   }
 
   private updateDatabaseUrlLimit(connectionLimit: string) {
-    const fs = require('fs');
-    const path = require('path');
-    const envPath = path.join(process.cwd(), '.env');
-    
-    let envContent = '';
-    if (fs.existsSync(envPath)) {
-      envContent = fs.readFileSync(envPath, 'utf8');
-    }
-    
-    const match = envContent.match(/DATABASE_URL=["']?([^"'\n]+)["']?/);
-    if (match && match[1]) {
-      let currentUrl = match[1];
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const envPath = path.join(process.cwd(), '.env');
       
-      if (currentUrl.includes('connection_limit=')) {
-        currentUrl = currentUrl.replace(/connection_limit=\d+/, `connection_limit=${connectionLimit}`);
-      } else {
-        const separator = currentUrl.includes('?') ? '&' : '?';
-        currentUrl = `${currentUrl}${separator}connection_limit=${connectionLimit}`;
+      let envContent = '';
+      if (fs.existsSync(envPath)) {
+        envContent = fs.readFileSync(envPath, 'utf8');
       }
       
-      this.updateEnvFile({ DATABASE_URL: currentUrl });
+      const match = envContent.match(/DATABASE_URL=["']?([^"'\n]+)["']?/);
+      if (match && match[1]) {
+        let currentUrl = match[1];
+        
+        if (currentUrl.includes('connection_limit=')) {
+          currentUrl = currentUrl.replace(/connection_limit=\d+/, `connection_limit=${connectionLimit}`);
+        } else {
+          const separator = currentUrl.includes('?') ? '&' : '?';
+          currentUrl = `${currentUrl}${separator}connection_limit=${connectionLimit}`;
+        }
+        
+        this.updateEnvFile({ DATABASE_URL: currentUrl });
+      }
+    } catch (e: any) {
+      const logger = new Logger('SystemConfigService');
+      logger.warn(`Failed to update DATABASE_URL connection limit in .env file: ${e.message}`);
     }
   }
 
   async getTuningConfig() {
+    // 1. Try reading from Database first
+    try {
+      const setting = await this.prisma.systemSetting.findUnique({ where: { key: 'TUNING_CONFIG' } });
+      if (setting && setting.value) {
+        const config: any = setting.value;
+        return {
+          ramLimit: config.ramLimit || '1024',
+          dbPoolLimit: config.dbPoolLimit || '20',
+          notificationConcurrency: config.notificationConcurrency || '5',
+          cacheTtlSeconds: config.cacheTtlSeconds || '600',
+        };
+      }
+    } catch (dbErr) {
+      // Fallback to env file if database is not migrated/ready
+    }
+
+    // 2. Fallback to .env reading
     const fs = require('fs');
     const path = require('path');
     const envPath = path.join(process.cwd(), '.env');
@@ -550,7 +577,40 @@ export class SystemConfigService {
   async saveTuningConfig(config: any, userId: string) {
     const { ramLimit, dbPoolLimit, notificationConcurrency, cacheTtlSeconds, triggerRestart } = config;
     
+    // 1. Save to Database SystemSetting
+    try {
+      await this.prisma.systemSetting.upsert({
+        where: { key: 'TUNING_CONFIG' },
+        update: {
+          value: {
+            ramLimit: String(ramLimit || '1024'),
+            dbPoolLimit: String(dbPoolLimit || '20'),
+            notificationConcurrency: String(notificationConcurrency || '5'),
+            cacheTtlSeconds: String(cacheTtlSeconds || '600'),
+          }
+        },
+        create: {
+          key: 'TUNING_CONFIG',
+          value: {
+            ramLimit: String(ramLimit || '1024'),
+            dbPoolLimit: String(dbPoolLimit || '20'),
+            notificationConcurrency: String(notificationConcurrency || '5'),
+            cacheTtlSeconds: String(cacheTtlSeconds || '600'),
+          }
+        }
+      });
+    } catch (dbErr: any) {
+      const logger = new Logger('SystemConfigService');
+      logger.error(`Failed to save tuning config to database: ${dbErr.message}`);
+    }
+
+    // 2. Apply config in-memory to process.env immediately
     const nodeOptions = `--max-old-space-size=${ramLimit || '1024'}`;
+    process.env.NODE_OPTIONS = nodeOptions;
+    process.env.NOTIFICATION_CONCURRENCY = String(notificationConcurrency || '5');
+    process.env.CACHE_TTL_SECONDS = String(cacheTtlSeconds || '600');
+
+    // 3. Attempt to write to file system (gracefully handles EACCES warning)
     this.updateEnvFile({
       NODE_OPTIONS: nodeOptions,
       NOTIFICATION_CONCURRENCY: String(notificationConcurrency || '5'),

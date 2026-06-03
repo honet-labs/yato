@@ -2138,7 +2138,7 @@ export default function SystemConfigPage() {
             <section className="glass-card ring-1 ring-slate-200/60 shadow-xl shadow-slate-200/10">
               <div className="flex items-center gap-3 mb-8">
                 <Zap className="w-5 h-5 text-emerald-600" />
-                <h2 className="text-sm font-bold text-slate-900">Antrean & Worker Parallelism</h2>
+                <h2 className="text-sm font-bold text-slate-900">Queue & Worker Parallelism</h2>
               </div>
 
               <div className="space-y-6">

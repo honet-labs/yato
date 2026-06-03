@@ -40,25 +40,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useBranding } from "@/context/branding-context";
 import { useLanguage } from "@/context/language-context";
 
-const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: Ticket, label: "Ticket List", href: "/tickets" },
-  { icon: Box, label: "Service Inventory", href: "/service/inventory" },
-  { icon: Server, label: "VM Inventory", href: "/vm/inventory" },
-  { icon: Key, label: "Credentials", href: "/credentials" },
-  { icon: QrCode, label: "Asset Registry", href: "/assets" },
-  { icon: CheckSquare, label: "Tasks Tracker", href: "/tasks" },
-  { icon: Coffee, label: "HR & Attendance", href: "/timesheets" },
-  { icon: HardDrive, label: "File Manager", href: "/files" },
-  { icon: History, label: "Audit Logs", href: "/audit" },
-  { icon: ShieldCheck, label: "Security & MFA", href: "/profile/security" },
-];
 
-const adminItems = [
-  { icon: Users, label: "User Management", href: "/admin/users" },
-  { icon: ShieldCheck, label: "Roles & Permissions", href: "/admin/roles" },
-  { icon: Settings, label: "System Config", href: "/admin/config" },
-];
 
 interface SidebarProps {
   isMobile?: boolean;
@@ -166,6 +148,8 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
         { icon: CheckSquare, label: "Tasks Tracker", href: "/tasks" },
         { icon: Clock, label: "Attendance", href: "/hrm/attendance" },
         { icon: Coffee, label: "Leave Hub", href: "/hrm/leaves" },
+        { icon: ArrowLeftRight, label: "Shift Trades", href: "/hrm/shifts" },
+        { icon: Coins, label: "Overtime Hub", href: "/hrm/overtime" },
         { icon: Edit, label: "Notes & Schedule", href: "/notes" },
         { icon: HardDrive, label: "File Manager", href: "/files" },
       ]
@@ -176,7 +160,6 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
         { icon: Shield, label: "Management Admin Panel", href: "/hrm/admin-panel", permission: "VIEW_HRM_ADMIN_PANEL" },
         { icon: Shield, label: "Division Mappings", href: "/hrm/divisions", permission: "MANAGE_HRM_DIVISIONS" },
         { icon: Calendar, label: "Shift Scheduler", href: "/hrm/scheduler", permission: "MANAGE_HRM_SCHEDULER" },
-        // { icon: Coins, label: "Overtime Hub", href: "/hrm/overtime", permission: "MANAGE_HRM" },
         { icon: Edit, label: "Attendance Adjust", href: "/hrm/adjustments", permission: "MANAGE_HRM_ADJUSTMENTS" },
       ]
     },

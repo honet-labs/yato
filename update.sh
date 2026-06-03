@@ -120,6 +120,12 @@ show_update_success() {
         echo -e "\n"
     fi
 
+    echo -e "🔐 ${YELLOW}DEFAULT ACCESS CREDENTIALS:${NC}"
+    echo -e "   • ${GREEN}Email:${NC}           admin@yato.local"
+    echo -e "   • ${GREEN}Password:${NC}        admin123"
+    echo -e "   • ${RED}IMPORTANT:${NC}       Please change this default password immediately in your profile settings!"
+    echo -e ""
+
     echo -e "💡 ${YELLOW}USEFUL COMMANDS:${NC}"
     echo -e "   • ${GREEN}View Logs:${NC}           $DOCKER_COMPOSE logs -f"
     echo -e "   • ${GREEN}Restart Services:${NC}    $DOCKER_COMPOSE restart"

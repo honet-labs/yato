@@ -582,12 +582,12 @@ function ManagementAdminPanelContent() {
               <div className="bg-white border border-slate-150/60 rounded-[2rem] p-8 shadow-sm space-y-6">
                 <div className="text-sm font-bold text-slate-850 flex items-center gap-2 border-b border-slate-100 pb-3">
                   <Settings className="w-4.5 h-4.5 text-blue-600" />
-                  <span>Kustomisasi Form Cuti</span>
+                  <span>Leave Form Customization</span>
                 </div>
 
                 {/* Form Settings Toggles */}
                 <div className="space-y-4">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block border-b pb-1">Aktifkan Field Kustom</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block border-b pb-1">Enable Custom Fields</label>
                   
                   <label className="flex items-center gap-3 bg-slate-50 border border-slate-100 p-3 rounded-2xl cursor-pointer hover:bg-slate-100 transition-all select-none">
                     <input
@@ -597,8 +597,8 @@ function ManagementAdminPanelContent() {
                       className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                     />
                     <div>
-                      <div className="text-xs font-bold text-slate-700">Wajib Lampiran Dokumen</div>
-                      <div className="text-[10px] text-slate-400 font-medium">Meminta upload URL surat keterangan/pdf pendukung.</div>
+                      <div className="text-xs font-bold text-slate-700">Require Document Attachment</div>
+                      <div className="text-[10px] text-slate-400 font-medium">Requires uploading supporting certificate URL/PDF.</div>
                     </div>
                   </label>
 
@@ -610,8 +610,8 @@ function ManagementAdminPanelContent() {
                       className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                     />
                     <div>
-                      <div className="text-xs font-bold text-slate-700">Field Karyawan Handover</div>
-                      <div className="text-[10px] text-slate-400 font-medium">Input nama karyawan yang membackup tugas selama cuti.</div>
+                      <div className="text-xs font-bold text-slate-700">Handover Employee Field</div>
+                      <div className="text-[10px] text-slate-400 font-medium">Input backup employee name during leave.</div>
                     </div>
                   </label>
 
@@ -623,20 +623,20 @@ function ManagementAdminPanelContent() {
                       className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                     />
                     <div>
-                      <div className="text-xs font-bold text-slate-700">Field Kontak Darurat</div>
-                      <div className="text-[10px] text-slate-400 font-medium">Nomor telepon alternatif yang bisa dihubungi saat darurat.</div>
+                      <div className="text-xs font-bold text-slate-700">Emergency Contact Field</div>
+                      <div className="text-[10px] text-slate-400 font-medium">Alternative phone number for emergency contact.</div>
                     </div>
                   </label>
                 </div>
 
                 {/* Custom Leave Types Options */}
                 <div className="space-y-4 pt-4 border-t border-slate-100">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Tambah/Edit Jenis Cuti</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Add/Edit Leave Types</label>
                   
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      placeholder="Contoh: Cuti Melahirkan..."
+                      placeholder="Example: Maternity Leave..."
                       value={newLeaveType}
                       onChange={(e) => setNewLeaveType(e.target.value)}
                       className="input-field flex-1 bg-slate-50 text-xs py-2 border-slate-200"
@@ -678,18 +678,18 @@ function ManagementAdminPanelContent() {
                 <div className="bg-white border border-slate-150/60 rounded-[2rem] p-8 shadow-sm space-y-4">
                   <div className="text-sm font-bold text-slate-850 flex items-center gap-2 border-b border-slate-100 pb-3">
                     <Users className="w-4.5 h-4.5 text-blue-600" />
-                    <span>Daftar Sisa & Jatah Cuti Karyawan</span>
+                    <span>Employee Leave Balances</span>
                   </div>
 
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
                         <tr className="border-b border-slate-100 text-slate-400 uppercase tracking-widest text-[9px] font-bold">
-                          <th className="pb-3 text-left">Karyawan</th>
-                          <th className="pb-3 text-center">Jatah Mula</th>
-                          <th className="pb-3 text-center">Digunakan</th>
-                          <th className="pb-3 text-center">Sisa Cuti</th>
-                          <th className="pb-3 text-center">Aksi</th>
+                          <th className="pb-3 text-left">Employee</th>
+                          <th className="pb-3 text-center">Initial Balance</th>
+                          <th className="pb-3 text-center">Used</th>
+                          <th className="pb-3 text-center">Remaining Leave</th>
+                          <th className="pb-3 text-center">Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -769,7 +769,7 @@ function ManagementAdminPanelContent() {
                             </button>
                             <button
                               onClick={() => {
-                                const notes = prompt("Catatan admin untuk persetujuan:");
+                                const notes = prompt("Admin notes for approval:");
                                 if (notes === null) return;
                                 adminOverrideRequestMutation.mutate({ requestId: req.id, status: "APPROVED", notes });
                               }}
@@ -779,7 +779,7 @@ function ManagementAdminPanelContent() {
                             </button>
                             <button
                               onClick={() => {
-                                const notes = prompt("Catatan admin untuk penolakan:");
+                                const notes = prompt("Admin notes for rejection:");
                                 if (notes === null) return;
                                 adminOverrideRequestMutation.mutate({ requestId: req.id, status: "REJECTED", notes });
                               }}
@@ -815,12 +815,12 @@ function ManagementAdminPanelContent() {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm border border-slate-100 p-8"
             >
-              <h3 className="text-base font-bold text-slate-800 mb-1">Adjust Leave Balance</h3>
+              <h3 className="text-base font-bold text-slate-850 mb-1">Adjust Leave Balance</h3>
               <p className="text-[11px] font-medium text-slate-400 mb-6">Manually override total leave allocations for <strong>{isAdjustingBalance.fullName}</strong></p>
 
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Total Allocated Leave (Jatah Mula)</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Total Allocated Leave (Initial Balance)</label>
                   <input
                     type="number"
                     min={0}
@@ -831,7 +831,7 @@ function ManagementAdminPanelContent() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Used Leave (Cuti Digunakan)</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Used Leave (Used)</label>
                   <input
                     type="number"
                     min={0}
@@ -842,8 +842,8 @@ function ManagementAdminPanelContent() {
                 </div>
 
                 <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 flex justify-between text-xs items-center font-bold">
-                  <span className="text-slate-500 font-medium">New Remaining Cuti:</span>
-                  <span className="text-blue-600 text-xs font-black">{(adjustForm.allocated - adjustForm.used) || 0} Hari</span>
+                  <span className="text-slate-500 font-medium">New Remaining Leave:</span>
+                  <span className="text-blue-600 text-xs font-black">{(adjustForm.allocated - adjustForm.used) || 0} Days</span>
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -903,27 +903,27 @@ function ManagementAdminPanelContent() {
           {/* Document Title */}
           <div className="text-center mb-8">
             <h2 className="text-lg font-black uppercase tracking-widest text-slate-900 decoration-double underline underline-offset-4">
-              FORMULIR PENGAJUAN CUTI KARYAWAN
+              EMPLOYEE LEAVE APPLICATION FORM
             </h2>
-            <p className="text-xs text-slate-500 mt-1">Status Dokumen: <strong className="uppercase">{selectedPrintLeave.status}</strong></p>
+            <p className="text-xs text-slate-500 mt-1">Document Status: <strong className="uppercase">{selectedPrintLeave.status}</strong></p>
           </div>
 
           {/* Information Section */}
           <div className="grid grid-cols-2 gap-8 mb-8 border border-slate-200 rounded-2xl p-6">
             <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 border-b pb-1">PROFIL KARYAWAN</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 border-b pb-1">EMPLOYEE PROFILE</h3>
               <table className="w-full text-xs text-left">
                 <tbody>
                   <tr className="border-b border-slate-100">
-                    <td className="py-2 font-bold text-slate-500">Nama Lengkap</td>
-                    <td className="py-2 text-slate-900 font-extrabold">{selectedPrintLeave.user?.fullName || "Karyawan YATO"}</td>
+                    <td className="py-2 font-bold text-slate-500">Full Name</td>
+                    <td className="py-2 text-slate-900 font-extrabold">{selectedPrintLeave.user?.fullName || "YATO Employee"}</td>
                   </tr>
                   <tr className="border-b border-slate-100">
-                    <td className="py-2 font-bold text-slate-500">Departemen / Divisi</td>
+                    <td className="py-2 font-bold text-slate-500">Department / Division</td>
                     <td className="py-2 text-slate-900">{selectedPrintLeave.user?.division?.name || "Unassigned"}</td>
                   </tr>
                   <tr>
-                    <td className="py-2 font-bold text-slate-500">Alamat Email</td>
+                    <td className="py-2 font-bold text-slate-500">Email Address</td>
                     <td className="py-2 text-slate-900">{selectedPrintLeave.user?.email || "-"}</td>
                   </tr>
                 </tbody>
@@ -931,21 +931,21 @@ function ManagementAdminPanelContent() {
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 border-b pb-1">RINCIAN PENGAJUAN</h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 border-b pb-1">APPLICATION DETAILS</h3>
               <table className="w-full text-xs text-left">
                 <tbody>
                   <tr className="border-b border-slate-100">
-                    <td className="py-2 font-bold text-slate-500">Tipe Cuti</td>
+                    <td className="py-2 font-bold text-slate-500">Leave Type</td>
                     <td className="py-2 text-slate-900 font-bold uppercase">{selectedPrintLeave.type}</td>
                   </tr>
                   <tr className="border-b border-slate-100">
-                    <td className="py-2 font-bold text-slate-500">Durasi Cuti</td>
+                    <td className="py-2 font-bold text-slate-500">Leave Duration</td>
                     <td className="py-2 text-slate-900 font-bold">
-                      {new Date(selectedPrintLeave.startDate).toLocaleDateString()} s/d {new Date(selectedPrintLeave.endDate).toLocaleDateString()}
+                      {new Date(selectedPrintLeave.startDate).toLocaleDateString()} to {new Date(selectedPrintLeave.endDate).toLocaleDateString()}
                     </td>
                   </tr>
                   <tr>
-                    <td className="py-2 font-bold text-slate-500">Alasan / Detail</td>
+                    <td className="py-2 font-bold text-slate-500">Reason / Detail</td>
                     <td className="py-2 text-slate-900 italic">"{selectedPrintLeave.reason}"</td>
                   </tr>
                 </tbody>
@@ -955,15 +955,15 @@ function ManagementAdminPanelContent() {
 
           {/* Workflow Tracker */}
           <div className="space-y-4 mb-12">
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 border-b pb-2">WORKFLOW APPROVAL TRACKER (PERSETUJUAN BERJENJANG)</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 border-b pb-2">WORKFLOW APPROVAL TRACKER (HIERARCHICAL APPROVAL)</h3>
             <table className="w-full text-xs border border-slate-200 rounded-xl overflow-hidden">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="p-3 text-left font-black text-slate-600">LEVEL</th>
-                  <th className="p-3 text-left font-black text-slate-600">ROLE JABATAN</th>
+                  <th className="p-3 text-left font-black text-slate-600">POSITION ROLE</th>
                   <th className="p-3 text-left font-black text-slate-600">APPROVER</th>
                   <th className="p-3 text-left font-black text-slate-600">STATUS</th>
-                  <th className="p-3 text-left font-black text-slate-600">CATATAN PENINJAUAN</th>
+                  <th className="p-3 text-left font-black text-slate-600">REVIEW NOTES</th>
                 </tr>
               </thead>
               <tbody>
@@ -984,30 +984,30 @@ function ManagementAdminPanelContent() {
           <div className="grid grid-cols-2 gap-12 pt-8 border-t border-slate-200">
             <div className="text-center space-y-16">
               <div>
-                <p className="text-xs font-bold text-slate-400">Pemohon (Karyawan),</p>
+                <p className="text-xs font-bold text-slate-400">Applicant (Employee),</p>
               </div>
               <div>
-                <p className="text-xs font-black text-slate-900 underline underline-offset-4">{selectedPrintLeave.user?.fullName || "Karyawan YATO"}</p>
-                <p className="text-[10px] text-slate-400 mt-1">Tanda Tangan & Tanggal</p>
+                <p className="text-xs font-black text-slate-900 underline underline-offset-4">{selectedPrintLeave.user?.fullName || "YATO Employee"}</p>
+                <p className="text-[10px] text-slate-400 mt-1">Signature & Date</p>
               </div>
             </div>
 
             <div className="text-center space-y-16">
               <div>
-                <p className="text-xs font-bold text-slate-400">Penyetuju Akhir (Dept Head),</p>
+                <p className="text-xs font-bold text-slate-400">Final Approver (Dept Head),</p>
               </div>
               <div>
                 <p className="text-xs font-black text-slate-900 underline underline-offset-4">
                   {selectedPrintLeave.approvals?.find((a: any) => a.level === 3)?.approver?.fullName || "________________________"}
                 </p>
-                <p className="text-[10px] text-slate-400 mt-1">Tanda Tangan & Tanggal</p>
+                <p className="text-[10px] text-slate-400 mt-1">Signature & Date</p>
               </div>
             </div>
           </div>
 
           {/* Footnote */}
           <div className="mt-20 text-center text-[9px] text-slate-400 border-t pt-4">
-            <p>Formulir ini adalah dokumen digital resmi yang dihasilkan secara otomatis oleh {appName || "YATO"} Platform.</p>
+            <p>This form is an official digital document generated automatically by {appName || "YATO"} Platform.</p>
             <p className="font-mono mt-0.5">Checksum: MD5-{selectedPrintLeave.id.substring(0, 8).toUpperCase()}</p>
           </div>
 

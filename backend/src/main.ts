@@ -11,6 +11,31 @@ import { AuditContextService } from './common/context/audit-context.service';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
+
+  // Load tuning configurations from Database to override process.env early
+  const { PrismaClient } = require('@prisma/client');
+  const prisma = new PrismaClient();
+  try {
+    const setting = await prisma.systemSetting.findUnique({ where: { key: 'TUNING_CONFIG' } });
+    if (setting && setting.value) {
+      const config = setting.value as any;
+      if (config.ramLimit) {
+        process.env.NODE_OPTIONS = `--max-old-space-size=${config.ramLimit}`;
+      }
+      if (config.notificationConcurrency) {
+        process.env.NOTIFICATION_CONCURRENCY = String(config.notificationConcurrency);
+      }
+      if (config.cacheTtlSeconds) {
+        process.env.CACHE_TTL_SECONDS = String(config.cacheTtlSeconds);
+      }
+      logger.log(`Tuning configurations loaded from database: ${JSON.stringify(config)}`);
+    }
+  } catch (e) {
+    // Database may not be ready, migrated, or connected yet during initial bootstrap. Ignore.
+  } finally {
+    await prisma.$disconnect();
+  }
+
   const app = await NestFactory.create(AppModule, {
     logger: winstonLogger,
   });

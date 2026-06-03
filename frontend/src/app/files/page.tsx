@@ -449,7 +449,7 @@ export default function FileManagerPage() {
               {isLoadingConfig ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-2">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Menarik data konfigurasi...</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fetching configuration data...</span>
                 </div>
               ) : (
                 <form onSubmit={handleSaveConfig} className="space-y-6">
@@ -460,7 +460,7 @@ export default function FileManagerPage() {
                     </label>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {[
-                        { id: "DATABASE", label: "DATABASE (Base64)", desc: "Simpan langsung di Postgres", icon: Database },
+                        { id: "DATABASE", label: "DATABASE (Base64)", desc: "Save directly in Postgres", icon: Database },
                         { id: "NAS", label: "NAS / Directory", desc: "Local server directory share", icon: HardDrive },
                         { id: "S3", label: "S3 Storage / MinIO", desc: "AWS S3 / MinIO Cloud Buckets", icon: Cloud },
                         { id: "GOOGLE_DRIVE", label: "Google Drive API", desc: "Google Drive OAuth 2.0 folder", icon: ExternalLink },
@@ -492,7 +492,7 @@ export default function FileManagerPage() {
                       <div className="space-y-2 text-slate-500 leading-relaxed text-[11.5px] font-medium flex items-start gap-2.5 p-2">
                         <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
                         <div>
-                          <strong>DATABASE Driver:</strong> File attachment akan diserialisasikan ke format Base64 Data URL dan disimpan langsung di dalam tabel database PostgreSQL (`StorageFile.path`). Sangat praktis untuk instalasi awal tanpa dependensi storage luar.
+                          <strong>DATABASE Driver:</strong> File attachments will be serialized to Base64 Data URL format and saved directly in the PostgreSQL database table (`StorageFile.path`). Very practical for initial setup without external storage dependencies.
                         </div>
                       </div>
                     )}
@@ -512,7 +512,7 @@ export default function FileManagerPage() {
                             className="input-field w-full bg-white"
                           />
                           <p className="text-[9.5px] font-semibold text-slate-400 leading-normal">
-                            Pastikan folder tersebut dapat ditulis (*writable*) oleh user proses kontainer. Folder akan otomatis dibuat jika belum ada.
+                            Ensure the folder is writable by the container process user. The folder will be created automatically if it does not exist.
                           </p>
                         </div>
                       </div>
@@ -606,7 +606,7 @@ export default function FileManagerPage() {
                             <input 
                               type="text" 
                               required
-                              placeholder="Client ID dari Google Developer Console"
+                              placeholder="Client ID from Google Developer Console"
                               value={driveClientId}
                               onChange={(e) => setDriveClientId(e.target.value)}
                               className="input-field w-full bg-white"
@@ -636,7 +636,7 @@ export default function FileManagerPage() {
                             <input 
                               type="password" 
                               required
-                              placeholder="Refresh token untuk memperbarui access token"
+                              placeholder="Refresh token to renew access token"
                               value={driveRefreshToken}
                               onChange={(e) => setDriveRefreshToken(e.target.value)}
                               className="input-field w-full bg-white"
@@ -649,7 +649,7 @@ export default function FileManagerPage() {
                             </label>
                             <input 
                               type="text" 
-                              placeholder="Folder ID target penempatan (kosongkan untuk root)"
+                              placeholder="Target folder ID (leave empty for root)"
                               value={driveFolderId}
                               onChange={(e) => setDriveFolderId(e.target.value)}
                               className="input-field w-full bg-white"
@@ -670,7 +670,7 @@ export default function FileManagerPage() {
                           exit={{ opacity: 0, y: 5 }}
                           className="text-[10px] font-bold text-emerald-600 uppercase flex items-center gap-1"
                         >
-                          <Check className="w-4 h-4" /> Konfigurasi berhasil disimpan!
+                          <Check className="w-4 h-4" /> Configuration saved successfully!
                         </motion.span>
                       )}
                     </AnimatePresence>
