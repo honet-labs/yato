@@ -10,9 +10,14 @@ NC='\033[0m'
 
 echo -e "${GREEN}🚀 Starting YATO Modular Installation...${NC}"
 
-# Helper: Check if a port is in use on the host
+# Helper: Check if a port is in use on the host or already reserved in .env
 is_port_in_use() {
     local port=$1
+    # Check if the port is already allocated in the current .env file
+    if [ -f ".env" ] && grep -qE "=\"?${port}\"?$" .env; then
+        return 0
+    fi
+    # Check if the port is in use on the host
     if command -v ss >/dev/null 2>&1; then
         ss -tln | grep -q ":$port " && return 0
     elif command -v netstat >/dev/null 2>&1; then
