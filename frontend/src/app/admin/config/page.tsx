@@ -169,7 +169,6 @@ export default function SystemConfigPage() {
   const [tuningConfig, setTuningConfig] = useState({
     ramLimit: "1024",
     dbPoolLimit: "20",
-    vmProvisioningConcurrency: "3",
     notificationConcurrency: "5",
     cacheTtlSeconds: "600"
   });
@@ -2143,29 +2142,8 @@ export default function SystemConfigPage() {
               </div>
 
               <div className="space-y-6">
-                {/* VM Provisioning worker concurrency */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">VM Requests Queue Concurrency</label>
-                    <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded text-xs">
-                      {tuningConfig.vmProvisioningConcurrency} Workers
-                    </span>
-                  </div>
-                  <input
-                    type="number"
-                    min="1"
-                    max="20"
-                    className="input-field w-full font-bold text-slate-800"
-                    value={tuningConfig.vmProvisioningConcurrency}
-                    onChange={(e) => setTuningConfig({ ...tuningConfig, vmProvisioningConcurrency: e.target.value })}
-                  />
-                  <p className="text-[10px] text-slate-400 font-medium px-1 leading-relaxed">
-                    Determines how many VM request setups the hypervisor queue can execute in parallel.
-                  </p>
-                </div>
-
                 {/* Notifications worker concurrency */}
-                <div className="space-y-3 pt-4 border-t border-slate-100">
+                <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Notification Delivery Concurrency</label>
                     <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded text-xs">

@@ -542,19 +542,17 @@ export class SystemConfigService {
     return {
       ramLimit,
       dbPoolLimit,
-      vmProvisioningConcurrency: getVal('VM_PROVISIONING_CONCURRENCY', '3'),
       notificationConcurrency: getVal('NOTIFICATION_CONCURRENCY', '5'),
       cacheTtlSeconds: getVal('CACHE_TTL_SECONDS', '600'),
     };
   }
 
   async saveTuningConfig(config: any, userId: string) {
-    const { ramLimit, dbPoolLimit, vmProvisioningConcurrency, notificationConcurrency, cacheTtlSeconds, triggerRestart } = config;
+    const { ramLimit, dbPoolLimit, notificationConcurrency, cacheTtlSeconds, triggerRestart } = config;
     
     const nodeOptions = `--max-old-space-size=${ramLimit || '1024'}`;
     this.updateEnvFile({
       NODE_OPTIONS: nodeOptions,
-      VM_PROVISIONING_CONCURRENCY: String(vmProvisioningConcurrency || '3'),
       NOTIFICATION_CONCURRENCY: String(notificationConcurrency || '5'),
       CACHE_TTL_SECONDS: String(cacheTtlSeconds || '600'),
     });
