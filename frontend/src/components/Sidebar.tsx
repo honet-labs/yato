@@ -70,7 +70,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { appName, appLogo } = useBranding();
-  const { lang, setLang } = useLanguage();
+  const { lang, setLang, t } = useLanguage();
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -239,7 +239,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                 onClick={() => toggleSection(section.title)}
                 className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50/50 rounded-lg uppercase tracking-widest transition-all cursor-pointer group"
               >
-                <span>{section.title}</span>
+                <span>{t(section.title)}</span>
                 <ChevronRight className={cn(
                   "w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 transition-transform duration-200",
                   !isCollapsed && "rotate-90"
@@ -268,7 +268,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                         )}
                       >
                         <item.icon className={cn("w-4 h-4", pathname === item.href ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600")} />
-                        <span className="font-semibold text-[13px] tracking-tight">{item.label}</span>
+                        <span className="font-semibold text-[13px] tracking-tight">{t(item.label)}</span>
                         {item.href === "/tickets" && ticketUnreadCount > 0 && (
                           <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
                             {ticketUnreadCount}
@@ -434,7 +434,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                     className="flex items-center gap-3 px-4 py-2.5 text-[11px] font-bold text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-all"
                   >
                     <Users className="w-4 h-4" />
-                    ACCOUNT SETTINGS
+                    {t("ACCOUNT SETTINGS")}
                   </Link>
                   <Link 
                     href="/profile/security" 
@@ -442,7 +442,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                     className="flex items-center gap-3 px-4 py-2.5 text-[11px] font-bold text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-all"
                   >
                     <ShieldCheck className="w-4 h-4" />
-                    SECURITY & MFA
+                    {t("SECURITY & MFA")}
                   </Link>
                   <div className="h-px bg-slate-100/50 my-2 mx-2" />
                   <button 
@@ -450,7 +450,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-[11px] font-bold text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                   >
                     <LogOut className="w-4 h-4" />
-                    SIGN OUT
+                    {t("SIGN OUT")}
                   </button>
                 </div>
               </motion.div>

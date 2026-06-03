@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/context/language-context";
 
 // Google Keep-like standard color options
 const COLOR_PALETTE = [
@@ -47,6 +48,7 @@ const COLOR_PALETTE = [
 
 export default function NotesPage() {
   const queryClient = useQueryClient();
+  const { lang } = useLanguage();
   const [currentView, setCurrentView] = useState<"notes" | "reminders" | "archive" | "trash" | "calendar">("notes");
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -224,7 +226,7 @@ export default function NotesPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
             <PageHeader 
               title="Notes & Schedule" 
-              subtitle="Tulis catatan penting seperti Google Keep dan atur jadwal pengingat (Reminder) terintegrasi dengan Kalender pribadi Anda. Anda dapat mengaktifkan notifikasi Telegram, WhatsApp, atau Email melalui menu Profil."
+              subtitle="Write down important notes like Google Keep and organize your reminders integrated with your personal calendar. You can enable WhatsApp, Telegram, or Email notifications in your profile settings."
             />
             
             {/* Search Bar */}
@@ -232,7 +234,7 @@ export default function NotesPage() {
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input 
                 type="text" 
-                placeholder="Cari catatan..." 
+                placeholder="Search notes..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 text-sm transition-all"
@@ -248,11 +250,11 @@ export default function NotesPage() {
           {/* Navigation Views / Tabs */}
           <div className="flex flex-wrap gap-2 mb-8 bg-slate-100 p-1.5 rounded-2xl w-fit">
             {[
-              { id: "notes", label: "Catatan", icon: FolderIcon },
-              { id: "reminders", label: "Pengingat", icon: Bell },
-              { id: "archive", label: "Arsip", icon: Archive },
-              { id: "trash", label: "Sampah", icon: Trash2 },
-              { id: "calendar", label: "Kalender Schedule", icon: CalendarIcon },
+              { id: "notes", label: "Notes", icon: FolderIcon },
+              { id: "reminders", label: "Reminders", icon: Bell },
+              { id: "archive", label: "Archive", icon: Archive },
+              { id: "trash", label: "Trash", icon: Trash2 },
+              { id: "calendar", label: "Calendar Schedule", icon: CalendarIcon },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -287,13 +289,13 @@ export default function NotesPage() {
                   <div className="p-4 space-y-3">
                     <input 
                       type="text" 
-                      placeholder="Judul" 
+                      placeholder="Title" 
                       value={newTitle}
                       onChange={(e) => setNewTitle(e.target.value)}
                       className="w-full bg-transparent border-none outline-none font-bold text-base text-slate-800 placeholder-slate-400"
                     />
                     <textarea 
-                      placeholder="Buat catatan..." 
+                      placeholder="Take a note..." 
                       rows={3}
                       value={newContent}
                       onChange={(e) => setNewContent(e.target.value)}
@@ -360,14 +362,14 @@ export default function NotesPage() {
                           onClick={resetCreator}
                           className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
                         >
-                          Batal
+                          Cancel
                         </button>
                         <button 
                           onClick={handleCreateNote}
                           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1"
                         >
                           <Plus className="w-3.5 h-3.5" />
-                          Simpan
+                          Save
                         </button>
                       </div>
                     </div>
@@ -377,7 +379,7 @@ export default function NotesPage() {
                     onClick={() => setIsCreatorExpanded(true)}
                     className="p-4 flex items-center justify-between cursor-pointer text-slate-400 hover:text-slate-600"
                   >
-                    <span className="text-sm font-semibold">Buat catatan...</span>
+                    <span className="text-sm font-semibold">Take a note...</span>
                     <Plus className="w-5 h-5 text-slate-400" />
                   </div>
                 )}
@@ -398,8 +400,8 @@ export default function NotesPage() {
                   <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-4">
                     <FolderIcon className="w-8 h-8" />
                   </div>
-                  <h3 className="font-bold text-slate-700 text-base">Tidak ada catatan ditemukan</h3>
-                  <p className="text-slate-500 text-xs mt-1">Buat catatan baru atau ubah filter pencarian Anda.</p>
+                  <h3 className="font-bold text-slate-700 text-base">No notes found</h3>
+                  <p className="text-slate-500 text-xs mt-1">Create a new note or change your search filter.</p>
                 </div>
               ) : (
                 <div className="space-y-10">
@@ -408,7 +410,7 @@ export default function NotesPage() {
                     <div className="flex items-center justify-between bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-2xl max-w-xl mx-auto mb-6">
                       <div className="flex items-center gap-2">
                         <Info className="w-5 h-5 shrink-0" />
-                        <span className="text-xs font-bold">Catatan di Sampah akan dihapus secara berkala.</span>
+                        <span className="text-xs font-bold">Notes in trash will be deleted periodically.</span>
                       </div>
                       <button 
                         onClick={() => emptyTrashMutation.mutate()}
@@ -416,7 +418,7 @@ export default function NotesPage() {
                         className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5"
                       >
                         <Trash className="w-4 h-4" />
-                        Kosongkan Sampah
+                        Empty Trash
                       </button>
                     </div>
                   )}
@@ -424,7 +426,7 @@ export default function NotesPage() {
                   {/* Pinned Section */}
                   {pinnedNotes.length > 0 && (
                     <div className="space-y-4">
-                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">DISEMATKAN</h4>
+                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PINNED</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         {pinnedNotes.map(note => (
                           <NoteCard 
@@ -445,7 +447,7 @@ export default function NotesPage() {
                   {/* Others Section */}
                   {otherNotes.length > 0 && (
                     <div className="space-y-4">
-                      {pinnedNotes.length > 0 && <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">LAINNYA</h4>}
+                      {pinnedNotes.length > 0 && <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">OTHERS</h4>}
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         {otherNotes.map(note => (
                           <NoteCard 
@@ -495,7 +497,7 @@ export default function NotesPage() {
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                   <h3 className="font-extrabold text-slate-800 text-lg">
-                    {currentDate.toLocaleString("default", { month: "long", year: "numeric" })}
+                    {currentDate.toLocaleString(lang === "EN" ? "en-US" : "id-ID", { month: "long", year: "numeric" })}
                   </h3>
                   <button onClick={nextMonth} className="p-2 hover:bg-slate-100 rounded-xl transition-all text-slate-600">
                     <ChevronRight className="w-5 h-5" />
@@ -505,14 +507,14 @@ export default function NotesPage() {
                   onClick={() => setCurrentDate(new Date())} 
                   className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl shadow-sm transition-all"
                 >
-                  Hari Ini
+                  Today
                 </button>
               </div>
 
               {/* Grid Calendar */}
               <div className="grid grid-cols-7 gap-px bg-slate-100 border border-slate-150 rounded-2xl overflow-hidden">
                 {/* Day Headers */}
-                {["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"].map(day => (
+                {(lang === "ID" ? ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"] : ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]).map(day => (
                   <div key={day} className="bg-slate-50 py-3 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                     {day}
                   </div>
@@ -560,7 +562,7 @@ export default function NotesPage() {
                                 }}
                                 className="p-1.5 rounded-lg border border-slate-200/50 text-[10px] font-bold text-slate-800 truncate shadow-sm transition-all hover:brightness-95 active:scale-95"
                                 style={{ backgroundColor: note.color || "#ffffff" }}
-                                title={`${note.title || "Catatan"}: ${note.content}`}
+                                title={`${note.title || "Note"}: ${note.content}`}
                               >
                                 <span className="flex items-center gap-1">
                                   {note.isPinned && <Pin className="w-2.5 h-2.5 text-slate-600 shrink-0" />}
@@ -603,14 +605,14 @@ export default function NotesPage() {
               <div className="p-6 space-y-4">
                 <input 
                   type="text" 
-                  placeholder="Judul" 
+                  placeholder="Title" 
                   value={editingNote.title || ""}
                   onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
                   className="w-full bg-transparent border-none outline-none font-bold text-lg text-slate-800 placeholder-slate-400"
                 />
                 
                 <textarea 
-                  placeholder="Buat catatan..." 
+                  placeholder="Take a note..." 
                   rows={6}
                   value={editingNote.content || ""}
                   onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
@@ -677,13 +679,13 @@ export default function NotesPage() {
                       onClick={() => setEditingNote(null)}
                       className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
                     >
-                      Tutup
+                      Close
                     </button>
                     <button 
                       onClick={() => updateMutation.mutate({ id: editingNote.id, data: editingNote })}
                       className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
                     >
-                      Simpan Perubahan
+                      Save Changes
                     </button>
                   </div>
                 </div>
@@ -716,7 +718,8 @@ function NoteCard({
   showColorPicker, 
   setShowColorPicker 
 }: NoteCardProps) {
-  const formattedReminder = note.reminderAt ? new Date(note.reminderAt).toLocaleString("id-ID", {
+  const { lang } = useLanguage();
+  const formattedReminder = note.reminderAt ? new Date(note.reminderAt).toLocaleString(lang === "EN" ? "en-US" : "id-ID", {
     day: "numeric",
     month: "short",
     hour: "2-digit",
@@ -750,7 +753,7 @@ function NoteCard({
         <div className={cn("mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black w-fit tracking-wider", note.reminderSent ? "bg-slate-100 text-slate-400" : "bg-blue-600/10 text-blue-700")}>
           <Clock className="w-3 h-3" />
           <span>{formattedReminder}</span>
-          {note.reminderSent && <span className="text-[8px] font-normal italic">(Sudah terkirim)</span>}
+          {note.reminderSent && <span className="text-[8px] font-normal italic">(Sent)</span>}
         </div>
       )}
 
@@ -763,7 +766,7 @@ function NoteCard({
               <button 
                 onClick={() => onUpdate({ isPinned: !note.isPinned })}
                 className={cn("p-1.5 rounded-lg hover:bg-slate-100 text-slate-500", note.isPinned ? "text-amber-600" : "")}
-                title={note.isPinned ? "Lepas Catatan" : "Sematkan Catatan"}
+                title={note.isPinned ? "Unpin Note" : "Pin Note"}
               >
                 <Pin className="w-3.5 h-3.5" />
               </button>
@@ -773,7 +776,7 @@ function NoteCard({
                 <button 
                   onClick={() => setShowColorPicker(showColorPicker === note.id ? null : note.id)}
                   className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"
-                  title="Pilih Warna"
+                  title="Choose Color"
                 >
                   <Palette className="w-3.5 h-3.5" />
                 </button>
@@ -801,7 +804,7 @@ function NoteCard({
               <button 
                 onClick={() => onUpdate({ isArchived: !note.isArchived })}
                 className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"
-                title={note.isArchived ? "Unarsip" : "Arsipkan"}
+                title={note.isArchived ? "Unarchive" : "Archive"}
               >
                 <Archive className="w-3.5 h-3.5" />
               </button>
@@ -810,7 +813,7 @@ function NoteCard({
               <button 
                 onClick={() => onUpdate({ isTrashed: true, isPinned: false })}
                 className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"
-                title="Hapus ke Sampah"
+                title="Delete"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -821,7 +824,7 @@ function NoteCard({
               <button 
                 onClick={() => onUpdate({ isTrashed: false })}
                 className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"
-                title="Pulihkan Catatan"
+                title="Restore Note"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
@@ -830,7 +833,7 @@ function NoteCard({
               <button 
                 onClick={() => onDelete()}
                 className="p-1.5 rounded-lg hover:bg-slate-100 text-rose-600"
-                title="Hapus Permanen"
+                title="Delete Permanently"
               >
                 <Trash className="w-3.5 h-3.5" />
               </button>
