@@ -34,7 +34,8 @@ import {
   Share2,
   Link2,
   UserPlus,
-  Edit
+  Edit,
+  Download
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -122,6 +123,27 @@ export default function TasksPage() {
   const [copyNotification, setCopyNotification] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [commentAttachments, setCommentAttachments] = useState<{ filename: string; base64Data: string }[]>([]);
+
+  const [isAssigneePanelOpen, setIsAssigneePanelOpen] = useState(false);
+  const [isFollowerPanelOpen, setIsFollowerPanelOpen] = useState(false);
+  const [isTagPanelOpen, setIsTagPanelOpen] = useState(false);
+
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [loadedTaskId, setLoadedTaskId] = useState<string | null>(null);
+  const [detailChecklist, setDetailChecklist] = useState<any[]>([]);
+
+  const isImageFile = (filename: string, mimeType?: string) => {
+    if (mimeType && mimeType.toLowerCase().startsWith('image/')) return true;
+    const ext = filename.split('.').pop()?.toLowerCase();
+    return ext ? ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext) : false;
+  };
+
+  const getFileUrl = (file: { id: string; driver: string; path?: string }) => {
+    if (file.driver === "DATABASE" && file.path) {
+      return file.path;
+    }
+    return `/api/storage/download/${file.id}`;
+  };
 
   // Premium Mentions States
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -311,15 +333,32 @@ export default function TasksPage() {
   // Keep detail forms updated when taskDetail loads
   useEffect(() => {
     if (taskDetail) {
-      setDetailTitle(taskDetail.title);
-      setNewDetailDesc(taskDetail.description || "");
+      const isNewTask = taskDetail.id !== loadedTaskId;
+      const activeId = typeof document !== 'undefined' ? document.activeElement?.id : null;
+      
+      if (isNewTask || activeId !== "task-detail-title") {
+        setDetailTitle(taskDetail.title);
+      }
+      if (isNewTask || activeId !== "task-detail-desc") {
+        setNewDetailDesc(taskDetail.description || "");
+      }
+      
+      const isEditingChecklist = activeId?.startsWith("checklist-input-");
+      if (isNewTask || !isEditingChecklist) {
+        setDetailChecklist(taskDetail.checklist || []);
+      }
+      
       setDetailStatus(taskDetail.status);
       setDetailPriority(taskDetail.priority);
       setDetailType(taskDetail.taskType);
       setDetailDueDate(taskDetail.dueDate ? taskDetail.dueDate.split("T")[0] : "");
       setDetailAssignee(taskDetail.assigneeId || "");
+      setLoadedTaskId(taskDetail.id);
+    } else {
+      setLoadedTaskId(null);
+      setDetailChecklist([]);
     }
-  }, [taskDetail]);
+  }, [taskDetail, loadedTaskId]);
 
   // Create Task Mutation
   const createTaskMutation = useMutation({
@@ -504,31 +543,45 @@ export default function TasksPage() {
   };
 
   // Checklist Helpers
-  const handleUpdateChecklistItem = (itemId: string, updates: Partial<{ text: string; isDone: boolean }>) => {
-    if (!taskDetail) return;
-    const currentChecklist = taskDetail.checklist || [];
-    const updatedChecklist = currentChecklist.map((item: any) => 
-      item.id === itemId ? { ...item, ...updates } : item
+  const handleUpdateChecklistItemLocal = (itemId: string, text: string) => {
+    setDetailChecklist((prev) => 
+      prev.map((item) => (item.id === itemId ? { ...item, text } : item))
     );
-    handleFieldUpdate("checklist", updatedChecklist);
+  };
+
+  const handleToggleChecklistItem = (itemId: string, isDone: boolean) => {
+    setDetailChecklist((prev) => {
+      const updated = prev.map((item) => (item.id === itemId ? { ...item, isDone } : item));
+      handleFieldUpdate("checklist", updated);
+      return updated;
+    });
   };
 
   const handleAddChecklistItem = () => {
-    if (!taskDetail) return;
-    const currentChecklist = taskDetail.checklist || [];
     const newItem = {
       id: Math.random().toString(36).substring(2, 11),
       text: "",
       isDone: false
     };
-    handleFieldUpdate("checklist", [...currentChecklist, newItem]);
+    setDetailChecklist((prev) => {
+      const updated = [...prev, newItem];
+      handleFieldUpdate("checklist", updated);
+      return updated;
+    });
+    
+    // Focus the new item input after creation
+    setTimeout(() => {
+      const el = document.getElementById(`checklist-input-${newItem.id}`);
+      if (el) el.focus();
+    }, 50);
   };
 
   const handleDeleteChecklistItem = (itemId: string) => {
-    if (!taskDetail) return;
-    const currentChecklist = taskDetail.checklist || [];
-    const updatedChecklist = currentChecklist.filter((item: any) => item.id !== itemId);
-    handleFieldUpdate("checklist", updatedChecklist);
+    setDetailChecklist((prev) => {
+      const updated = prev.filter((item) => item.id !== itemId);
+      handleFieldUpdate("checklist", updated);
+      return updated;
+    });
   };
 
   // Followers Helpers
@@ -1670,6 +1723,7 @@ export default function TasksPage() {
                   {/* Task Title */}
                   <div className="space-y-1">
                     <input 
+                      id="task-detail-title"
                       type="text" 
                       value={detailTitle}
                       onChange={(e) => setDetailTitle(e.target.value)}
@@ -1774,26 +1828,35 @@ export default function TasksPage() {
                         ))}
                         
                         {/* Assignee drop triggers */}
-                        <div className="relative group/ass">
-                          <button type="button" className="w-6 h-6 rounded-full border border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-400 hover:bg-blue-50/30 transition-all">
+                        <div className="relative">
+                          <button 
+                            type="button" 
+                            onClick={() => setIsAssigneePanelOpen(!isAssigneePanelOpen)}
+                            className="w-6 h-6 rounded-full border border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-400 hover:bg-blue-50/30 transition-all"
+                          >
                             <Plus className="w-3.5 h-3.5" />
                           </button>
-                          <div className="absolute left-0 top-full mt-1.5 w-48 bg-white border border-slate-200/80 rounded-xl shadow-xl p-1.5 z-30 opacity-0 pointer-events-none group-hover/ass:opacity-100 group-hover/ass:pointer-events-auto transition-all divide-y divide-slate-50 max-h-40 overflow-y-auto">
-                            {users?.map((u: any) => {
-                              const isAssigned = taskDetail?.assignees?.some((a: any) => a.id === u.id);
-                              return (
-                                <button 
-                                  key={u.id}
-                                  type="button"
-                                  onClick={() => handleToggleAssignee(u.id)}
-                                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-50 rounded-lg text-[10px] font-bold text-slate-700 flex items-center justify-between"
-                                >
-                                  <span>{u.fullName}</span>
-                                  {isAssigned && <Check className="w-3.5 h-3.5 text-blue-500" />}
-                                </button>
-                              );
-                            })}
-                          </div>
+                          {isAssigneePanelOpen && (
+                            <>
+                              <div className="fixed inset-0 z-20" onClick={() => setIsAssigneePanelOpen(false)} />
+                              <div className="absolute left-0 top-full mt-1.5 w-48 bg-white border border-slate-200/80 rounded-xl shadow-xl p-1.5 z-30 divide-y divide-slate-50 max-h-40 overflow-y-auto">
+                                {users?.map((u: any) => {
+                                  const isAssigned = taskDetail?.assignees?.some((a: any) => a.id === u.id);
+                                  return (
+                                    <button 
+                                      key={u.id}
+                                      type="button"
+                                      onClick={() => handleToggleAssignee(u.id)}
+                                      className="w-full text-left px-2.5 py-1.5 hover:bg-slate-50 rounded-lg text-[10px] font-bold text-slate-700 flex items-center justify-between"
+                                    >
+                                      <span>{u.fullName}</span>
+                                      {isAssigned && <Check className="w-3.5 h-3.5 text-blue-500" />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1816,26 +1879,35 @@ export default function TasksPage() {
                         ))}
                         
                         {/* Followers drop triggers */}
-                        <div className="relative group/fol">
-                          <button type="button" className="w-6 h-6 rounded-full border border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-400 hover:bg-blue-50/30 transition-all">
+                        <div className="relative">
+                          <button 
+                            type="button" 
+                            onClick={() => setIsFollowerPanelOpen(!isFollowerPanelOpen)}
+                            className="w-6 h-6 rounded-full border border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-400 hover:bg-blue-50/30 transition-all"
+                          >
                             <Plus className="w-3.5 h-3.5" />
                           </button>
-                          <div className="absolute left-0 top-full mt-1.5 w-48 bg-white border border-slate-200/80 rounded-xl shadow-xl p-1.5 z-30 opacity-0 pointer-events-none group-hover/fol:opacity-100 group-hover/fol:pointer-events-auto transition-all divide-y divide-slate-50 max-h-40 overflow-y-auto">
-                            {users?.map((u: any) => {
-                              const isFollowing = taskDetail?.followers?.some((f: any) => f.id === u.id);
-                              return (
-                                <button 
-                                  key={u.id}
-                                  type="button"
-                                  onClick={() => handleToggleFollower(u.id)}
-                                  className="w-full text-left px-2.5 py-1.5 hover:bg-slate-50 rounded-lg text-[10px] font-bold text-slate-700 flex items-center justify-between"
-                                >
-                                  <span>{u.fullName}</span>
-                                  {isFollowing && <Check className="w-3.5 h-3.5 text-blue-500" />}
-                                </button>
-                              );
-                            })}
-                          </div>
+                          {isFollowerPanelOpen && (
+                            <>
+                              <div className="fixed inset-0 z-20" onClick={() => setIsFollowerPanelOpen(false)} />
+                              <div className="absolute left-0 top-full mt-1.5 w-48 bg-white border border-slate-200/80 rounded-xl shadow-xl p-1.5 z-30 divide-y divide-slate-50 max-h-40 overflow-y-auto">
+                                {users?.map((u: any) => {
+                                  const isFollowing = taskDetail?.followers?.some((f: any) => f.id === u.id);
+                                  return (
+                                    <button 
+                                      key={u.id}
+                                      type="button"
+                                      onClick={() => handleToggleFollower(u.id)}
+                                      className="w-full text-left px-2.5 py-1.5 hover:bg-slate-50 rounded-lg text-[10px] font-bold text-slate-700 flex items-center justify-between"
+                                    >
+                                      <span>{u.fullName}</span>
+                                      {isFollowing && <Check className="w-3.5 h-3.5 text-blue-500" />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1863,51 +1935,59 @@ export default function TasksPage() {
                         ))}
                         
                         {/* Add Tag Dropdown / Input inline */}
-                        <div className="relative group/tag-adder">
-                          <button type="button" className="w-6 h-6 rounded-full border border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-400 hover:bg-blue-50/30 transition-all">
+                        <div className="relative">
+                          <button 
+                            type="button" 
+                            onClick={() => setIsTagPanelOpen(!isTagPanelOpen)}
+                            className="w-6 h-6 rounded-full border border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-400 hover:bg-blue-50/30 transition-all"
+                          >
                             <Plus className="w-3.5 h-3.5" />
                           </button>
-                          {/* Hover/Focus overlay input to type new tag or select existing ones */}
-                          <div className="absolute left-0 top-full mt-1.5 w-48 bg-white border border-slate-200/80 rounded-xl shadow-xl p-2.5 z-30 opacity-0 pointer-events-none group-focus-within/tag-adder:opacity-100 group-focus-within/tag-adder:pointer-events-auto group-hover/tag-adder:opacity-100 group-hover/tag-adder:pointer-events-auto transition-all space-y-2">
-                            <input
-                              type="text"
-                              placeholder="New tag..."
-                              onKeyDown={(e: any) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  const val = e.target.value.trim();
-                                  if (val) {
-                                    const currentTags = taskDetail?.tags || [];
-                                    if (!currentTags.includes(val)) {
-                                      handleFieldUpdate("tags", [...currentTags, val]);
-                                    }
-                                    e.target.value = "";
-                                  }
-                                }
-                              }}
-                              className="input-field w-full bg-slate-50 text-[10px] font-bold !py-1"
-                            />
-                            {uniqueTags.length > 0 && (
-                              <div className="space-y-1">
-                                <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Select Existing</div>
-                                <div className="max-h-24 overflow-y-auto custom-scrollbar flex flex-col gap-0.5">
-                                  {uniqueTags.filter(t => !taskDetail?.tags?.includes(t)).map(tag => (
-                                    <button
-                                      key={tag}
-                                      type="button"
-                                      onClick={() => {
+                          {isTagPanelOpen && (
+                            <>
+                              <div className="fixed inset-0 z-20" onClick={() => setIsTagPanelOpen(false)} />
+                              <div className="absolute left-0 top-full mt-1.5 w-48 bg-white border border-slate-200/80 rounded-xl shadow-xl p-2.5 z-30 space-y-2">
+                                <input
+                                  type="text"
+                                  placeholder="New tag..."
+                                  onKeyDown={(e: any) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      const val = e.target.value.trim();
+                                      if (val) {
                                         const currentTags = taskDetail?.tags || [];
-                                        handleFieldUpdate("tags", [...currentTags, tag]);
-                                      }}
-                                      className="w-full text-left px-2 py-1 hover:bg-slate-50 rounded-lg text-[9px] font-bold text-slate-700 cursor-pointer animate-none"
-                                    >
-                                      #{tag}
-                                    </button>
-                                  ))}
-                                </div>
+                                        if (!currentTags.includes(val)) {
+                                          handleFieldUpdate("tags", [...currentTags, val]);
+                                        }
+                                        e.target.value = "";
+                                      }
+                                    }
+                                  }}
+                                  className="input-field w-full bg-slate-50 text-[10px] font-bold !py-1"
+                                />
+                                {uniqueTags.length > 0 && (
+                                  <div className="space-y-1">
+                                    <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Select Existing</div>
+                                    <div className="max-h-24 overflow-y-auto custom-scrollbar flex flex-col gap-0.5">
+                                      {uniqueTags.filter(t => !taskDetail?.tags?.includes(t)).map(tag => (
+                                        <button
+                                          key={tag}
+                                          type="button"
+                                          onClick={() => {
+                                            const currentTags = taskDetail?.tags || [];
+                                            handleFieldUpdate("tags", [...currentTags, tag]);
+                                          }}
+                                          className="w-full text-left px-2 py-1 hover:bg-slate-50 rounded-lg text-[9px] font-bold text-slate-700 cursor-pointer animate-none"
+                                        >
+                                          #{tag}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1967,6 +2047,7 @@ export default function TasksPage() {
                   <div className="space-y-2">
                     <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Task Description</label>
                     <textarea 
+                      id="task-detail-desc"
                       placeholder="Add detailed task instructions or description..."
                       value={detailDesc}
                       onChange={(e) => setNewDetailDesc(e.target.value)}
@@ -1987,11 +2068,11 @@ export default function TasksPage() {
                     </div>
                     
                     <div className="space-y-2">
-                      {taskDetail?.checklist?.map((item: any) => (
+                      {detailChecklist?.map((item: any) => (
                         <div key={item.id} className="flex items-center gap-3 group/item bg-slate-50/50 hover:bg-slate-50 border border-slate-100/50 p-2.5 rounded-xl transition-all">
                           <button 
                             type="button"
-                            onClick={() => handleUpdateChecklistItem(item.id, { isDone: !item.isDone })}
+                            onClick={() => handleToggleChecklistItem(item.id, !item.isDone)}
                             className="shrink-0 transition-transform active:scale-95"
                           >
                             {item.isDone ? (
@@ -2002,11 +2083,12 @@ export default function TasksPage() {
                           </button>
                           
                           <input 
+                            id={`checklist-input-${item.id}`}
                             type="text"
                             value={item.text}
                             placeholder="Type checklist item..."
-                            onChange={(e) => handleUpdateChecklistItem(item.id, { text: e.target.value })}
-                            onBlur={() => handleFieldUpdate("checklist", taskDetail.checklist)}
+                            onChange={(e) => handleUpdateChecklistItemLocal(item.id, e.target.value)}
+                            onBlur={() => handleFieldUpdate("checklist", detailChecklist)}
                             className={cn(
                               "flex-1 bg-transparent text-[11px] font-medium focus:outline-none border-none",
                               item.isDone && "line-through text-slate-400"
@@ -2094,37 +2176,52 @@ export default function TasksPage() {
                     {/* Attachments List */}
                     {taskDetail?.attachments && taskDetail.attachments.length > 0 && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {taskDetail.attachments.map((file: any) => (
-                          <div key={file.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between gap-3 group/file hover:bg-slate-100/50 transition-all">
-                            <a 
-                              href={`/api/storage/download/${file.id}`}
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="flex items-center gap-2.5 min-w-0 flex-1"
-                            >
-                              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 flex-shrink-0">
-                                <Paperclip className="w-4 h-4" />
+                        {taskDetail.attachments.map((file: any) => {
+                          const isImg = isImageFile(file.filename, file.mimeType);
+                          const fileUrl = getFileUrl(file);
+                          return (
+                            <div key={file.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between gap-3 group/file hover:bg-slate-100/50 transition-all">
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                {isImg ? (
+                                  <div 
+                                    className="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 bg-white flex items-center justify-center cursor-pointer"
+                                    onClick={() => setPreviewImage(fileUrl)}
+                                  >
+                                    <img src={fileUrl} alt={file.filename} className="w-full h-full object-cover" />
+                                  </div>
+                                ) : (
+                                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 flex-shrink-0">
+                                    <Paperclip className="w-4 h-4" />
+                                  </div>
+                                )}
+                                <a 
+                                  href={fileUrl}
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="min-w-0 flex-1 hover:text-blue-600 transition-colors"
+                                >
+                                  <div className="min-w-0">
+                                    <p className="text-[10px] font-bold text-slate-800 truncate mb-0" title={file.filename}>{file.filename}</p>
+                                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                                      {(file.size / 1024).toFixed(1)} KB • {file.driver}
+                                    </span>
+                                  </div>
+                                </a>
                               </div>
-                              <div className="min-w-0">
-                                <p className="text-[10px] font-bold text-slate-800 truncate mb-0" title={file.filename}>{file.filename}</p>
-                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
-                                  {(file.size / 1024).toFixed(1)} KB • {file.driver}
-                                </span>
-                              </div>
-                            </a>
-                            <button 
-                              type="button"
-                              onClick={() => {
-                                if (confirm(`Remove file "${file.filename}"?`)) {
-                                  deleteAttachmentMutation.mutate(file.id);
-                                }
-                              }}
-                              className="p-1 hover:bg-red-50 hover:text-red-500 rounded-lg text-slate-300 opacity-0 group-hover/file:opacity-100 transition-all"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`Remove file "${file.filename}"?`)) {
+                                    deleteAttachmentMutation.mutate(file.id);
+                                  }
+                                }}
+                                className="p-1 hover:bg-red-50 hover:text-red-500 rounded-lg text-slate-300 opacity-0 group-hover/file:opacity-100 transition-all"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -2152,23 +2249,38 @@ export default function TasksPage() {
                           </div>
                           <p className="text-[11px] text-slate-600 leading-relaxed pl-7 font-medium mb-0">{comment.content}</p>
                           
-                          {/* Comment Attachments */}
+                           {/* Comment Attachments */}
                           {comment.attachments && comment.attachments.length > 0 && (
-                            <div className="pl-7 pt-2 flex flex-wrap gap-2">
-                              {comment.attachments.map((file: any) => (
-                                <a 
-                                  key={file.id}
-                                  href={`/api/storage/download/${file.id}`}
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-100 rounded-lg text-[9px] font-bold text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-all shadow-sm"
-                                >
-                                  <Paperclip className="w-3 h-3 text-slate-400" />
-                                  <span>{file.filename}</span>
-                                  <span className="text-slate-300">•</span>
-                                  <span className="text-[8px] text-slate-400 font-normal">{(file.size / 1024).toFixed(1)} KB</span>
-                                </a>
-                              ))}
+                            <div className="pl-7 pt-2 flex flex-wrap gap-3">
+                              {comment.attachments.map((file: any) => {
+                                const isImg = isImageFile(file.filename, file.mimeType);
+                                const fileUrl = getFileUrl(file);
+                                return isImg ? (
+                                  <div 
+                                    key={file.id} 
+                                    className="relative group cursor-pointer w-24 h-24 rounded-xl overflow-hidden border border-slate-200/60 bg-white"
+                                    onClick={() => setPreviewImage(fileUrl)}
+                                  >
+                                    <img src={fileUrl} alt={file.filename} className="w-full h-full object-cover transition-all group-hover:scale-105" />
+                                    <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                      <Maximize2 className="w-4 h-4 text-white drop-shadow-sm" />
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <a 
+                                    key={file.id}
+                                    href={fileUrl}
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-100 rounded-lg text-[9px] font-bold text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-all shadow-sm h-fit"
+                                  >
+                                    <Paperclip className="w-3 h-3 text-slate-400" />
+                                    <span>{file.filename}</span>
+                                    <span className="text-slate-300">•</span>
+                                    <span className="text-[8px] text-slate-400 font-normal">{(file.size / 1024).toFixed(1)} KB</span>
+                                  </a>
+                                );
+                              })}
                             </div>
                           )}
 
@@ -2206,20 +2318,35 @@ export default function TasksPage() {
                               {/* Reply Attachments */}
                               {reply.attachments && reply.attachments.length > 0 && (
                                 <div className="pl-6 pt-2 flex flex-wrap gap-2">
-                                  {reply.attachments.map((file: any) => (
-                                    <a 
-                                      key={file.id}
-                                      href={`/api/storage/download/${file.id}`}
-                                      target="_blank" 
-                                      rel="noopener noreferrer" 
-                                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-100 rounded-lg text-[9px] font-bold text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-all shadow-sm"
-                                    >
-                                      <Paperclip className="w-3 h-3 text-slate-400" />
-                                      <span>{file.filename}</span>
-                                      <span className="text-slate-300">•</span>
-                                      <span className="text-[8px] text-slate-400 font-normal">{(file.size / 1024).toFixed(1)} KB</span>
-                                    </a>
-                                  ))}
+                                  {reply.attachments.map((file: any) => {
+                                    const isImg = isImageFile(file.filename, file.mimeType);
+                                    const fileUrl = getFileUrl(file);
+                                    return isImg ? (
+                                      <div 
+                                        key={file.id} 
+                                        className="relative group cursor-pointer w-16 h-16 rounded-lg overflow-hidden border border-slate-200/60 bg-white"
+                                        onClick={() => setPreviewImage(fileUrl)}
+                                      >
+                                        <img src={fileUrl} alt={file.filename} className="w-full h-full object-cover transition-all group-hover:scale-105" />
+                                        <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                          <Maximize2 className="w-3 h-3 text-white drop-shadow-sm" />
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <a 
+                                        key={file.id}
+                                        href={fileUrl}
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-100 rounded-lg text-[9px] font-bold text-slate-700 hover:text-blue-600 hover:bg-slate-50 transition-all shadow-sm h-fit"
+                                      >
+                                        <Paperclip className="w-3 h-3 text-slate-400" />
+                                        <span>{file.filename}</span>
+                                        <span className="text-slate-300">•</span>
+                                        <span className="text-[8px] text-slate-400 font-normal">{(file.size / 1024).toFixed(1)} KB</span>
+                                      </a>
+                                    );
+                                  })}
                                 </div>
                               )}
 
@@ -2269,22 +2396,38 @@ export default function TasksPage() {
                       
                       {/* Upload files pending comment submission */}
                       {commentAttachments.length > 0 && (
-                        <div className="flex flex-wrap gap-2 pb-1.5">
-                          {commentAttachments.map((file, idx) => (
-                            <div key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50/70 border border-blue-100 rounded-xl text-[9px] font-bold text-blue-700 shadow-sm transition-all animate-fade-in">
-                              <Paperclip className="w-3 h-3 text-blue-500" />
-                              <span className="truncate max-w-[120px]">{file.filename}</span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCommentAttachments(prev => prev.filter((_, i) => i !== idx));
-                                }}
-                                className="text-blue-400 hover:text-red-500 font-extrabold ml-1 hover:scale-110 transition-transform"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          ))}
+                        <div className="flex flex-wrap gap-2.5 pb-2.5">
+                          {commentAttachments.map((file, idx) => {
+                            const isImg = isImageFile(file.filename);
+                            return isImg ? (
+                              <div key={idx} className="relative group w-14 h-14 rounded-xl overflow-hidden border border-blue-100 bg-white flex items-center justify-center shadow-sm transition-all animate-fade-in">
+                                <img src={file.base64Data} alt={file.filename} className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCommentAttachments(prev => prev.filter((_, i) => i !== idx));
+                                  }}
+                                  className="absolute top-1 right-1 p-0.5 bg-black/60 hover:bg-red-600 text-white rounded-full transition-colors"
+                                >
+                                  <X className="w-2.5 h-2.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50/70 border border-blue-100 rounded-xl text-[9px] font-bold text-blue-700 shadow-sm transition-all animate-fade-in">
+                                <Paperclip className="w-3 h-3 text-blue-500" />
+                                <span className="truncate max-w-[120px]">{file.filename}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCommentAttachments(prev => prev.filter((_, i) => i !== idx));
+                                  }}
+                                  className="text-blue-400 hover:text-red-500 font-extrabold ml-1 hover:scale-110 transition-transform"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
 
@@ -2415,6 +2558,30 @@ export default function TasksPage() {
                       </div>
                     </form>
                   </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Image Preview Lightbox */}
+        <AnimatePresence>
+          {previewImage && (
+            <div className="fixed inset-0 z-[300] flex items-center justify-center p-8 bg-slate-900/90 backdrop-blur-md" onClick={() => setPreviewImage(null)}>
+              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative max-w-7xl max-h-full">
+                <img src={previewImage} className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl border border-white/10" onClick={(e) => e.stopPropagation()} />
+                <button onClick={() => setPreviewImage(null)} className="absolute -top-12 right-0 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all">
+                  <X className="w-6 h-6" />
+                </button>
+                <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex gap-4">
+                  <a 
+                    href={previewImage} 
+                    download="download" 
+                    className="px-6 py-2 bg-white text-slate-900 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-slate-100 transition-all" 
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Download className="w-4 h-4" /> Download Original
+                  </a>
                 </div>
               </motion.div>
             </div>

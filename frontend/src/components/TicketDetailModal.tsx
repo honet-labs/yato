@@ -101,6 +101,20 @@ export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModal
     }
     return "download";
   };
+
+  const isImageAttachment = (at: string | undefined | null) => {
+    if (!at) return false;
+    if (at.startsWith('data:image/')) return true;
+    if (at.startsWith('http://') || at.startsWith('https://') || at.startsWith('/')) {
+      const cleanUrl = at.split('?')[0];
+      const ext = cleanUrl.split('.').pop()?.toLowerCase();
+      return ext ? ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext) : false;
+    }
+    const filename = getAttachmentFilename(at);
+    const ext = filename.split('.').pop()?.toLowerCase();
+    return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
+  };
+
   const [showFollowerPanel, setShowFollowerPanel] = useState(false);
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -332,17 +346,27 @@ export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModal
 
   useEffect(() => {
     if (isEditing && displayTicket) {
-      setEditData({
-        title: displayTicket.title || displayTicket.hostname || displayTicket.serviceName || displayTicket.subject || "",
-        description: displayTicket.notes || displayTicket.description || "",
-        cpu: displayTicket.cpu || 0,
-        ram: displayTicket.ram || 0,
-        disk: displayTicket.disk || 0,
-        environment: displayTicket.environment || "",
-        priority: displayTicket.priority || "",
-        status: displayTicket.status || "",
-        osTemplate: displayTicket.osTemplate || "",
-        attachments: displayTicket.attachments || []
+      const activeId = typeof document !== 'undefined' ? document.activeElement?.id : null;
+      setEditData(prev => {
+        const currentTitle = (activeId === "ticket-edit-title" && prev) 
+          ? prev.title 
+          : (displayTicket.title || displayTicket.hostname || displayTicket.serviceName || displayTicket.subject || "");
+        const currentDesc = (activeId === "ticket-edit-description" && prev) 
+          ? prev.description 
+          : (displayTicket.notes || displayTicket.description || "");
+        
+        return {
+          title: currentTitle,
+          description: currentDesc,
+          cpu: displayTicket.cpu || 0,
+          ram: displayTicket.ram || 0,
+          disk: displayTicket.disk || 0,
+          environment: displayTicket.environment || "",
+          priority: displayTicket.priority || "",
+          status: displayTicket.status || "",
+          osTemplate: displayTicket.osTemplate || "",
+          attachments: displayTicket.attachments || []
+        };
       });
     }
   }, [isEditing, displayTicket]);
@@ -424,7 +448,7 @@ export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModal
       <div className="p-5 bg-white rounded-2xl rounded-tl-none border border-slate-100 shadow-sm space-y-4">
         {comment.attachment && (
           <div className="rounded-xl overflow-hidden border border-slate-50 bg-slate-50/30 p-2">
-            {comment.attachment.startsWith('data:image/') ? (
+            {isImageAttachment(comment.attachment) ? (
               <div className="relative group cursor-pointer" onClick={() => setPreviewImage(comment.attachment!)}>
                 <img src={sanitizeDataUrl(comment.attachment)} alt="Attachment" className="w-full object-cover max-h-80 rounded-lg transition-all group-hover:brightness-90" />
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -516,6 +540,7 @@ export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModal
                   <div className="flex items-center gap-3">
                     {isEditing ? (
                       <input 
+                        id="ticket-edit-title"
                         className="text-2xl font-bold text-slate-900 leading-tight bg-slate-50 border-indigo-200 focus:border-indigo-400 outline-none px-2 rounded-lg"
                         value={editData.title}
                         onChange={(e) => setEditData({ ...editData, title: e.target.value })}
@@ -793,6 +818,7 @@ export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModal
                       <div className="bg-slate-50/50 rounded-2xl p-6 border border-slate-100/50">
                         {isEditing ? (
                           <textarea 
+                            id="ticket-edit-description"
                             className="w-full bg-white border border-indigo-100 rounded-xl p-4 text-[13px] text-slate-600 font-medium outline-none focus:border-indigo-400 min-h-[150px] resize-none"
                             value={editData.description}
                             onChange={(e) => setEditData({ ...editData, description: e.target.value })}
@@ -843,7 +869,7 @@ export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModal
                         <div className="grid grid-cols-4 gap-4">
                           {(isEditing ? editData.attachments : displayTicket.attachments)?.map((at: string, idx: number) => (
                             <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-slate-100 bg-white flex items-center justify-center">
-                              {at.startsWith('data:image/') ? (
+                              {isImageAttachment(at) ? (
                                 <img src={sanitizeDataUrl(at)} className="w-full h-full object-cover cursor-pointer" onClick={() => setPreviewImage(at)} />
                               ) : (
                                 <div className="flex flex-col items-center gap-2 p-4 text-center w-full">
@@ -949,9 +975,15 @@ export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModal
                         {attachment && (
                           <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm animate-fade-in">
                             <div className="flex items-center gap-3 overflow-hidden">
-                              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                                <Paperclip className="w-5 h-5" />
-                              </div>
+                              {isImageAttachment(attachment) ? (
+                                <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-200 bg-white flex items-center justify-center shrink-0">
+                                  <img src={sanitizeDataUrl(attachment)} alt="Preview" className="w-full h-full object-cover" />
+                                </div>
+                              ) : (
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                                  <Paperclip className="w-5 h-5" />
+                                </div>
+                              )}
                               <div className="flex flex-col overflow-hidden">
                                 <span className="text-[11px] font-bold text-slate-900 truncate max-w-[200px]">
                                   {decodeURIComponent(attachment.split(';').find(p => p.startsWith('name='))?.split('=')[1] || 'Attached File')}
