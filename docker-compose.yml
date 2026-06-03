@@ -2,7 +2,6 @@
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: yato-postgres
     restart: always
     environment:
       POSTGRES_USER: ${DB_USER:-yato}
@@ -21,7 +20,6 @@ services:
 
   docker-proxy:
     image: tecnativa/docker-socket-proxy
-    container_name: yato-docker-proxy
     restart: always
     environment:
       CONTAINERS: 1
@@ -37,7 +35,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: yato-redis
     restart: always
     environment:
       TZ: ${TZ:-UTC}
@@ -54,7 +51,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: yato-backend
     restart: always
     environment:
       DATABASE_URL: "postgresql://${DB_USER:-yato}:${DB_PASSWORD:-yatopass}@postgres:5432/${DB_DATABASE:-yato}?schema=public"
@@ -63,7 +59,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       NODE_OPTIONS: "--max-old-space-size=512"
-      DOCKER_HOST_URL: "http://yato-docker-proxy:2375"
+      DOCKER_HOST_URL: "http://docker-proxy:2375"
       TZ: ${TZ:-UTC}
     depends_on:
       postgres:
@@ -88,7 +84,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: yato-frontend
     restart: always
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:${NGINX_HTTP_PORT:-9090}/api}
@@ -106,7 +101,6 @@ services:
 
   nginx:
     image: nginx:alpine
-    container_name: yato-nginx
     environment:
       TZ: ${TZ:-UTC}
     volumes:

@@ -136,6 +136,15 @@ write_port_if_missing "NGINX_HTTP_PORT" 9090
 write_port_if_missing "NGINX_HTTPS_PORT" 9443
 write_port_if_missing "DOCKER_PROXY_PORT" 2375
 
+# Ensure compose project namespace matches current directory basename
+if ! grep -q "^COMPOSE_PROJECT_NAME=" .env; then
+    PARENT_DIR_NAME=$(basename "$(pwd)")
+    CLEAN_PROJECT_NAME=$(echo "$PARENT_DIR_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]//g')
+    [ -z "$CLEAN_PROJECT_NAME" ] && CLEAN_PROJECT_NAME="yato"
+    echo "COMPOSE_PROJECT_NAME=\"$CLEAN_PROJECT_NAME\"" >> .env
+    echo -e "   • Compose project namespace initialized to: ${GREEN}$CLEAN_PROJECT_NAME${NC}"
+fi
+
 # IP Detection
 SERVER_IP=$(hostname -I | awk '{print $1}')
 [ -z "$SERVER_IP" ] && SERVER_IP=$(ip addr show | grep 'inet ' | grep -v '127.0.0.1' | awk '{print $2}' | cut -d/ -f1 | head -n1)
