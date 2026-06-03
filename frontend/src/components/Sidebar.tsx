@@ -310,13 +310,13 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                   className="absolute bottom-14 left-0 w-72 bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden z-[100]"
                 >
                     <div className="p-5 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
-                      <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest">Notifications</h3>
+                      <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest">{t("Notifications")}</h3>
                     {unreadCount > 0 && (
                       <button 
                         onClick={() => markAllReadMutation.mutate()}
                         className="text-[9px] font-bold text-blue-600 hover:text-blue-700 uppercase"
                       >
-                        Mark all as read
+                        {t("Mark all as read")}
                       </button>
                     )}
                   </div>
@@ -328,7 +328,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                         <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
                           <Bell className="w-6 h-6 text-slate-200" />
                         </div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No New Alerts</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t("No New Alerts")}</p>
                       </div>
                     ) : (
                       displayNotifications?.map((n: any) => {
@@ -405,11 +405,11 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
               <Users className="w-5 h-5" />
             </div>
             <div className="flex-1 text-left overflow-hidden">
-              <p className="text-[12px] font-bold text-slate-900 truncate tracking-tight">{profile?.fullName || 'Administrator'}</p>
+              <p className="text-[12px] font-bold text-slate-900 truncate tracking-tight">{profile?.fullName || t('Administrator')}</p>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">
                 {profile?.roles && profile.roles.length > 0 
                   ? profile.roles.map((ur: any) => ur.role.name).join(', ') 
-                  : 'NO ROLES'}
+                  : t('NO ROLES')}
               </p>
             </div>
             <ChevronRight className={cn("w-4 h-4 text-slate-300 transition-transform", showProfileMenu && "rotate-90")} />
@@ -424,7 +424,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                 className="absolute bottom-[calc(100%+12px)] left-0 right-0 bg-white rounded-[2rem] shadow-2xl border border-slate-100 p-3 z-[100]"
               >
                 <div className="px-5 py-4 mb-3 border-b border-slate-50 bg-slate-50/50 rounded-2xl">
-                  <p className="text-[11px] font-bold text-slate-900 leading-tight truncate">{profile?.fullName || 'Administrator'}</p>
+                  <p className="text-[11px] font-bold text-slate-900 leading-tight truncate">{profile?.fullName || t('Administrator')}</p>
                   <p className="text-[9px] font-bold text-slate-400 uppercase truncate mt-1">{profile?.email || 'admin@yato.local'}</p>
                 </div>
                 <div className="space-y-1">

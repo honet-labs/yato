@@ -85,6 +85,11 @@ const enToId: Record<string, string> = {
   "delete permanently": "hapus permanen",
   "close": "tutup",
   "save changes": "simpan perubahan",
+  "notifications": "notifikasi",
+  "mark all as read": "tandai semua dibaca",
+  "no new alerts": "tidak ada peringatan baru",
+  "no roles": "tidak ada peran",
+  "administrator": "administrator",
 
   // Attendance Page & Modals
   "network whitelist": "daftar putih jaringan",
