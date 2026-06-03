@@ -128,13 +128,13 @@ write_port_if_missing() {
     fi
 }
 
-write_port_if_missing "POSTGRES_PORT" 5440
-write_port_if_missing "REDIS_PORT" 6380
-write_port_if_missing "BACKEND_PORT" 4000
-write_port_if_missing "FRONTEND_PORT" 4001
-write_port_if_missing "NGINX_HTTP_PORT" 9090
-write_port_if_missing "NGINX_HTTPS_PORT" 9443
-write_port_if_missing "DOCKER_PROXY_PORT" 2375
+write_port_if_missing "HOST_POSTGRES_PORT" 5440
+write_port_if_missing "HOST_REDIS_PORT" 6380
+write_port_if_missing "HOST_BACKEND_PORT" 4000
+write_port_if_missing "HOST_FRONTEND_PORT" 4001
+write_port_if_missing "HOST_NGINX_HTTP_PORT" 9090
+write_port_if_missing "HOST_NGINX_HTTPS_PORT" 9443
+write_port_if_missing "HOST_DOCKER_PROXY_PORT" 2375
 
 # Ensure compose project namespace matches current directory basename
 if ! grep -q "^COMPOSE_PROJECT_NAME=" .env; then
@@ -298,11 +298,11 @@ show_access_info() {
     [ -f ".env" ] && source .env
     
     # Use config values with fallbacks
-    local pg_port=${POSTGRES_PORT:-5440}
-    local redis_port=${REDIS_PORT:-6380}
-    local backend_port=${BACKEND_PORT:-4000}
-    local frontend_port=${FRONTEND_PORT:-4001}
-    local nginx_port=${NGINX_HTTP_PORT:-9090}
+    local pg_port=${HOST_POSTGRES_PORT:-5440}
+    local redis_port=${HOST_REDIS_PORT:-6380}
+    local backend_port=${HOST_BACKEND_PORT:-4000}
+    local frontend_port=${HOST_FRONTEND_PORT:-4001}
+    local nginx_port=${HOST_NGINX_HTTP_PORT:-9090}
 
     echo -e ""
     echo -e "${GREEN}================================================================${NC}"
