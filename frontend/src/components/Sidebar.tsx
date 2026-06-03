@@ -166,6 +166,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
         { icon: CheckSquare, label: "Tasks Tracker", href: "/tasks" },
         { icon: Clock, label: "Attendance", href: "/hrm/attendance" },
         { icon: Coffee, label: "Leave Hub", href: "/hrm/leaves" },
+        { icon: Edit, label: "Notes & Schedule", href: "/notes" },
         { icon: HardDrive, label: "File Manager", href: "/files" },
       ]
     },

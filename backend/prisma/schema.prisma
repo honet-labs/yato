@@ -71,6 +71,7 @@ model User {
   leaves                LeaveRequest[]           @relation("UserLeaves")
   approvedLeaves        LeaveApproval[]          @relation("ApprovedByLeave")
   leaveBalance          LeaveBalance?
+  notes                 Note[]
 }
 
 model Role {
@@ -710,5 +711,23 @@ model LeaveBalance {
   year        Int      // Tahun berlaku (contoh: 2026)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Note {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String?
+  content      String    @db.Text
+  color        String?   @default("#ffffff")
+  isPinned     Boolean   @default(false)
+  isArchived   Boolean   @default(false)
+  isTrashed    Boolean   @default(false)
+  reminderAt   DateTime?
+  reminderSent Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([userId])
 }
 
