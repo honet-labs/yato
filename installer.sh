@@ -136,11 +136,18 @@ write_port_if_missing "HOST_NGINX_HTTP_PORT" 9090
 write_port_if_missing "HOST_NGINX_HTTPS_PORT" 9443
 write_port_if_missing "HOST_DOCKER_PROXY_PORT" 2375
 
-# Ensure compose project namespace matches current directory basename
+# Ensure compose project namespace matches current directory basename or path hash
 if ! grep -q "^COMPOSE_PROJECT_NAME=" .env; then
     PARENT_DIR_NAME=$(basename "$(pwd)")
     CLEAN_PROJECT_NAME=$(echo "$PARENT_DIR_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]//g')
     [ -z "$CLEAN_PROJECT_NAME" ] && CLEAN_PROJECT_NAME="yato"
+    
+    # If the project name is generic 'yato' or 'project', append a unique hash of the directory path
+    if [ "$CLEAN_PROJECT_NAME" = "yato" ] || [ "$CLEAN_PROJECT_NAME" = "project" ]; then
+        DIR_HASH=$(echo -n "$(pwd)" | md5sum 2>/dev/null | cut -c1-5 || echo -n "$(pwd)" | shasum 2>/dev/null | cut -c1-5 || echo -n "$$")
+        CLEAN_PROJECT_NAME="yato-${DIR_HASH}"
+    fi
+    
     echo "COMPOSE_PROJECT_NAME=\"$CLEAN_PROJECT_NAME\"" >> .env
     echo -e "   • Compose project namespace initialized to: ${GREEN}$CLEAN_PROJECT_NAME${NC}"
 fi
