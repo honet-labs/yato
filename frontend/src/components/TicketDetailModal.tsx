@@ -112,7 +112,7 @@ export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModal
     }
     const filename = getAttachmentFilename(at);
     const ext = filename.split('.').pop()?.toLowerCase();
-    return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
+    return ext ? ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext) : false;
   };
 
   const [showFollowerPanel, setShowFollowerPanel] = useState(false);
