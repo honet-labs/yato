@@ -185,7 +185,7 @@ if [ "$INFRA_MODE" = "docker" ]; then
       echo "   • npm not available on host, skipping host-level node_modules sync."
     fi
 
-    $DOCKER_COMPOSE up -d $SERVICES
+    $DOCKER_COMPOSE up -d --build $SERVICES
     
     if [ "$COMP_APP" = true ]; then
         echo -e "${YELLOW}🗄️  Running database setup...${NC}"
