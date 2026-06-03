@@ -354,8 +354,8 @@ export class SystemConfigService {
     let dockerContainers = await getDockerContainers();
     if (dockerContainers.length === 0) {
       const fallbackContainers = [
-        { name: 'YATO-FRONTEND', port: 4001, serviceName: 'frontend', type: 'HTTP' },
-        { name: 'YATO-BACKEND', port: 3000, serviceName: 'backend', type: 'TCP' },
+        { name: 'YATO-FRONTEND', port: 4001, serviceName: 'yato-frontend', type: 'HTTP' },
+        { name: 'YATO-BACKEND', port: 3000, serviceName: 'yato-backend', type: 'TCP' },
         { name: 'YATO-POSTGRES', port: 5432, serviceName: 'postgres', type: 'TCP' },
         { name: 'YATO-REDIS', port: 6379, serviceName: 'redis', type: 'TCP' },
         { name: 'YATO-NGINX', port: 9090, serviceName: 'nginx', type: 'HTTP' }

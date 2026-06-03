@@ -171,8 +171,8 @@ if [ "$INFRA_MODE" = "docker" ]; then
     SERVICES=""
     [ "$COMP_DB" = true ] && SERVICES="$SERVICES postgres"
     [ "$COMP_REDIS" = true ] && SERVICES="$SERVICES redis"
-    [ "$COMP_APP" = true ] && SERVICES="$SERVICES backend"
-    [ "$COMP_WEB" = true ] && SERVICES="$SERVICES frontend nginx"
+    [ "$COMP_APP" = true ] && SERVICES="$SERVICES yato-backend"
+    [ "$COMP_WEB" = true ] && SERVICES="$SERVICES yato-frontend nginx"
     
     # Synchronize host development dependencies if npm is available
     if command -v npm &> /dev/null; then
@@ -190,9 +190,9 @@ if [ "$INFRA_MODE" = "docker" ]; then
     if [ "$COMP_APP" = true ]; then
         echo -e "${YELLOW}🗄️  Running database setup...${NC}"
         sleep 10
-        $DOCKER_COMPOSE exec -T backend npx prisma migrate deploy || true
-        $DOCKER_COMPOSE exec -T backend npx prisma db push --accept-data-loss
-        $DOCKER_COMPOSE exec -T backend npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/seed.ts
+        $DOCKER_COMPOSE exec -T yato-backend npx prisma migrate deploy || true
+        $DOCKER_COMPOSE exec -T yato-backend npx prisma db push --accept-data-loss
+        $DOCKER_COMPOSE exec -T yato-backend npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/seed.ts
     fi
 else
     echo -e "${YELLOW}🏗️  Standalone Systemd installation mode active...${NC}"

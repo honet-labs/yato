@@ -97,13 +97,13 @@ $DOCKER_COMPOSE restart nginx || echo -e "${RED}Warning: Failed to restart Nginx
 echo -e "${YELLOW}🗄️  Synchronizing database schema...${NC}"
 if [ -d "backend/prisma/migrations" ]; then
     echo -e "   • ${GREEN}Safe migrations directory detected.${NC} Deploying migrations..."
-    $DOCKER_COMPOSE exec -T backend npx prisma migrate deploy
+    $DOCKER_COMPOSE exec -T yato-backend npx prisma migrate deploy
 else
     echo -e "   • ${RED}⚠️  Warning: Migrations directory not found in backend/prisma/migrations.${NC}"
     echo -e "     Using 'db push' as fallback to synchronize schema changes safely."
-    $DOCKER_COMPOSE exec -T backend npx prisma db push
+    $DOCKER_COMPOSE exec -T yato-backend npx prisma db push
 fi
-$DOCKER_COMPOSE exec -T backend npx prisma db seed
+$DOCKER_COMPOSE exec -T yato-backend npx prisma db seed
 echo -e "${GREEN}✅ Database synchronized and seeded successfully.${NC}"
 
 # Detailed Update Success Information Display

@@ -7,7 +7,7 @@ This document describes how to diagnose and fix the **502 Bad Gateway** / **"Aut
 ## 1. Symptoms
 * Attempting to sign in on the web console displays the red banner:
   > **Authentication failed. Check your identity keys.**
-* Checking the backend logs with `docker compose logs backend --tail 50` shows **no new requests or error logs** logged during your sign-in attempts.
+* Checking the backend logs with `docker compose logs yato-backend --tail 50` shows **no new requests or error logs** logged during your sign-in attempts.
 * Running a direct local check to the Nginx entrypoint returns `502 Bad Gateway`:
   ```bash
   curl -i -X POST http://localhost:9090/api/auth/login \

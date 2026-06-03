@@ -47,7 +47,7 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
+  yato-backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -80,7 +80,7 @@ services:
       timeout: 10s
       retries: 3
 
-  frontend:
+  yato-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -89,7 +89,7 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:${HOST_NGINX_HTTP_PORT:-9090}/api}
       TZ: ${TZ:-UTC}
     depends_on:
-      backend:
+      yato-backend:
         condition: service_healthy
     ports:
       - "127.0.0.1:${HOST_FRONTEND_PORT:-4001}:3000"
@@ -109,9 +109,9 @@ services:
       - "${HOST_NGINX_HTTP_PORT:-9090}:80"
       - "${HOST_NGINX_HTTPS_PORT:-9443}:443"
     depends_on:
-      frontend:
+      yato-frontend:
         condition: service_healthy
-      backend:
+      yato-backend:
         condition: service_healthy
 
 volumes:
