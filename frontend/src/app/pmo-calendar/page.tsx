@@ -1004,7 +1004,9 @@ export default function PmoCalendarPage() {
 
                                       {/* Dependency Tag Indicator */}
                                       {task.dependencies && task.dependencies.length > 0 && (
-                                        <Link2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" title={`Depends on: ${task.dependencies.map((d: any) => d.title).join(", ")}`} />
+                                        <span title={`Depends on: ${task.dependencies.map((d: any) => d.title).join(", ")}`}>
+                                          <Link2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                                        </span>
                                       )}
                                     </div>
                                   );
