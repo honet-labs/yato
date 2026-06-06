@@ -43,6 +43,25 @@ export class TaskService {
     return this.prisma.task.findMany({
       where,
       include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            colorCode: true,
+          },
+        },
+        dependencies: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        blockedBy: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
         template: {
           select: {
             id: true,
@@ -100,6 +119,25 @@ export class TaskService {
     const task = await this.prisma.task.findUnique({
       where: { id },
       include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            colorCode: true,
+          },
+        },
+        dependencies: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        blockedBy: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
         template: {
           select: {
             id: true,
@@ -240,10 +278,21 @@ export class TaskService {
       checklist: dto.checklist || [],
       templateId: dto.templateId || null,
       tags: dto.tags || [],
+      projectId: dto.projectId || null,
     };
 
     if (dto.dueDate) {
       data.dueDate = new Date(dto.dueDate);
+    }
+
+    if (dto.startDate) {
+      data.startDate = new Date(dto.startDate);
+    }
+
+    if (dto.dependencyIds && dto.dependencyIds.length > 0) {
+      data.dependencies = {
+        connect: dto.dependencyIds.map(id => ({ id }))
+      };
     }
 
     const assigneeIds = dto.assigneeIds || (dto.assigneeId ? [dto.assigneeId] : []);
@@ -263,6 +312,25 @@ export class TaskService {
     const task = await this.prisma.task.create({
       data,
       include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            colorCode: true,
+          },
+        },
+        dependencies: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        blockedBy: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
         template: {
           select: {
             id: true,
@@ -356,9 +424,20 @@ export class TaskService {
     if (dto.checklist !== undefined) data.checklist = dto.checklist;
     if (dto.templateId !== undefined) data.templateId = dto.templateId;
     if (dto.tags !== undefined) data.tags = dto.tags;
+    if (dto.projectId !== undefined) data.projectId = dto.projectId || null;
     
     if (dto.dueDate !== undefined) {
       data.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
+    }
+
+    if (dto.startDate !== undefined) {
+      data.startDate = dto.startDate ? new Date(dto.startDate) : null;
+    }
+
+    if (dto.dependencyIds !== undefined) {
+      data.dependencies = {
+        set: dto.dependencyIds.map(id => ({ id }))
+      };
     }
 
     if (dto.assigneeIds !== undefined) {
@@ -386,6 +465,25 @@ export class TaskService {
       where: { id },
       data,
       include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            colorCode: true,
+          },
+        },
+        dependencies: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        blockedBy: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
         template: {
           select: {
             id: true,

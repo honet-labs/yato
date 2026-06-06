@@ -30,6 +30,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { IntegrationModule } from './modules/integration/integration.module';
 import { HrmModule } from './modules/hrm/hrm.module';
 import { NoteModule } from './modules/note/note.module';
+import { PmoModule } from './modules/pmo/pmo.module';
 import { envValidationSchema } from './config/env.validation';
 
 @Module({
@@ -96,6 +97,7 @@ import { envValidationSchema } from './config/env.validation';
     IntegrationModule,
     HrmModule,
     NoteModule,
+    PmoModule,
   ],
   providers: [
     {

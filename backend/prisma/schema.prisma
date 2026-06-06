@@ -55,6 +55,7 @@ model User {
   taskComments      TaskComment[]  @relation("TaskCommentAuthor")
   createdTemplates  TaskTemplate[] @relation("UserCreatedTemplates")
   uploadedFiles     StorageFile[]  @relation("UserUploadedFiles")
+  calendarNotes     CalendarNote[]
 
   // Division and HRM Relations
   divisionId            String?
@@ -427,9 +428,16 @@ model Task {
   priority    String   @default("MEDIUM")      // LOW, MEDIUM, HIGH
   taskType    String   @default("TASK")        // TASK, TROUBLESHOOT, UPDATE, BACKUP
   dueDate     DateTime?
+  startDate   DateTime?     // For Timeline/Gantt rendering
   checklist   Json?    // Subtask items stored as JSON: [{ id, text, isDone }]
   tags        String[] // Multiple tags / labels
   
+  projectId   String?
+  project     Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  dependencies Task[]       @relation("TaskDependencies")
+  blockedBy    Task[]       @relation("TaskDependencies")
+
   templateId  String?
   template    TaskTemplate? @relation("TemplateTasks", fields: [templateId], references: [id], onDelete: SetNull)
 
@@ -729,5 +737,49 @@ model Note {
   updatedAt    DateTime  @updatedAt
 
   @@index([userId])
+}
+
+model Project {
+  id           String      @id @default(uuid())
+  name         String
+  description  String?
+  startDate    DateTime
+  endDate      DateTime
+  status       String      @default("PLANNING") // PLANNING, ACTIVE, COMPLETED, ON_HOLD
+  colorCode    String      @default("#4F46E5")
+  
+  tasks        Task[]
+  milestones   Milestone[]
+  
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Milestone {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  dueDate     DateTime
+  isReached   Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CalendarNote {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetDate  DateTime
+  title       String
+  content     String?
+  category    String   @default("GENERAL") // GENERAL, BLOCKER, STANDUP, IDEA
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([targetDate])
 }
 

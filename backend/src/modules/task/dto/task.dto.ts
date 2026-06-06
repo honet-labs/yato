@@ -51,6 +51,19 @@ export class CreateTaskDto {
   @IsString()
   @IsOptional()
   templateId?: string;
+
+  @IsString()
+  @IsOptional()
+  projectId?: string;
+
+  @IsDateString()
+  @IsOptional()
+  startDate?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  dependencyIds?: string[];
 }
 
 export class UpdateTaskDto {
@@ -103,6 +116,19 @@ export class UpdateTaskDto {
   @IsString()
   @IsOptional()
   templateId?: string;
+
+  @IsString()
+  @IsOptional()
+  projectId?: string;
+
+  @IsDateString()
+  @IsOptional()
+  startDate?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  dependencyIds?: string[];
 }
 
 export class CommentAttachmentDto {
