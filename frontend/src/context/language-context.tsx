@@ -225,7 +225,6 @@ const enToId: Record<string, string> = {
   "clock-in successful": "absen masuk berhasil",
   "clock-out successful": "absen pulang berhasil",
   "lateness reason": "alasan terlambat",
-  "notes": "catatan",
   "work hours": "jam kerja",
   "hours": "jam",
   "weekly summary": "ringkasan mingguan",
