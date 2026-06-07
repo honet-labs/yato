@@ -29,7 +29,9 @@ import {
   User,
   Settings,
   X,
-  Link2
+  Link2,
+  Lock,
+  Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -44,6 +46,21 @@ const NOTE_CATEGORIES = [
 
 export default function PmoCalendarPage() {
   const queryClient = useQueryClient();
+
+  // Fetch Logged-in User Profile to check permissions
+  const { data: profile, isLoading: isProfileLoading } = useQuery({
+    queryKey: ["user-profile"],
+    queryFn: async () => {
+      const res = await api.get("/auth/profile");
+      return res.data;
+    },
+  });
+
+  const userRoles = profile?.roles?.map((ur: any) => ur.role.name) || [];
+  const userPermissions = profile?.roles?.flatMap((ur: any) => ur.role.permissions || []) || [];
+  const isAdmin = userRoles.includes("ADMIN");
+  const canViewPmo = isAdmin || userPermissions.includes("VIEW_PMO_CALENDAR");
+  const canManagePmo = isAdmin || userPermissions.includes("MANAGE_PMO_CALENDAR");
 
   // Navigation and Tabs state
   const [activeTab, setActiveTab] = useState<"calendar" | "timeline" | "projects">("calendar");
@@ -555,6 +572,28 @@ export default function PmoCalendarPage() {
     return list;
   }, [currentYear, currentMonth]);
 
+  if (isProfileLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-white">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (profile && !canViewPmo) {
+    return (
+      <div className="flex min-h-screen bg-slate-900 text-white items-center justify-center p-6">
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="w-20 h-20 bg-rose-500/10 rounded-full border border-rose-500/30 flex items-center justify-center mx-auto mb-6 text-rose-500">
+            <Lock className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
+          <p className="text-sm text-slate-400">You must hold appropriate permissions to access the PMO Calendar & Timeline.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800">
       <MobileNav />
@@ -634,20 +673,22 @@ export default function PmoCalendarPage() {
               </div>
 
               {/* Quick Action Buttons */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => openNewTaskModal()}
-                  className="bg-white hover:bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-2 transition-all active:scale-95 shadow-sm"
-                >
-                  <Plus className="w-4 h-4 text-slate-500" /> Add Task
-                </button>
-                <button
-                  onClick={openNewProjectModal}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-indigo-600/10"
-                >
-                  <Plus className="w-4 h-4" /> New Project
-                </button>
-              </div>
+              {canManagePmo && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openNewTaskModal()}
+                    className="bg-white hover:bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-2 transition-all active:scale-95 shadow-sm"
+                  >
+                    <Plus className="w-4 h-4 text-slate-500" /> Add Task
+                  </button>
+                  <button
+                    onClick={openNewProjectModal}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-indigo-600/10"
+                  >
+                    <Plus className="w-4 h-4" /> New Project
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* TAB CONTENT: CALENDAR VIEW */}
@@ -794,7 +835,7 @@ export default function PmoCalendarPage() {
                           </div>
 
                           {/* Quick Create Button Overlay */}
-                          {hoveredDay === dateKey && (
+                          {canManagePmo && hoveredDay === dateKey && (
                             <div className="absolute bottom-1 right-1 flex items-center gap-0.5 opacity-0 group-hover/cell:opacity-100 transition-opacity">
                               <button
                                 onClick={() => openNewNoteModal(dateKey)}
@@ -1045,24 +1086,26 @@ export default function PmoCalendarPage() {
                             <span className="w-4 h-4 rounded-xl shrink-0" style={{ backgroundColor: proj.colorCode }} />
                             <h3 className="font-extrabold text-base text-slate-900 group-hover:text-indigo-600 transition-colors">{proj.name}</h3>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={(e) => openEditProjectModal(proj, e)}
-                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-xl transition-all"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (confirm("Delete project? This sets associated tasks project to none.")) {
-                                  deleteProjectMutation.mutate(proj.id);
-                                }
-                              }}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                          {canManagePmo && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={(e) => openEditProjectModal(proj, e)}
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-xl transition-all"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm("Delete project? This sets associated tasks project to none.")) {
+                                    deleteProjectMutation.mutate(proj.id);
+                                  }
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
                         </div>
 
                         <p className="text-xs text-slate-500 line-clamp-2 mb-4 leading-relaxed">{proj.description || "No project description provided."}</p>
@@ -1096,18 +1139,20 @@ export default function PmoCalendarPage() {
                 })}
 
                 {/* Create Project Empty Card */}
-                <button
-                  onClick={openNewProjectModal}
-                  className="bg-white border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-3xl p-8 flex flex-col items-center justify-center gap-3 text-center transition-all group min-h-[220px]"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
-                    <Plus className="w-6 h-6 text-slate-450 group-hover:text-indigo-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-extrabold text-sm text-slate-800">Add New Project</h4>
-                    <p className="text-xs text-slate-400 mt-1">Initiate project container & timeline track</p>
-                  </div>
-                </button>
+                {canManagePmo && (
+                  <button
+                    onClick={openNewProjectModal}
+                    className="bg-white border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-3xl p-8 flex flex-col items-center justify-center gap-3 text-center transition-all group min-h-[220px]"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
+                      <Plus className="w-6 h-6 text-slate-450 group-hover:text-indigo-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-sm text-slate-800">Add New Project</h4>
+                      <p className="text-xs text-slate-400 mt-1">Initiate project container & timeline track</p>
+                    </div>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1129,7 +1174,7 @@ export default function PmoCalendarPage() {
               className="bg-white rounded-[2rem] border border-slate-100 w-full max-w-lg overflow-hidden shadow-2xl p-6 space-y-4"
             >
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="text-lg font-black text-slate-900">{editingProject ? "Edit Project" : "New Project"}</h3>
+                <h3 className="text-lg font-black text-slate-900">{editingProject ? (canManagePmo ? "Edit Project" : "Project Details") : "New Project"}</h3>
                 <button onClick={() => setIsProjectModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-700">
                   <X className="w-5 h-5" />
                 </button>
@@ -1138,6 +1183,7 @@ export default function PmoCalendarPage() {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
+                  if (!canManagePmo) return;
                   projectMutation.mutate(projectForm);
                 }}
                 className="space-y-4 text-xs font-semibold text-slate-700"
@@ -1147,6 +1193,7 @@ export default function PmoCalendarPage() {
                   <input
                     type="text"
                     required
+                    disabled={!canManagePmo}
                     value={projectForm.name}
                     onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white"
@@ -1156,6 +1203,7 @@ export default function PmoCalendarPage() {
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Description</label>
                   <textarea
+                    disabled={!canManagePmo}
                     value={projectForm.description}
                     onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white h-24 resize-none"
@@ -1168,6 +1216,7 @@ export default function PmoCalendarPage() {
                     <input
                       type="date"
                       required
+                      disabled={!canManagePmo}
                       value={projectForm.startDate}
                       onChange={(e) => setProjectForm({ ...projectForm, startDate: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white"
@@ -1178,6 +1227,7 @@ export default function PmoCalendarPage() {
                     <input
                       type="date"
                       required
+                      disabled={!canManagePmo}
                       value={projectForm.endDate}
                       onChange={(e) => setProjectForm({ ...projectForm, endDate: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white"
@@ -1189,6 +1239,7 @@ export default function PmoCalendarPage() {
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Status</label>
                     <select
+                      disabled={!canManagePmo}
                       value={projectForm.status}
                       onChange={(e) => setProjectForm({ ...projectForm, status: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white"
@@ -1203,6 +1254,7 @@ export default function PmoCalendarPage() {
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Color Tag</label>
                     <input
                       type="color"
+                      disabled={!canManagePmo}
                       value={projectForm.colorCode}
                       onChange={(e) => setProjectForm({ ...projectForm, colorCode: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 h-10 outline-none cursor-pointer"
@@ -1210,14 +1262,24 @@ export default function PmoCalendarPage() {
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={projectMutation.isPending}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-indigo-600/10 flex items-center justify-center gap-2"
-                >
-                  {projectMutation.isPending && <Clock className="w-4 h-4 animate-spin" />}
-                  <span>Save Project</span>
-                </button>
+                {canManagePmo ? (
+                  <button
+                    type="submit"
+                    disabled={projectMutation.isPending}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-indigo-600/10 flex items-center justify-center gap-2"
+                  >
+                    {projectMutation.isPending && <Clock className="w-4 h-4 animate-spin" />}
+                    <span>Save Project</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsProjectModalOpen(false)}
+                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                  >
+                    <span>Close</span>
+                  </button>
+                )}
               </form>
             </motion.div>
           </div>
@@ -1235,7 +1297,7 @@ export default function PmoCalendarPage() {
               className="bg-white rounded-[2rem] border border-slate-100 w-full max-w-lg overflow-hidden shadow-2xl p-6 space-y-4"
             >
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="text-lg font-black text-slate-900">{editingMilestone ? "Edit Milestone" : "New Milestone"}</h3>
+                <h3 className="text-lg font-black text-slate-900">{editingMilestone ? (canManagePmo ? "Edit Milestone" : "Milestone Details") : "New Milestone"}</h3>
                 <button onClick={() => setIsMilestoneModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-700">
                   <X className="w-5 h-5" />
                 </button>
@@ -1244,6 +1306,7 @@ export default function PmoCalendarPage() {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
+                  if (!canManagePmo) return;
                   milestoneMutation.mutate(milestoneForm);
                 }}
                 className="space-y-4 text-xs font-semibold text-slate-700"
@@ -1252,6 +1315,7 @@ export default function PmoCalendarPage() {
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Project Container</label>
                     <select
+                      disabled={!canManagePmo}
                       value={milestoneForm.projectId}
                       onChange={(e) => setMilestoneForm({ ...milestoneForm, projectId: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white"
@@ -1268,6 +1332,7 @@ export default function PmoCalendarPage() {
                   <input
                     type="text"
                     required
+                    disabled={!canManagePmo}
                     value={milestoneForm.title}
                     onChange={(e) => setMilestoneForm({ ...milestoneForm, title: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white"
@@ -1277,6 +1342,7 @@ export default function PmoCalendarPage() {
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Description</label>
                   <textarea
+                    disabled={!canManagePmo}
                     value={milestoneForm.description}
                     onChange={(e) => setMilestoneForm({ ...milestoneForm, description: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white h-20 resize-none"
@@ -1289,6 +1355,7 @@ export default function PmoCalendarPage() {
                     <input
                       type="date"
                       required
+                      disabled={!canManagePmo}
                       value={milestoneForm.dueDate}
                       onChange={(e) => setMilestoneForm({ ...milestoneForm, dueDate: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white"
@@ -1298,6 +1365,7 @@ export default function PmoCalendarPage() {
                     <input
                       type="checkbox"
                       id="isReached"
+                      disabled={!canManagePmo}
                       checked={milestoneForm.isReached}
                       onChange={(e) => setMilestoneForm({ ...milestoneForm, isReached: e.target.checked })}
                       className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
@@ -1307,26 +1375,38 @@ export default function PmoCalendarPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  {editingMilestone && (
+                  {canManagePmo ? (
+                    <>
+                      {editingMilestone && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm("Delete milestone?")) {
+                              deleteMilestoneMutation.mutate(editingMilestone.id);
+                              setIsMilestoneModalOpen(false);
+                            }
+                          }}
+                          className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-655 font-bold py-3 rounded-xl transition-all"
+                        >
+                          Delete
+                        </button>
+                      )}
+                      <button
+                        type="submit"
+                        className="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-indigo-600/10"
+                      >
+                        Save Milestone
+                      </button>
+                    </>
+                  ) : (
                     <button
                       type="button"
-                      onClick={() => {
-                        if (confirm("Delete milestone?")) {
-                          deleteMilestoneMutation.mutate(editingMilestone.id);
-                          setIsMilestoneModalOpen(false);
-                        }
-                      }}
-                      className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-650 font-bold py-3 rounded-xl transition-all"
+                      onClick={() => setIsMilestoneModalOpen(false)}
+                      className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-all"
                     >
-                      Delete
+                      Close
                     </button>
                   )}
-                  <button
-                    type="submit"
-                    className="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-indigo-600/10"
-                  >
-                    Save Milestone
-                  </button>
                 </div>
               </form>
             </motion.div>
@@ -1345,7 +1425,7 @@ export default function PmoCalendarPage() {
               className="bg-white rounded-[2rem] border border-slate-100 w-full max-w-lg overflow-hidden shadow-2xl p-6 space-y-4"
             >
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="text-lg font-black text-slate-900">{editingNote ? "Edit Calendar Note" : "New Calendar Note"}</h3>
+                <h3 className="text-lg font-black text-slate-900">{editingNote ? (canManagePmo ? "Edit Calendar Note" : "Calendar Note Details") : "New Calendar Note"}</h3>
                 <button onClick={() => setIsNoteModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-700">
                   <X className="w-5 h-5" />
                 </button>
@@ -1354,6 +1434,7 @@ export default function PmoCalendarPage() {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
+                  if (!canManagePmo) return;
                   noteMutation.mutate(noteForm);
                 }}
                 className="space-y-4 text-xs font-semibold text-slate-700"
@@ -1363,6 +1444,7 @@ export default function PmoCalendarPage() {
                   <input
                     type="date"
                     required
+                    disabled={!canManagePmo}
                     value={noteForm.targetDate}
                     onChange={(e) => setNoteForm({ ...noteForm, targetDate: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white"
@@ -1374,6 +1456,7 @@ export default function PmoCalendarPage() {
                   <input
                     type="text"
                     required
+                    disabled={!canManagePmo}
                     placeholder="e.g. Daily Standup Notes"
                     value={noteForm.title}
                     onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
@@ -1384,6 +1467,7 @@ export default function PmoCalendarPage() {
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Content Details</label>
                   <textarea
+                    disabled={!canManagePmo}
                     placeholder="Provide standup summary, notes, or blocker descriptions..."
                     value={noteForm.content}
                     onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
@@ -1398,6 +1482,7 @@ export default function PmoCalendarPage() {
                       <button
                         key={cat.id}
                         type="button"
+                        disabled={!canManagePmo}
                         onClick={() => setNoteForm({ ...noteForm, category: cat.id })}
                         className={cn(
                           "px-3 py-2.5 rounded-xl border text-left flex items-center gap-2 transition-all",
@@ -1414,26 +1499,38 @@ export default function PmoCalendarPage() {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  {editingNote && (
+                  {canManagePmo ? (
+                    <>
+                      {editingNote && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm("Delete calendar note?")) {
+                              deleteNoteMutation.mutate(editingNote.id);
+                              setIsNoteModalOpen(false);
+                            }
+                          }}
+                          className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-655 font-bold py-3 rounded-xl transition-all"
+                        >
+                          Delete
+                        </button>
+                      )}
+                      <button
+                        type="submit"
+                        className="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-indigo-600/10"
+                      >
+                        Save Note
+                      </button>
+                    </>
+                  ) : (
                     <button
                       type="button"
-                      onClick={() => {
-                        if (confirm("Delete calendar note?")) {
-                          deleteNoteMutation.mutate(editingNote.id);
-                          setIsNoteModalOpen(false);
-                        }
-                      }}
-                      className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-650 font-bold py-3 rounded-xl transition-all"
+                      onClick={() => setIsNoteModalOpen(false)}
+                      className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-all"
                     >
-                      Delete
+                      Close
                     </button>
                   )}
-                  <button
-                    type="submit"
-                    className="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-indigo-600/10"
-                  >
-                    Save Note
-                  </button>
                 </div>
               </form>
             </motion.div>
@@ -1452,7 +1549,7 @@ export default function PmoCalendarPage() {
               className="bg-white rounded-[2rem] border border-slate-100 w-full max-w-xl overflow-hidden shadow-2xl p-6 space-y-4"
             >
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="text-lg font-black text-slate-900">{editingTask ? "Edit Task Details" : "New Timeline Task"}</h3>
+                <h3 className="text-lg font-black text-slate-900">{editingTask ? (canManagePmo ? "Edit Task Details" : "Task Details") : "New Timeline Task"}</h3>
                 <button onClick={() => setIsTaskModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-700">
                   <X className="w-5 h-5" />
                 </button>
@@ -1461,6 +1558,7 @@ export default function PmoCalendarPage() {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
+                  if (!canManagePmo) return;
                   taskMutation.mutate(taskForm);
                 }}
                 className="space-y-4 text-xs font-semibold text-slate-700"
@@ -1470,6 +1568,7 @@ export default function PmoCalendarPage() {
                   <input
                     type="text"
                     required
+                    disabled={!canManagePmo}
                     value={taskForm.title}
                     onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white"
@@ -1480,6 +1579,7 @@ export default function PmoCalendarPage() {
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Project Container</label>
                     <select
+                      disabled={!canManagePmo}
                       value={taskForm.projectId}
                       onChange={(e) => setTaskForm({ ...taskForm, projectId: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white"
@@ -1493,6 +1593,7 @@ export default function PmoCalendarPage() {
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Assignee</label>
                     <select
+                      disabled={!canManagePmo}
                       value={taskForm.assigneeId}
                       onChange={(e) => setTaskForm({ ...taskForm, assigneeId: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white"
@@ -1510,6 +1611,7 @@ export default function PmoCalendarPage() {
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Timeline Start Date</label>
                     <input
                       type="date"
+                      disabled={!canManagePmo}
                       value={taskForm.startDate}
                       onChange={(e) => setTaskForm({ ...taskForm, startDate: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white"
@@ -1519,6 +1621,7 @@ export default function PmoCalendarPage() {
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Due Date</label>
                     <input
                       type="date"
+                      disabled={!canManagePmo}
                       value={taskForm.dueDate}
                       onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white"
@@ -1530,6 +1633,7 @@ export default function PmoCalendarPage() {
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Priority</label>
                     <select
+                      disabled={!canManagePmo}
                       value={taskForm.priority}
                       onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white"
@@ -1542,6 +1646,7 @@ export default function PmoCalendarPage() {
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Status</label>
                     <select
+                      disabled={!canManagePmo}
                       value={taskForm.status}
                       onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 focus:bg-white"
@@ -1565,6 +1670,7 @@ export default function PmoCalendarPage() {
                           <input
                             type="checkbox"
                             id={`dep-${t.id}`}
+                            disabled={!canManagePmo}
                             checked={isChecked}
                             onChange={(e) => {
                               const updated = e.target.checked
@@ -1574,7 +1680,7 @@ export default function PmoCalendarPage() {
                             }}
                             className="w-3.5 h-3.5 text-indigo-600 border-slate-300 rounded cursor-pointer"
                           />
-                          <label htmlFor={`dep-${t.id}`} className="text-slate-650 cursor-pointer text-xs truncate">
+                          <label htmlFor={`dep-${t.id}`} className="text-slate-655 cursor-pointer text-xs truncate">
                             {t.title}
                           </label>
                         </div>
@@ -1584,29 +1690,41 @@ export default function PmoCalendarPage() {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  {editingTask && (
+                  {canManagePmo ? (
+                    <>
+                      {editingTask && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm("Delete this task?")) {
+                              api.delete(`/tasks/${editingTask.id}`).then(() => {
+                                queryClient.invalidateQueries({ queryKey: ["tasks"] });
+                                queryClient.invalidateQueries({ queryKey: ["pmo-projects"] });
+                                setIsTaskModalOpen(false);
+                              });
+                            }
+                          }}
+                          className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-650 font-bold py-3 rounded-xl transition-all"
+                        >
+                          Delete
+                        </button>
+                      )}
+                      <button
+                        type="submit"
+                        className="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-indigo-600/10"
+                      >
+                        Save Task Details
+                      </button>
+                    </>
+                  ) : (
                     <button
                       type="button"
-                      onClick={() => {
-                        if (confirm("Delete this task?")) {
-                          api.delete(`/tasks/${editingTask.id}`).then(() => {
-                            queryClient.invalidateQueries({ queryKey: ["tasks"] });
-                            queryClient.invalidateQueries({ queryKey: ["pmo-projects"] });
-                            setIsTaskModalOpen(false);
-                          });
-                        }
-                      }}
-                      className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-650 font-bold py-3 rounded-xl transition-all"
+                      onClick={() => setIsTaskModalOpen(false)}
+                      className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-all"
                     >
-                      Delete
+                      Close
                     </button>
                   )}
-                  <button
-                    type="submit"
-                    className="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-indigo-600/10"
-                  >
-                    Save Task Details
-                  </button>
                 </div>
               </form>
             </motion.div>

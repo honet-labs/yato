@@ -340,6 +340,10 @@ export default function RolesManagementPage() {
                           perms: ["VIEW_HRM", "MANAGE_HRM"] 
                         },
                         { 
+                          group: "PMO Calendar & Timeline", 
+                          perms: ["VIEW_PMO_CALENDAR", "MANAGE_PMO_CALENDAR"] 
+                        },
+                        { 
                           group: "System & Governance", 
                           perms: ["VIEW_AUDIT_LOGS", "VIEW_SYSTEM_STATUS", "MANAGE_USERS", "MANAGE_ROLES", "MANAGE_CONFIG"] 
                         }

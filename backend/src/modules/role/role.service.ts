@@ -65,7 +65,9 @@ export class RoleService {
       "MANAGE_HRM_LEAVES",
       "MANAGE_HRM_DIVISIONS",
       "MANAGE_HRM_SCHEDULER",
-      "MANAGE_HRM_ADJUSTMENTS"
+      "MANAGE_HRM_ADJUSTMENTS",
+      "VIEW_PMO_CALENDAR",
+      "MANAGE_PMO_CALENDAR"
     ];
   }
 }
