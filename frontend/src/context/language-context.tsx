@@ -261,7 +261,6 @@ const enToId: Record<string, string> = {
   "backup employee name...": "nama karyawan pengganti...",
   "example: 08123456789": "contoh: 08123456789",
   "initial allowance": "jatah mula",
-  "action": "aksi",
   "adjust leave balance": "sesuaikan sisa cuti",
   "total initial leave quota (allocated)": "total jatah cuti mula (allocated)",
   "used leave (used)": "jatah yang sudah digunakan (used)",
