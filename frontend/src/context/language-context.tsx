@@ -260,8 +260,6 @@ const enToId: Record<string, string> = {
   "supporting document / attachment url (required)": "dokumen pendukung / attachment url (wajib)",
   "backup employee name...": "nama karyawan pengganti...",
   "example: 08123456789": "contoh: 08123456789",
-  "handover employee field": "field karyawan handover",
-  "employee leave balances": "daftar sisa & jatah cuti karyawan",
   "initial allowance": "jatah mula",
   "action": "aksi",
   "adjust leave balance": "sesuaikan sisa cuti",
