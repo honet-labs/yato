@@ -93,6 +93,21 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
+  const { data: sidebarTasks } = useQuery<any[]>({
+    queryKey: ["sidebar-tasks-count"],
+    queryFn: async () => {
+      try {
+        const response = await api.get("/tasks");
+        return response.data;
+      } catch (err) {
+        return [];
+      }
+    },
+    refetchInterval: 15000,
+  });
+
+  const notStartedTasksCount = (sidebarTasks || []).filter((t: any) => t.status === "NOT_STARTED").length || 0;
+
   const unreadCount = (notifications?.data || []).filter((n: any) => !n.isRead).length || 0;
   const ticketUnreadCount = (notifications?.data || []).filter((n: any) => !n.isRead && n.link?.includes("/tickets")).length || 0;
   const displayNotifications = notifications?.data || [];
@@ -256,6 +271,11 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                         {item.href === "/tickets" && ticketUnreadCount > 0 && (
                           <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
                             {ticketUnreadCount}
+                          </span>
+                        )}
+                        {item.href === "/tasks" && notStartedTasksCount > 0 && (
+                          <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
+                            {notStartedTasksCount}
                           </span>
                         )}
                       </Link>

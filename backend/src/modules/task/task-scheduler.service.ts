@@ -3,6 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { replaceDatePlaceholders } from './task.service';
 import { AuditService } from '../audit/audit.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class TaskSchedulerService {
@@ -11,6 +12,7 @@ export class TaskSchedulerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   // Run scheduler every 10 minutes to check precision scheduling
@@ -157,9 +159,64 @@ export class TaskSchedulerService {
     }
   }
 
-  // Also run on application startup to ensure any missed tasks are created
+  // Daily reminder at 8:00 AM for tasks that are NOT_STARTED
+  @Cron('0 8 * * *')
+  async sendTaskReminders() {
+    this.logger.log('⏰ Running daily task reminder check...');
+    try {
+      // Find all tasks with status 'NOT_STARTED' that have assignees
+      const tasks = await this.prisma.task.findMany({
+        where: {
+          status: 'NOT_STARTED',
+        },
+        include: {
+          assignees: {
+            select: {
+              id: true,
+              fullName: true,
+              username: true,
+              email: true,
+              phoneNumber: true,
+              telegramId: true,
+            },
+          },
+        },
+      });
+
+      this.logger.log(`Found ${tasks.length} NOT_STARTED tasks to process.`);
+
+      const frontendUrl = process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+
+      for (const task of tasks) {
+        if (!task.assignees || task.assignees.length === 0) {
+          continue;
+        }
+
+        const taskUrl = `${frontendUrl}/tasks?taskId=${task.id}`;
+
+        for (const assignee of task.assignees) {
+          this.logger.log(`Sending task reminder for task "${task.title}" to assignee "${assignee.fullName || assignee.username}"`);
+          
+          try {
+            await this.notificationService.sendToUserQueue(
+              assignee.id,
+              `Task Reminder: ${task.title}`,
+              `Hello ${assignee.fullName || assignee.username},\n\nThis is a reminder that the task <b>${task.title}</b> is currently <b>Not Started</b>.\n\nPlease start working on it or update its status in the task tracker.\n\nLink: ${taskUrl}`,
+            );
+          } catch (err) {
+            this.logger.error(`Failed to send reminder for task ${task.id} to user ${assignee.id}: ${err.message}`);
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error occurred in task reminder job:', error.stack || error.message);
+    }
+  }
+
+  // Also run on application startup to ensure repeating tasks and initial alerts are handled
   async onApplicationBootstrap() {
     this.logger.log('🚀 Bootstrapping Repeating Task Scheduler...');
     await this.handleRepeatingTasks();
+    await this.sendTaskReminders();
   }
 }
