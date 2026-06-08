@@ -94,7 +94,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
   });
 
   const { data: sidebarTasks } = useQuery<any[]>({
-    queryKey: ["sidebar-tasks-count"],
+    queryKey: ["tasks"],
     queryFn: async () => {
       try {
         const response = await api.get("/tasks");
