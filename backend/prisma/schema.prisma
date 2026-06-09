@@ -633,6 +633,7 @@ model TimesheetLog {
   ipAddress   String?
   location    String?
   device      String?
+  selfieUrl   String?
   createdAt   DateTime  @default(now())
 
   @@index([timesheetId])

@@ -21,14 +21,14 @@ export class HrmController {
 
   @Post('divisions')
   @ApiOperation({ summary: 'Create a new division' })
-  async createDivision(@Body() dto: { name: string; description?: string; supervisorId?: string; managerId?: string; headId?: string }) {
-    return this.hrmService.createDivision(dto);
+  async createDivision(@Request() req: any, @Body() dto: { name: string; description?: string; supervisorId?: string; managerId?: string; headId?: string }) {
+    return this.hrmService.createDivision(req.user.id, dto);
   }
 
   @Put('divisions/:id')
   @ApiOperation({ summary: 'Update a division' })
-  async updateDivision(@Param('id') id: string, @Body() dto: { name?: string; description?: string; supervisorId?: string; managerId?: string; headId?: string }) {
-    return this.hrmService.updateDivision(id, dto);
+  async updateDivision(@Request() req: any, @Param('id') id: string, @Body() dto: { name?: string; description?: string; supervisorId?: string; managerId?: string; headId?: string }) {
+    return this.hrmService.updateDivision(req.user.id, id, dto);
   }
 
   // =========================================================================
@@ -42,7 +42,7 @@ export class HrmController {
 
   @Post('shifts/categories')
   @ApiOperation({ summary: 'Create shift category' })
-  async createShiftCategory(@Body() dto: {
+  async createShiftCategory(@Request() req: any, @Body() dto: {
     name: string;
     startTime: string;
     endTime: string;
@@ -51,12 +51,12 @@ export class HrmController {
     colorCode?: string;
     description?: string;
   }) {
-    return this.hrmService.createShiftCategory(dto);
+    return this.hrmService.createShiftCategory(req.user.id, dto);
   }
 
   @Patch('shifts/categories/:id')
   @ApiOperation({ summary: 'Update shift category' })
-  async updateShiftCategory(@Param('id') id: string, @Body() dto: {
+  async updateShiftCategory(@Request() req: any, @Param('id') id: string, @Body() dto: {
     name?: string;
     startTime?: string;
     endTime?: string;
@@ -65,19 +65,19 @@ export class HrmController {
     colorCode?: string;
     description?: string;
   }) {
-    return this.hrmService.updateShiftCategory(id, dto);
+    return this.hrmService.updateShiftCategory(req.user.id, id, dto);
   }
 
   @Delete('shifts/categories/:id')
   @ApiOperation({ summary: 'Delete shift category' })
-  async deleteShiftCategory(@Param('id') id: string) {
-    return this.hrmService.deleteShiftCategory(id);
+  async deleteShiftCategory(@Request() req: any, @Param('id') id: string) {
+    return this.hrmService.deleteShiftCategory(req.user.id, id);
   }
 
   @Post('shifts/assign')
   @ApiOperation({ summary: 'Assign a shift to a user' })
-  async assignShift(@Body() dto: { userId: string; shiftCategoryId: string; date: string; notes?: string }) {
-    return this.hrmService.assignShift(dto);
+  async assignShift(@Request() req: any, @Body() dto: { userId: string; shiftCategoryId: string; date: string; notes?: string }) {
+    return this.hrmService.assignShift(req.user.id, dto);
   }
 
   @Get('shifts/my-roster')
@@ -95,10 +95,10 @@ export class HrmController {
     @Request() req: any,
     @Ip() ipAddress: string,
     @Headers('user-agent') userAgent: string,
-    @Body() dto: { latenessReason?: string; customTime?: string }
+    @Body() dto: { latenessReason?: string; customTime?: string; selfie?: string }
   ) {
     const time = dto.customTime ? new Date(dto.customTime) : undefined;
-    return this.hrmService.clockIn(req.user.id, ipAddress, userAgent, dto.latenessReason, time);
+    return this.hrmService.clockIn(req.user.id, ipAddress, userAgent, dto.latenessReason, time, dto.selfie);
   }
 
   @Post('timesheets/clock-out')
@@ -107,10 +107,10 @@ export class HrmController {
     @Request() req: any,
     @Ip() ipAddress: string,
     @Headers('user-agent') userAgent: string,
-    @Body() dto: { notes?: string; customTime?: string }
+    @Body() dto: { notes?: string; customTime?: string; selfie?: string }
   ) {
     const time = dto.customTime ? new Date(dto.customTime) : undefined;
-    return this.hrmService.clockOut(req.user.id, ipAddress, userAgent, dto.notes, time);
+    return this.hrmService.clockOut(req.user.id, ipAddress, userAgent, dto.notes, time, dto.selfie);
   }
 
   @Get('timesheets/my')
@@ -227,8 +227,8 @@ export class HrmController {
 
   @Patch('admin/leaves/balances/:userId')
   @ApiOperation({ summary: 'Customize a user leave balance' })
-  async adminUpdateLeaveBalance(@Param('userId') userId: string, @Body() dto: { allocated?: number; used?: number }) {
-    return this.hrmService.adminUpdateLeaveBalance(userId, dto);
+  async adminUpdateLeaveBalance(@Request() req: any, @Param('userId') userId: string, @Body() dto: { allocated?: number; used?: number }) {
+    return this.hrmService.adminUpdateLeaveBalance(req.user.id, userId, dto);
   }
 
   @Get('admin/leaves/requests')
@@ -239,7 +239,7 @@ export class HrmController {
 
   @Patch('admin/leaves/requests/:requestId/status')
   @ApiOperation({ summary: 'Admin force override leave request status' })
-  async adminOverrideLeaveRequest(@Param('requestId') requestId: string, @Body() dto: { status: 'APPROVED' | 'REJECTED'; notes?: string }) {
-    return this.hrmService.adminOverrideLeaveRequest(requestId, dto);
+  async adminOverrideLeaveRequest(@Request() req: any, @Param('requestId') requestId: string, @Body() dto: { status: 'APPROVED' | 'REJECTED'; notes?: string }) {
+    return this.hrmService.adminOverrideLeaveRequest(req.user.id, requestId, dto);
   }
 }

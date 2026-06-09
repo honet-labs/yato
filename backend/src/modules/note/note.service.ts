@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class NoteService {
@@ -10,6 +11,7 @@ export class NoteService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
+    private readonly auditService: AuditService,
   ) {}
 
   async create(userId: string, data: {
@@ -21,20 +23,29 @@ export class NoteService {
     isTrashed?: boolean;
     reminderAt?: string | Date;
   }) {
+    this.logger.log(`Creating note for user: ${userId}. Title: "${data.title || 'Untitled'}"`);
     const reminderDate = data.reminderAt ? new Date(data.reminderAt) : null;
-    return this.prisma.note.create({
-      data: {
-        userId,
-        title: data.title || null,
-        content: data.content,
-        color: data.color || '#ffffff',
-        isPinned: data.isPinned ?? false,
-        isArchived: data.isArchived ?? false,
-        isTrashed: data.isTrashed ?? false,
-        reminderAt: reminderDate,
-        reminderSent: false,
-      },
-    });
+    try {
+      const note = await this.prisma.note.create({
+        data: {
+          userId,
+          title: data.title || null,
+          content: data.content,
+          color: data.color || '#ffffff',
+          isPinned: data.isPinned ?? false,
+          isArchived: data.isArchived ?? false,
+          isTrashed: data.isTrashed ?? false,
+          reminderAt: reminderDate,
+          reminderSent: false,
+        },
+      });
+      this.logger.log(`Successfully created note ${note.id} for user: ${userId}`);
+      await this.auditService.log(userId, 'CREATE_NOTE', 'Note', note.id, { title: note.title });
+      return note;
+    } catch (err) {
+      this.logger.error(`Failed to create note for user ${userId}: ${err.message}`, err.stack);
+      throw err;
+    }
   }
 
   async findAll(userId: string, query?: {
@@ -88,6 +99,7 @@ export class NoteService {
     isTrashed?: boolean;
     reminderAt?: string | Date | null;
   }) {
+    this.logger.log(`Updating note ${id} for user ${userId}. Keys to update: ${Object.keys(data).join(', ')}`);
     // Verify note ownership
     await this.findOne(id, userId);
 
@@ -109,34 +121,60 @@ export class NoteService {
       }
     }
 
-    return this.prisma.note.update({
-      where: { id },
-      data: updateData,
-    });
+    try {
+      const note = await this.prisma.note.update({
+        where: { id },
+        data: updateData,
+      });
+      this.logger.log(`Successfully updated note ${id} for user ${userId}`);
+      await this.auditService.log(userId, 'UPDATE_NOTE', 'Note', id, updateData);
+      return note;
+    } catch (err) {
+      this.logger.error(`Failed to update note ${id} for user ${userId}: ${err.message}`, err.stack);
+      throw err;
+    }
   }
 
   async remove(id: string, userId: string) {
+    this.logger.log(`Deleting note ${id} for user ${userId}`);
     // Verify note ownership
     await this.findOne(id, userId);
 
-    return this.prisma.note.delete({
-      where: { id },
-    });
+    try {
+      const note = await this.prisma.note.delete({
+        where: { id },
+      });
+      this.logger.log(`Successfully deleted note ${id} for user ${userId}`);
+      await this.auditService.log(userId, 'DELETE_NOTE', 'Note', id);
+      return note;
+    } catch (err) {
+      this.logger.error(`Failed to delete note ${id} for user ${userId}: ${err.message}`, err.stack);
+      throw err;
+    }
   }
 
   async emptyTrash(userId: string) {
-    return this.prisma.note.deleteMany({
-      where: {
-        userId,
-        isTrashed: true,
-      },
-    });
+    this.logger.log(`Emptying trashed notes for user ${userId}`);
+    try {
+      const result = await this.prisma.note.deleteMany({
+        where: {
+          userId,
+          isTrashed: true,
+        },
+      });
+      this.logger.log(`Successfully emptied trash for user ${userId}. Deleted ${result.count} notes.`);
+      await this.auditService.log(userId, 'EMPTY_TRASH_NOTES', 'Note');
+      return result;
+    } catch (err) {
+      this.logger.error(`Failed to empty trash for user ${userId}: ${err.message}`, err.stack);
+      throw err;
+    }
   }
 
   @Cron('*/1 * * * *') // Runs every minute
   async handleNoteReminders() {
     const now = new Date();
-    this.logger.debug('Checking note reminders...');
+    this.logger.log('Checking note reminders scheduler...');
     try {
       const pendingNotes = await this.prisma.note.findMany({
         where: {
@@ -147,6 +185,10 @@ export class NoteService {
           isTrashed: false,
         },
       });
+
+      if (pendingNotes.length > 0) {
+        this.logger.log(`Found ${pendingNotes.length} pending note reminders to send.`);
+      }
 
       for (const note of pendingNotes) {
         try {
@@ -166,13 +208,14 @@ export class NoteService {
             data: { reminderSent: true },
           });
 
-          this.logger.log(`Reminder sent for note ${note.id} to user ${note.userId}`);
+          this.logger.log(`Reminder notification successfully sent for note ${note.id} to user ${note.userId}`);
+          await this.auditService.log(note.userId, 'SEND_NOTE_REMINDER', 'NoteReminder', note.id, { title });
         } catch (err) {
-          this.logger.error(`Error sending reminder for note ${note.id}: ${err.message}`);
+          this.logger.error(`Error sending reminder notification for note ${note.id}: ${err.message}`, err.stack);
         }
       }
     } catch (error) {
-      this.logger.error(`Error in handleNoteReminders: ${error.message}`);
+      this.logger.error(`Error in handleNoteReminders scheduler: ${error.message}`, error.stack);
     }
   }
 }

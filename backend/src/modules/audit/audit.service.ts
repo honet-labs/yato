@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditContextService } from '../../common/context/audit-context.service';
 
 @Injectable()
 export class AuditService {
+  private readonly logger = new Logger(AuditService.name);
+
   constructor(
     private prisma: PrismaService,
     private auditContextService: AuditContextService,
@@ -21,6 +23,8 @@ export class AuditService {
     const context = this.auditContextService.getContext();
     const finalIp = ipAddress || context?.ipAddress || (metadata as any)?.ipAddress;
     const finalUA = userAgent || context?.userAgent || (metadata as any)?.userAgent;
+
+    this.logger.log(`[Audit] User: ${userId || 'SYSTEM'} | Action: ${action} | Resource: ${resource} | ResourceId: ${resourceId || 'N/A'} | IP: ${finalIp || 'N/A'}`);
 
     return this.prisma.auditLog.create({
       data: {

@@ -22,7 +22,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  Download
+  Download,
+  Camera
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -51,6 +52,67 @@ export default function AttendancePage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [workNotes, setWorkNotes] = useState("");
   const [clientIp, setClientIp] = useState("192.168.201.18");
+  const [selfieImage, setSelfieImage] = useState<string | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [selectedSelfieUrl, setSelectedSelfieUrl] = useState<string | null>(null);
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }
+      });
+      setCameraStream(stream);
+      setIsCameraActive(true);
+      setSelfieImage(null);
+      
+      setTimeout(() => {
+        const video = document.getElementById("selfie-video") as HTMLVideoElement;
+        if (video) {
+          video.srcObject = stream;
+          video.play().catch(err => console.log("video play error:", err));
+        }
+      }, 150);
+    } catch (err) {
+      showToast("Cannot access camera. Please check permissions.", "error");
+    }
+  };
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setIsCameraActive(false);
+  };
+
+  const capturePhoto = () => {
+    const video = document.getElementById("selfie-video") as HTMLVideoElement;
+    if (video) {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        setSelfieImage(dataUrl);
+        stopCamera();
+      }
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [cameraStream]);
 
   // Navigation tab: "terminal" | "calendar" | "admin"
   const [activeTab, setActiveTab] = useState<"terminal" | "calendar" | "admin">("terminal");
@@ -128,14 +190,15 @@ export default function AttendancePage() {
   });
 
   const clockInMutation = useMutation({
-    mutationFn: async () => {
-      const res = await api.post("/hrm/timesheets/clock-in", {});
+    mutationFn: async (payload?: { selfie?: string }) => {
+      const res = await api.post("/hrm/timesheets/clock-in", payload || {});
       return res.data;
     },
     onSuccess: () => {
       refetchTimesheets();
       queryClient.invalidateQueries({ queryKey: ["hrm"] });
       showToast("Clock-in successful!", "success");
+      setSelfieImage(null);
     },
     onError: (err: any) => {
       showToast(err.response?.data?.message || "Clock-in failed", "error");
@@ -143,7 +206,7 @@ export default function AttendancePage() {
   });
 
   const clockOutMutation = useMutation({
-    mutationFn: async (payload: { notes?: string }) => {
+    mutationFn: async (payload: { notes?: string; selfie?: string }) => {
       const res = await api.post("/hrm/timesheets/clock-out", payload);
       return res.data;
     },
@@ -151,6 +214,7 @@ export default function AttendancePage() {
       refetchTimesheets();
       queryClient.invalidateQueries({ queryKey: ["hrm"] });
       showToast("Clock-out successful!", "success");
+      setSelfieImage(null);
     },
     onError: (err: any) => {
       showToast(err.response?.data?.message || "Clock-out failed", "error");
@@ -158,12 +222,15 @@ export default function AttendancePage() {
   });
 
   const handleClockIn = () => {
-    clockInMutation.mutate();
+    clockInMutation.mutate({
+      selfie: selfieImage || undefined,
+    });
   };
 
   const handleClockOut = () => {
     clockOutMutation.mutate({
       notes: workNotes,
+      selfie: selfieImage || undefined,
     });
     setWorkNotes("");
   };
@@ -397,6 +464,85 @@ export default function AttendancePage() {
                     </div>
                   )}
 
+                  {/* Selfie UI Component */}
+                  {(!todayTimesheet || !todayTimesheet.logs.find((l: any) => l.type === "CHECK_OUT")) && (
+                    <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                          Selfie Authentication
+                        </span>
+                        {selfieImage && (
+                          <span className="bg-emerald-50 text-emerald-600 text-[8px] font-extrabold uppercase px-2 py-0.5 rounded-full border border-emerald-100">
+                            Captured
+                          </span>
+                        )}
+                      </div>
+
+                      {isCameraActive ? (
+                        <div className="relative rounded-xl overflow-hidden aspect-video bg-slate-900 border border-slate-200">
+                          <video
+                            id="selfie-video"
+                            className="w-full h-full object-cover"
+                            style={{ transform: "scaleX(-1)" }}
+                            playsInline
+                            muted
+                          />
+                          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={capturePhoto}
+                              className="bg-white hover:bg-slate-100 text-slate-800 text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm cursor-pointer transition-all"
+                            >
+                              📸 Capture
+                            </button>
+                            <button
+                              type="button"
+                              onClick={stopCamera}
+                              className="bg-rose-50 hover:bg-rose-100 text-rose-600 text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border border-rose-200 shadow-sm cursor-pointer transition-all"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : selfieImage ? (
+                        <div className="relative rounded-xl overflow-hidden aspect-video bg-slate-100 border border-slate-200">
+                          <img
+                            src={selfieImage}
+                            alt="Selfie preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute top-2 right-2">
+                            <button
+                              type="button"
+                              onClick={() => setSelfieImage(null)}
+                              className="bg-slate-900/60 hover:bg-slate-900/80 text-white p-1.5 rounded-lg transition-all cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <div className="absolute bottom-2 left-2">
+                            <button
+                              type="button"
+                              onClick={startCamera}
+                              className="bg-white/80 hover:bg-white text-slate-800 text-[9px] font-extrabold uppercase px-2 py-1 rounded-lg border border-slate-200 shadow-sm cursor-pointer"
+                            >
+                              Retake
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={startCamera}
+                          className="w-full py-2.5 bg-white hover:bg-slate-100/50 border border-slate-200 text-slate-650 hover:text-slate-850 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                        >
+                          <Camera className="w-4 h-4 text-slate-400" />
+                          <span>Add Selfie (Optional)</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   <div>
                     {!todayTimesheet ? (
                       <button
@@ -453,10 +599,21 @@ export default function AttendancePage() {
                         className="bg-slate-50/50 border border-slate-100 p-3.5 rounded-xl flex items-center justify-between text-xs hover:border-slate-200 transition-all"
                       >
                         <div className="flex items-center gap-3">
-                          <span className={cn(
-                            "w-2.5 h-2.5 rounded-full",
-                            log.type === "CHECK_IN" ? "bg-blue-500" : "bg-amber-500"
-                          )} />
+                          {log.selfieUrl ? (
+                            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200 cursor-zoom-in hover:scale-105 transition-all shrink-0">
+                              <img
+                                src={log.selfieUrl}
+                                alt="Selfie"
+                                className="w-full h-full object-cover"
+                                onClick={() => setSelectedSelfieUrl(log.selfieUrl)}
+                              />
+                            </div>
+                          ) : (
+                            <span className={cn(
+                              "w-2.5 h-2.5 rounded-full shrink-0",
+                              log.type === "CHECK_IN" ? "bg-blue-500" : "bg-amber-500"
+                            )} />
+                          )}
                           <div>
                             <div className="font-bold text-slate-800">{log.type}</div>
                             <div className="text-[10px] text-slate-400 font-medium">IP Address: {log.ipAddress}</div>
@@ -738,16 +895,42 @@ export default function AttendancePage() {
                               </span>
                             </td>
                             <td className="py-4 px-4 font-mono font-bold text-slate-700">
-                              {inLog 
-                                ? new Date(inLog.timestamp).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) 
-                                : "--:--"
-                              }
+                              <div className="flex items-center gap-1.5">
+                                <span>
+                                  {inLog 
+                                    ? new Date(inLog.timestamp).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) 
+                                    : "--:--"
+                                  }
+                                </span>
+                                {inLog?.selfieUrl && (
+                                  <button
+                                    onClick={() => setSelectedSelfieUrl(inLog.selfieUrl)}
+                                    className="text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
+                                    title="View Check-In Selfie"
+                                  >
+                                    <Camera className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
                             </td>
                             <td className="py-4 px-4 font-mono font-bold text-slate-700">
-                              {outLog 
-                                ? new Date(outLog.timestamp).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) 
-                                : "--:--"
-                              }
+                              <div className="flex items-center gap-1.5">
+                                <span>
+                                  {outLog 
+                                    ? new Date(outLog.timestamp).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) 
+                                    : "--:--"
+                                  }
+                                </span>
+                                {outLog?.selfieUrl && (
+                                  <button
+                                    onClick={() => setSelectedSelfieUrl(outLog.selfieUrl)}
+                                    className="text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
+                                    title="View Check-Out Selfie"
+                                  >
+                                    <Camera className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
                             </td>
                             <td className="py-4 px-4 font-mono text-[11px] text-slate-500">
                               {inLog?.ipAddress || "N/A"}
@@ -833,15 +1016,25 @@ export default function AttendancePage() {
                     const checkInLog = selectedDayTimesheet.logs?.find((l: any) => l.type === "CHECK_IN");
                     if (!checkInLog) return null;
                     return (
-                      <div className="bg-blue-50/60 border border-blue-100 p-5 rounded-2xl space-y-3">
-                        <div className="text-blue-800 font-extrabold text-xs">
-                          Check-In Recorded Successfully
-                        </div>
-                        <div className="text-[11px] text-slate-600 font-medium space-y-1.5 pl-1">
+                      <div className="bg-blue-50/60 border border-blue-100 p-5 rounded-2xl space-y-3 flex items-start justify-between gap-4">
+                        <div className="text-[11px] text-slate-600 font-medium space-y-1.5 pl-1 flex-1">
+                          <div className="text-blue-800 font-extrabold text-xs mb-2">
+                            Check-In Recorded Successfully
+                          </div>
                           <p><strong className="text-slate-800">Tanggal:</strong> {new Date(checkInLog.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
                           <p><strong className="text-slate-800">Jam:</strong> {new Date(checkInLog.timestamp).toLocaleTimeString("en-GB", { hour12: false })}</p>
                           <p><strong className="text-slate-800">IP Address:</strong> {checkInLog.ipAddress || "LAN/Office Network"}</p>
                         </div>
+                        {checkInLog.selfieUrl && (
+                          <div className="relative w-16 h-20 rounded-xl overflow-hidden border border-slate-200 cursor-zoom-in hover:scale-105 transition-all shrink-0 bg-slate-100">
+                            <img
+                              src={checkInLog.selfieUrl}
+                              alt="Check-In Selfie"
+                              className="w-full h-full object-cover"
+                              onClick={() => setSelectedSelfieUrl(checkInLog.selfieUrl)}
+                            />
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
@@ -851,15 +1044,25 @@ export default function AttendancePage() {
                     const checkOutLog = selectedDayTimesheet.logs?.find((l: any) => l.type === "CHECK_OUT");
                     if (!checkOutLog) return null;
                     return (
-                      <div className="bg-emerald-50/60 border border-emerald-100 p-5 rounded-2xl space-y-3">
-                        <div className="text-emerald-800 font-extrabold text-xs">
-                          Check-Out Recorded Successfully
-                        </div>
-                        <div className="text-[11px] text-slate-600 font-medium space-y-1.5 pl-1">
+                      <div className="bg-emerald-50/60 border border-emerald-100 p-5 rounded-2xl space-y-3 flex items-start justify-between gap-4">
+                        <div className="text-[11px] text-slate-600 font-medium space-y-1.5 pl-1 flex-1">
+                          <div className="text-emerald-800 font-extrabold text-xs mb-2">
+                            Check-Out Recorded Successfully
+                          </div>
                           <p><strong className="text-slate-800">Tanggal:</strong> {new Date(checkOutLog.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
                           <p><strong className="text-slate-800">Jam:</strong> {new Date(checkOutLog.timestamp).toLocaleTimeString("en-GB", { hour12: false })}</p>
                           <p><strong className="text-slate-800">Total Hours:</strong> {selectedDayTimesheet.totalHours} hrs</p>
                         </div>
+                        {checkOutLog.selfieUrl && (
+                          <div className="relative w-16 h-20 rounded-xl overflow-hidden border border-slate-200 cursor-zoom-in hover:scale-105 transition-all shrink-0 bg-slate-100">
+                            <img
+                              src={checkOutLog.selfieUrl}
+                              alt="Check-Out Selfie"
+                              className="w-full h-full object-cover"
+                              onClick={() => setSelectedSelfieUrl(checkOutLog.selfieUrl)}
+                            />
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
@@ -870,6 +1073,39 @@ export default function AttendancePage() {
                     </div>
                   )}
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      {/* Lightbox / Selfie Modal */}
+      <AnimatePresence>
+        {selectedSelfieUrl && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedSelfieUrl(null)}
+              className="absolute inset-0 bg-slate-950/85 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative max-w-sm w-full bg-white rounded-3xl overflow-hidden p-3 shadow-2xl z-[110]"
+            >
+              <button
+                onClick={() => setSelectedSelfieUrl(null)}
+                className="absolute top-6 right-6 bg-slate-900/60 hover:bg-slate-900/80 text-white p-2 rounded-xl transition-all cursor-pointer z-[120]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <div className="rounded-2xl overflow-hidden bg-slate-950 aspect-[3/4] max-h-[70vh]">
+                <img
+                  src={selectedSelfieUrl}
+                  alt="Attendance Selfie"
+                  className="w-full h-full object-contain"
+                />
               </div>
             </motion.div>
           </div>
