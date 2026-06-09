@@ -42,6 +42,33 @@ import { useLanguage } from "@/context/language-context";
 
 
 
+const formatNotificationTime = (dateStr: string) => {
+  if (!dateStr) return "";
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  } catch (e) {
+    return "";
+  }
+};
+
 interface SidebarProps {
   isMobile?: boolean;
   onNavItemClick?: () => void;
@@ -364,7 +391,10 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                                 {n.type === 'SUCCESS' ? <div className="w-2 h-2 bg-emerald-500 rounded-full" /> : <div className="w-2 h-2 bg-blue-500 rounded-full" />}
                               </div>
                               <div className="flex-1">
-                                <p className="text-[11px] font-bold text-slate-900 leading-tight mb-1">{n.title}</p>
+                                <div className="flex items-start justify-between gap-2 mb-1">
+                                  <p className="text-[11px] font-bold text-slate-900 leading-tight">{n.title}</p>
+                                  <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-wider whitespace-nowrap">{formatNotificationTime(n.createdAt)}</span>
+                                </div>
                                 <p className="text-[10px] text-slate-500 leading-normal">{cleanMsg}</p>
                               </div>
                             </div>
