@@ -41,7 +41,7 @@ export class NoteController {
       isPinned: isPinned === 'true' ? true : isPinned === 'false' ? false : undefined,
       isArchived: isArchived === 'true' ? true : isArchived === 'false' ? false : undefined,
       isTrashed: isTrashed === 'true' ? true : isTrashed === 'false' ? false : undefined,
-      hasReminder: hasReminder === 'true' ? true : undefined,
+      hasReminder: hasReminder === 'true' ? true : hasReminder === 'false' ? false : undefined,
     });
   }
 
