@@ -86,15 +86,14 @@ export class TicketCommentService {
       const mentionRegex = /@([^\s,.:;!?"'()\[\]{}]+)/g;
       const matches = [...data.content.matchAll(mentionRegex)];
       if (matches.length > 0) {
-        const usernames = matches.map(m => m[1]);
-        const mentionedUsers = await this.prisma.user.findMany({
-          where: {
-            OR: [
-              { username: { in: usernames, mode: 'insensitive' } },
-              { fullName: { in: usernames, mode: 'insensitive' } }
-            ]
-          },
-          select: { id: true, fullName: true }
+        const usernames = matches.map(m => m[1].toLowerCase());
+        const allUsers = await this.prisma.user.findMany({
+          select: { id: true, username: true, fullName: true }
+        });
+        const mentionedUsers = allUsers.filter(u => {
+          const normUsername = u.username ? u.username.toLowerCase() : '';
+          const normFullName = u.fullName ? u.fullName.replace(/\s+/g, '').toLowerCase() : '';
+          return usernames.some(uname => uname === normUsername || uname === normFullName);
         });
 
         for (const user of mentionedUsers) {

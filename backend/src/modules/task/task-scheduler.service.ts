@@ -204,15 +204,17 @@ export class TaskSchedulerService {
     }
   }
 
-  // Daily reminder at 8:00 AM for tasks that are NOT_STARTED
+  // Daily reminder at 8:00 AM for tasks that are NOT_STARTED or IN_PROGRESS
   @Cron('0 8 * * *')
   async sendTaskReminders() {
     this.logger.log('⏰ Running daily task reminder check...');
     try {
-      // Find all tasks with status 'NOT_STARTED' that have assignees
+      // Find all tasks with status 'NOT_STARTED' or 'IN_PROGRESS' that have assignees
       const tasks = await this.prisma.task.findMany({
         where: {
-          status: 'NOT_STARTED',
+          status: {
+            in: ['NOT_STARTED', 'IN_PROGRESS'],
+          },
         },
         include: {
           assignees: {
@@ -228,7 +230,7 @@ export class TaskSchedulerService {
         },
       });
 
-      this.logger.log(`Found ${tasks.length} NOT_STARTED tasks to process.`);
+      this.logger.log(`Found ${tasks.length} active tasks (NOT_STARTED/IN_PROGRESS) to process.`);
 
       const frontendUrl = process.env.FRONTEND_URL || 'https://yato.honet.web.id';
 
@@ -238,6 +240,10 @@ export class TaskSchedulerService {
         }
 
         const taskUrl = `${frontendUrl}/tasks?taskId=${task.id}`;
+        const statusLabel = task.status === 'IN_PROGRESS' ? 'In Progress' : 'Not Started';
+        const actionLabel = task.status === 'IN_PROGRESS' 
+          ? 'Please continue working on it or update its status once completed.' 
+          : 'Please start working on it or update its status in the task tracker.';
 
         for (const assignee of task.assignees) {
           this.logger.log(`Sending task reminder for task "${task.title}" to assignee "${assignee.fullName || assignee.username}"`);
@@ -246,7 +252,7 @@ export class TaskSchedulerService {
             await this.notificationService.sendToUserQueue(
               assignee.id,
               `Task Reminder: ${task.title}`,
-              `Hello ${assignee.fullName || assignee.username},\n\nThis is a reminder that the task <b>${task.title}</b> is currently <b>Not Started</b>.\n\nPlease start working on it or update its status in the task tracker.\n\nLink: ${taskUrl}`,
+              `Hello ${assignee.fullName || assignee.username},\n\nThis is a reminder that the task <b>${task.title}</b> is currently <b>${statusLabel}</b>.\n\n${actionLabel}\n\nLink: ${taskUrl}`,
             );
           } catch (err) {
             this.logger.error(`Failed to send reminder for task ${task.id} to user ${assignee.id}: ${err.message}`);

@@ -22,11 +22,43 @@ export class NotificationWorker extends WorkerHost {
 
     this.logger.log(`[NotificationWorker] Processing job ${job.id} for user ${userId}. Type: ${type}, Recipient: ${recipient}`);
 
-    // Create database notification record first
-    try {
-      await this.notificationService.createNotification(userId, type, title, message);
-    } catch (dbError) {
-      this.logger.error(`[NotificationWorker] Failed to create database notification: ${dbError.message}`, dbError.stack);
+    // Verify system integration configuration
+    if (type === 'EMAIL') {
+      const config = await this.notificationService.getSetting('EMAIL_CONFIG');
+      if (!config || !config.host || !config.user) {
+        this.logger.warn(`[NotificationWorker] Skipping Email notification: SMTP is not configured.`);
+        this.eventEmitter.emit('notification.finished', {
+          userId,
+          success: true,
+          message: `Email notification skipped: SMTP is not configured.`,
+          type
+        });
+        return { success: true, skipped: true };
+      }
+    } else if (type === 'WHATSAPP') {
+      const config = await this.notificationService.getSetting('WHATSAPP_CONFIG');
+      if (!config || !config.url) {
+        this.logger.warn(`[NotificationWorker] Skipping WhatsApp notification: WAHA gateway is not configured.`);
+        this.eventEmitter.emit('notification.finished', {
+          userId,
+          success: true,
+          message: `WhatsApp notification skipped: WAHA gateway is not configured.`,
+          type
+        });
+        return { success: true, skipped: true };
+      }
+    } else if (type === 'TELEGRAM') {
+      const config = await this.notificationService.getSetting('TELEGRAM_CONFIG');
+      if (!config || !config.botToken) {
+        this.logger.warn(`[NotificationWorker] Skipping Telegram notification: Bot token is not configured.`);
+        this.eventEmitter.emit('notification.finished', {
+          userId,
+          success: true,
+          message: `Telegram notification skipped: Bot token is not configured.`,
+          type
+        });
+        return { success: true, skipped: true };
+      }
     }
 
     // Verify user notification preferences for this channel type

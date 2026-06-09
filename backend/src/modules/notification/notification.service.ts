@@ -107,6 +107,9 @@ export class NotificationService {
           user: emailConfig.user,
           pass: emailConfig.pass,
         },
+        tls: {
+          rejectUnauthorized: false
+        }
       });
 
       await transporter.sendMail({
@@ -129,9 +132,15 @@ export class NotificationService {
       const waConfig = config || await this.getSetting('WHATSAPP_CONFIG');
       if (!waConfig) throw new Error('WhatsApp configuration not found');
 
+      // Normalize phone number: keep only digits
+      let cleanPhone = to.replace(/\D/g, '');
+      if (cleanPhone.startsWith('0')) {
+        cleanPhone = '62' + cleanPhone.substring(1);
+      }
+
       await axios.post(`${waConfig.url}/api/sendText`, {
         session: waConfig.session || 'default',
-        chatId: `${to}@c.us`,
+        chatId: `${cleanPhone}@c.us`,
         text: message,
       }, {
         headers: { 'X-Api-Key': waConfig.apiKey }
@@ -153,9 +162,57 @@ export class NotificationService {
       const botToken = tgConfig.botToken;
       const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
+      // Helper to escape HTML characters for Telegram
+      const sanitizeHtmlForTelegram = (html: string): string => {
+        if (!html) return '';
+        let processed = html;
+        
+        const tagsToProtect = [
+          { regex: /<b>/gi, token: '___B_OPEN___' },
+          { regex: /<\/b>/gi, token: '___B_CLOSE___' },
+          { regex: /<strong>/gi, token: '___STRONG_OPEN___' },
+          { regex: /<\/strong>/gi, token: '___STRONG_CLOSE___' },
+          { regex: /<i>/gi, token: '___I_OPEN___' },
+          { regex: /<\/i>/gi, token: '___I_CLOSE___' },
+          { regex: /<em>/gi, token: '___EM_OPEN___' },
+          { regex: /<\/em>/gi, token: '___EM_CLOSE___' },
+        ];
+
+        // Protect <a> tags with href
+        const aTagRegex = /<a\s+(?:[^>]*?\s+)?href="([^"]*)"[^>]*>(.*?)<\/a>/gi;
+        const aTagMatches: { token: string, href: string, text: string }[] = [];
+        processed = processed.replace(aTagRegex, (match, href, text) => {
+          const token = `___A_TAG_${aTagMatches.length}___`;
+          aTagMatches.push({ token, href, text });
+          return token;
+        });
+
+        for (const tag of tagsToProtect) {
+          processed = processed.replace(tag.regex, tag.token);
+        }
+
+        processed = processed
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+
+        for (const tag of tagsToProtect) {
+          processed = processed.split(tag.token).join(tag.regex.source.replace(/\\/g, ''));
+        }
+
+        for (const match of aTagMatches) {
+          const escapedHref = match.href.replace(/&/g, '&amp;');
+          processed = processed.split(match.token).join(`<a href="${escapedHref}">${match.text}</a>`);
+        }
+
+        return processed;
+      };
+
+      const sanitizedMessage = sanitizeHtmlForTelegram(message);
+
       await axios.post(url, {
         chat_id: chatId,
-        text: message,
+        text: sanitizedMessage,
         parse_mode: 'HTML'
       });
 
@@ -409,7 +466,7 @@ export class NotificationService {
     return targetUsers;
   }
 
-  private async getSetting(key: string) {
+  async getSetting(key: string) {
     const setting = await this.prisma.systemSetting.findUnique({ where: { key } });
     return setting?.value;
   }
