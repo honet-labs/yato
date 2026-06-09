@@ -73,11 +73,13 @@ export default function NotesPage() {
     queryKey: ["notes", currentView],
     queryFn: async () => {
       let params = "";
-      if (currentView === "archive") {
+      if (currentView === "notes") {
+        params = "?hasReminder=false";
+      } else if (currentView === "archive") {
         params = "?isArchived=true";
       } else if (currentView === "trash") {
         params = "?isTrashed=true";
-      } else if (currentView === "reminders") {
+      } else if (currentView === "reminders" || currentView === "calendar") {
         params = "?hasReminder=true";
       }
       const res = await api.get(`/notes${params}`);

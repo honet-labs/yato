@@ -68,6 +68,8 @@ export class NoteService {
       }
       if (query.hasReminder === true) {
         whereClause.reminderAt = { not: null };
+      } else if (query.hasReminder === false) {
+        whereClause.reminderAt = null;
       }
     } else {
       whereClause.isTrashed = false;
