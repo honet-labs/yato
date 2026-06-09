@@ -5,6 +5,34 @@ import { replaceDatePlaceholders } from './task.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationService } from '../notification/notification.service';
 
+function getLocalDateParts(date: Date, timezone: string) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(date);
+  const getPart = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0', 10);
+
+  const year = getPart('year');
+  const month = getPart('month') - 1; // 0-indexed month
+  const day = getPart('day');
+  const hour = getPart('hour') % 24;
+  const minute = getPart('minute');
+
+  const tempDate = new Date(Date.UTC(year, month, day));
+  const jsDay = tempDate.getUTCDay();
+  const dayOfWeek = jsDay === 0 ? 7 : jsDay;
+
+  return { year, month, day, hour, minute, dayOfWeek };
+}
+
 @Injectable()
 export class TaskSchedulerService {
   private readonly logger = new Logger(TaskSchedulerService.name);
@@ -30,14 +58,29 @@ export class TaskSchedulerService {
 
       this.logger.log(`Found ${templates.length} active repeating blueprints/templates.`);
 
-      const now = new Date();
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
+      // Get the configured system timezone
+      let timezone = 'Asia/Jakarta';
+      try {
+        const tzSetting = await this.prisma.systemSetting.findUnique({ where: { key: 'TIMEZONE_CONFIG' } });
+        const tzConfig: any = tzSetting?.value || {};
+        if (tzConfig.mode === 'MANUAL' && tzConfig.manualValue) {
+          timezone = tzConfig.manualValue;
+        } else {
+          timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        }
+      } catch (e) {
+        // Fallback to Asia/Jakarta
+      }
 
-      // Normalize current day of week (1 = Monday, 7 = Sunday)
-      const jsDay = now.getDay();
-      const currentDayOfWeek = jsDay === 0 ? 7 : jsDay;
-      const currentDayOfMonth = now.getDate();
+      this.logger.log(`Using timezone for repeating tasks: ${timezone}`);
+
+      const now = new Date();
+      const nowParts = getLocalDateParts(now, timezone);
+
+      const currentHour = nowParts.hour;
+      const currentMinute = nowParts.minute;
+      const currentDayOfWeek = nowParts.dayOfWeek;
+      const currentDayOfMonth = nowParts.day;
 
       for (const template of templates) {
         let shouldGenerate = false;
@@ -56,15 +99,17 @@ export class TaskSchedulerService {
           continue; // It's too early today for this template, skip it
         }
 
+        const lastGenParts = lastGen ? getLocalDateParts(lastGen, timezone) : null;
+
         // 2. Perform schedule-type validation
         if (template.repeatInterval === 'DAILY') {
-          if (!lastGen) {
+          if (!lastGenParts) {
             shouldGenerate = true;
           } else {
             const isSameDay =
-              now.getFullYear() === lastGen.getFullYear() &&
-              now.getMonth() === lastGen.getMonth() &&
-              now.getDate() === lastGen.getDate();
+              nowParts.year === lastGenParts.year &&
+              nowParts.month === lastGenParts.month &&
+              nowParts.day === lastGenParts.day;
             if (!isSameDay) {
               shouldGenerate = true;
             }
@@ -75,15 +120,15 @@ export class TaskSchedulerService {
             : 1; // Default to Monday (1)
           
           if (currentDayOfWeek === targetDayOfWeek) {
-            if (!lastGen) {
+            if (!lastGenParts) {
               shouldGenerate = true;
             } else {
               const diffTime = Math.abs(now.getTime() - lastGen.getTime());
               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
               const isSameDay =
-                now.getFullYear() === lastGen.getFullYear() &&
-                now.getMonth() === lastGen.getMonth() &&
-                now.getDate() === lastGen.getDate();
+                nowParts.year === lastGenParts.year &&
+                nowParts.month === lastGenParts.month &&
+                nowParts.day === lastGenParts.day;
               
               if (!isSameDay && diffDays >= 6) {
                 shouldGenerate = true;
@@ -96,15 +141,15 @@ export class TaskSchedulerService {
             : 1; // Default to 1st of the month
           
           if (currentDayOfMonth === targetDayOfMonth) {
-            if (!lastGen) {
+            if (!lastGenParts) {
               shouldGenerate = true;
             } else {
               const diffTime = Math.abs(now.getTime() - lastGen.getTime());
               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
               const isSameDay =
-                now.getFullYear() === lastGen.getFullYear() &&
-                now.getMonth() === lastGen.getMonth() &&
-                now.getDate() === lastGen.getDate();
+                nowParts.year === lastGenParts.year &&
+                nowParts.month === lastGenParts.month &&
+                nowParts.day === lastGenParts.day;
               
               if (!isSameDay && diffDays >= 25) {
                 shouldGenerate = true;
