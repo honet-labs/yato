@@ -2401,7 +2401,12 @@ export default function TasksPage() {
                             const isImg = isImageFile(file.filename);
                             return isImg ? (
                               <div key={idx} className="relative group w-14 h-14 rounded-xl overflow-hidden border border-blue-100 bg-white flex items-center justify-center shadow-sm transition-all animate-fade-in">
-                                <img src={file.base64Data} alt={file.filename} className="w-full h-full object-cover" />
+                                <img 
+                                  src={file.base64Data} 
+                                  alt={file.filename} 
+                                  className="w-full h-full object-cover cursor-zoom-in hover:opacity-90 transition-opacity" 
+                                  onClick={() => setPreviewImage(file.base64Data)}
+                                />
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -2470,7 +2475,7 @@ export default function TasksPage() {
                                 }
                               }
                             }}
-                            className="w-full min-h-[50px] max-h-[120px] bg-transparent border-none outline-none focus:ring-0 resize-none font-medium text-[11px] leading-relaxed py-1.5 px-2 text-slate-700"
+                            className="w-full min-h-[100px] max-h-[220px] bg-transparent border-none outline-none focus:ring-0 resize-none font-medium text-[11px] leading-relaxed py-1.5 px-2 text-slate-700"
                           />
                           
                           {/* Premium Mentions Autocomplete Dropdown */}
