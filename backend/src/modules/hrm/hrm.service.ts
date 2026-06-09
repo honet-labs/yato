@@ -389,7 +389,6 @@ export class HrmService {
       },
       include: {
         logs: { orderBy: { timestamp: 'asc' } },
-        overtimes: true,
       },
       orderBy: { date: 'asc' },
     });
@@ -866,50 +865,6 @@ export class HrmService {
       return result;
     } catch (err) {
       this.logger.error(`Failed to action shift swap ${swapId} for user ${userId}: ${err.message}`, err.stack);
-      throw err;
-    }
-  }
-
-  // =========================================================================
-  // 7. OVERTIME (Klaim Lembur)
-  // =========================================================================
-
-  async requestOvertime(userId: string, data: { timesheetId: string; hoursClaimed: number; reason: string }) {
-    this.logger.log(`User ${userId} requesting ${data.hoursClaimed} hours overtime for timesheet ${data.timesheetId}. Reason: "${data.reason}"`);
-    try {
-      const overtime = await this.prisma.overtime.create({
-        data: {
-          timesheetId: data.timesheetId,
-          hoursClaimed: data.hoursClaimed,
-          reason: data.reason,
-          status: 'PENDING',
-        },
-      });
-      this.logger.log(`Successfully created overtime request ${overtime.id} for user ${userId}`);
-      await this.auditService.log(userId, 'REQUEST_OVERTIME', 'Overtime', overtime.id, { hoursClaimed: data.hoursClaimed });
-      return overtime;
-    } catch (err) {
-      this.logger.error(`Failed to request overtime for user ${userId}: ${err.message}`, err.stack);
-      throw err;
-    }
-  }
-
-  async actionOvertime(adminId: string, overtimeId: string, status: 'APPROVED' | 'REJECTED', notes?: string) {
-    this.logger.log(`Admin ${adminId} updating overtime status to ${status} for overtime ${overtimeId}`);
-    try {
-      const overtime = await this.prisma.overtime.update({
-        where: { id: overtimeId },
-        data: {
-          status,
-          approvedBy: adminId,
-          notes,
-        },
-      });
-      this.logger.log(`Successfully processed overtime request ${overtimeId} to status ${status} by admin ${adminId}`);
-      await this.auditService.log(adminId, 'ACTION_OVERTIME', 'Overtime', overtimeId, { status });
-      return overtime;
-    } catch (err) {
-      this.logger.error(`Failed to process overtime request ${overtimeId}: ${err.message}`, err.stack);
       throw err;
     }
   }

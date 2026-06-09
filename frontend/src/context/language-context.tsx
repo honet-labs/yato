@@ -61,7 +61,6 @@ const enToId: Record<string, string> = {
   "platform settings": "pengaturan platform",
   "integration hub": "pusat integrasi",
   "shift trades": "tukar shift",
-  "overtime hub": "pusat lembur",
   "fetching configuration data...": "menarik data konfigurasi...",
   "save directly in postgres": "simpan langsung di postgres",
   "ensure the folder is writable by the container process user. the folder will be created automatically if it does not exist.": "pastikan folder tersebut dapat ditulis (writable) oleh user proses kontainer. folder akan otomatis dibuat jika belum ada.",

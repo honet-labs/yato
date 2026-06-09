@@ -191,7 +191,6 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
         { icon: Calendar, label: "PMO Calendar", href: "/pmo-calendar", permission: "VIEW_PMO_CALENDAR" },
         { icon: Clock, label: "Attendance", href: "/hrm/attendance" },
         { icon: Coffee, label: "Leave Hub", href: "/hrm/leaves" },
-        { icon: Coins, label: "Overtime Hub", href: "/hrm/overtime" },
         { icon: Edit, label: "Notes & Schedule", href: "/notes" },
         { icon: HardDrive, label: "File Manager", href: "/files" },
       ]

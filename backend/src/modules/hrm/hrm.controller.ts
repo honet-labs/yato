@@ -202,21 +202,6 @@ export class HrmController {
   }
 
   // =========================================================================
-  // OVERTIME
-  // =========================================================================
-  @Post('overtimes')
-  @ApiOperation({ summary: 'Request overtime claim' })
-  async requestOvertime(@Request() req: any, @Body() dto: { timesheetId: string; hoursClaimed: number; reason: string }) {
-    return this.hrmService.requestOvertime(req.user.id, dto);
-  }
-
-  @Post('overtimes/:id/action')
-  @ApiOperation({ summary: 'Approve or reject overtime claim (Admin/SPV only)' })
-  async actionOvertime(@Request() req: any, @Param('id') overtimeId: string, @Body() dto: { status: 'APPROVED' | 'REJECTED'; notes?: string }) {
-    return this.hrmService.actionOvertime(req.user.id, overtimeId, dto.status, dto.notes);
-  }
-
-  // =========================================================================
   // ADMIN LEAVE MANAGEMENT ENDPOINTS
   // =========================================================================
   @Get('admin/leaves/balances')
