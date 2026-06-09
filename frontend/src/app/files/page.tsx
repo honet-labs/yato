@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 import api from "@/lib/api";
+import { useLanguage } from "@/context/language-context";
 import { 
   FolderOpen, 
   Search, 
@@ -50,6 +51,7 @@ const DRIVER_STYLES: Record<string, { label: string; color: string; bg: string; 
 
 export default function FileManagerPage() {
   const queryClient = useQueryClient();
+  const { showToast } = useLanguage();
   const [activeTab, setActiveTab] = useState<"explorer" | "config" | "metrics">("explorer");
   const [activeCategory, setActiveCategory] = useState<"ALL" | "IMAGE" | "DOCUMENT" | "ARCHIVE" | "OTHER">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -131,6 +133,10 @@ export default function FileManagerPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["storage-files"] });
       setSelectedFile(null);
+      showToast("File berhasil dihapus.", "success");
+    },
+    onError: (err: any) => {
+      showToast(err.response?.data?.message || "Gagal menghapus file dari server.", "error");
     }
   });
 
