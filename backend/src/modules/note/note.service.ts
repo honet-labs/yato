@@ -22,6 +22,7 @@ export class NoteService {
     isArchived?: boolean;
     isTrashed?: boolean;
     reminderAt?: string | Date;
+    repeatInterval?: string;
   }) {
     this.logger.log(`Creating note for user: ${userId}. Title: "${data.title || 'Untitled'}"`);
     const reminderDate = data.reminderAt ? new Date(data.reminderAt) : null;
@@ -36,6 +37,7 @@ export class NoteService {
           isArchived: data.isArchived ?? false,
           isTrashed: data.isTrashed ?? false,
           reminderAt: reminderDate,
+          repeatInterval: data.repeatInterval || 'NONE',
           reminderSent: false,
         },
       });
@@ -98,6 +100,7 @@ export class NoteService {
     isArchived?: boolean;
     isTrashed?: boolean;
     reminderAt?: string | Date | null;
+    repeatInterval?: string | null;
   }) {
     this.logger.log(`Updating note ${id} for user ${userId}. Keys to update: ${Object.keys(data).join(', ')}`);
     // Verify note ownership
@@ -110,6 +113,7 @@ export class NoteService {
     if (data.isPinned !== undefined) updateData.isPinned = data.isPinned;
     if (data.isArchived !== undefined) updateData.isArchived = data.isArchived;
     if (data.isTrashed !== undefined) updateData.isTrashed = data.isTrashed;
+    if (data.repeatInterval !== undefined) updateData.repeatInterval = data.repeatInterval;
     
     if (data.reminderAt !== undefined) {
       if (data.reminderAt === null) {
@@ -202,11 +206,43 @@ export class NoteService {
             message
           );
 
-          // Mark as sent
-          await this.prisma.note.update({
-            where: { id: note.id },
-            data: { reminderSent: true },
-          });
+          // If recurring, calculate next reminder time and reset sent status
+          if (note.repeatInterval && note.repeatInterval !== 'NONE') {
+            const nextReminder = new Date(note.reminderAt);
+            if (note.repeatInterval === 'DAILY') {
+              nextReminder.setDate(nextReminder.getDate() + 1);
+            } else if (note.repeatInterval === 'WEEKLY') {
+              nextReminder.setDate(nextReminder.getDate() + 7);
+            } else if (note.repeatInterval === 'MONTHLY') {
+              nextReminder.setMonth(nextReminder.getMonth() + 1);
+            }
+            
+            // To prevent potential infinite loops if a reminder was somehow delayed, catch it up to the future.
+            while (nextReminder <= now) {
+              if (note.repeatInterval === 'DAILY') {
+                nextReminder.setDate(nextReminder.getDate() + 1);
+              } else if (note.repeatInterval === 'WEEKLY') {
+                nextReminder.setDate(nextReminder.getDate() + 7);
+              } else if (note.repeatInterval === 'MONTHLY') {
+                nextReminder.setMonth(nextReminder.getMonth() + 1);
+              }
+            }
+
+            await this.prisma.note.update({
+              where: { id: note.id },
+              data: {
+                reminderAt: nextReminder,
+                reminderSent: false,
+              },
+            });
+            this.logger.log(`Rescheduled recurring note reminder ${note.id} to ${nextReminder.toISOString()}`);
+          } else {
+            // Mark as sent
+            await this.prisma.note.update({
+              where: { id: note.id },
+              data: { reminderSent: true },
+            });
+          }
 
           this.logger.log(`Reminder notification successfully sent for note ${note.id} to user ${note.userId}`);
           await this.auditService.log(note.userId, 'SEND_NOTE_REMINDER', 'NoteReminder', note.id, { title });

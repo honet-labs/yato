@@ -733,6 +733,7 @@ model Note {
   isArchived   Boolean   @default(false)
   isTrashed    Boolean   @default(false)
   reminderAt   DateTime?
+  repeatInterval String?   @default("NONE") // NONE, DAILY, WEEKLY, MONTHLY
   reminderSent Boolean   @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt

@@ -22,6 +22,7 @@ export class NoteController {
       isArchived?: boolean;
       isTrashed?: boolean;
       reminderAt?: string;
+      repeatInterval?: string;
     },
   ) {
     return this.noteService.create(req.user.id, body);
@@ -69,6 +70,7 @@ export class NoteController {
       isArchived?: boolean;
       isTrashed?: boolean;
       reminderAt?: string | null;
+      repeatInterval?: string | null;
     },
   ) {
     return this.noteService.update(id, req.user.id, body);

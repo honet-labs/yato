@@ -59,6 +59,7 @@ export default function NotesPage() {
   const [newColor, setNewColor] = useState("#ffffff");
   const [newIsPinned, setNewIsPinned] = useState(false);
   const [newReminderAt, setNewReminderAt] = useState("");
+  const [newRepeatInterval, setNewRepeatInterval] = useState("NONE");
   const [showColorPicker, setShowColorPicker] = useState<string | null>(null); // "new" or note.id
 
   // Editor Modal State
@@ -123,6 +124,7 @@ export default function NotesPage() {
     setNewColor("#ffffff");
     setNewIsPinned(false);
     setNewReminderAt("");
+    setNewRepeatInterval("NONE");
     setIsCreatorExpanded(false);
   };
 
@@ -137,6 +139,7 @@ export default function NotesPage() {
       color: newColor,
       isPinned: newIsPinned,
       reminderAt: newReminderAt || null,
+      repeatInterval: newReminderAt ? newRepeatInterval : "NONE",
       isArchived: currentView === "archive",
     });
   };
@@ -303,18 +306,39 @@ export default function NotesPage() {
                     />
                     
                     {/* Add Reminder Input */}
-                    <div className="flex items-center gap-2 p-2 bg-slate-50/50 rounded-xl border border-slate-100 max-w-fit">
-                      <Clock className="w-4 h-4 text-slate-500" />
-                      <input 
-                        type="datetime-local" 
-                        value={newReminderAt}
-                        onChange={(e) => setNewReminderAt(e.target.value)}
-                        className="bg-transparent border-none outline-none text-xs text-slate-600 font-bold"
-                      />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-2 p-2 bg-slate-50/50 rounded-xl border border-slate-100 max-w-fit">
+                        <Clock className="w-4 h-4 text-slate-500" />
+                        <input 
+                          type="datetime-local" 
+                          value={newReminderAt}
+                          onChange={(e) => {
+                            setNewReminderAt(e.target.value);
+                            if (!e.target.value) setNewRepeatInterval("NONE");
+                          }}
+                          className="bg-transparent border-none outline-none text-xs text-slate-600 font-bold"
+                        />
+                        {newReminderAt && (
+                          <button onClick={() => { setNewReminderAt(""); setNewRepeatInterval("NONE"); }} className="p-0.5 hover:bg-slate-200 rounded-full">
+                            <X className="w-3.5 h-3.5 text-slate-500" />
+                          </button>
+                        )}
+                      </div>
+                      
                       {newReminderAt && (
-                        <button onClick={() => setNewReminderAt("")} className="p-0.5 hover:bg-slate-200 rounded-full">
-                          <X className="w-3.5 h-3.5 text-slate-500" />
-                        </button>
+                        <div className="flex items-center gap-2 p-2 bg-slate-50/50 rounded-xl border border-slate-100 max-w-fit">
+                          <span className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Repeat:</span>
+                          <select
+                            value={newRepeatInterval}
+                            onChange={(e) => setNewRepeatInterval(e.target.value)}
+                            className="bg-transparent border-none outline-none text-xs text-slate-700 font-bold cursor-pointer"
+                          >
+                            <option value="NONE">{lang === "EN" ? "Does not repeat" : "Tidak berulang"}</option>
+                            <option value="DAILY">{lang === "EN" ? "Daily" : "Harian"}</option>
+                            <option value="WEEKLY">{lang === "EN" ? "Weekly" : "Mingguan"}</option>
+                            <option value="MONTHLY">{lang === "EN" ? "Monthly" : "Bulanan"}</option>
+                          </select>
+                        </div>
                       )}
                     </div>
 
@@ -620,18 +644,43 @@ export default function NotesPage() {
                 />
 
                 {/* Edit Reminder Input */}
-                <div className="flex items-center gap-2 p-2 bg-slate-50/50 rounded-xl border border-slate-100 max-w-fit">
-                  <Clock className="w-4 h-4 text-slate-500" />
-                  <input 
-                    type="datetime-local" 
-                    value={editingNote.reminderAt ? new Date(new Date(editingNote.reminderAt).getTime() - new Date(editingNote.reminderAt).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""}
-                    onChange={(e) => setEditingNote({ ...editingNote, reminderAt: e.target.value || null })}
-                    className="bg-transparent border-none outline-none text-xs text-slate-600 font-bold"
-                  />
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-2 p-2 bg-slate-50/50 rounded-xl border border-slate-100 max-w-fit">
+                    <Clock className="w-4 h-4 text-slate-500" />
+                    <input 
+                      type="datetime-local" 
+                      value={editingNote.reminderAt ? new Date(new Date(editingNote.reminderAt).getTime() - new Date(editingNote.reminderAt).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""}
+                      onChange={(e) => {
+                        const val = e.target.value || null;
+                        setEditingNote({ 
+                          ...editingNote, 
+                          reminderAt: val, 
+                          repeatInterval: val ? (editingNote.repeatInterval || "NONE") : "NONE" 
+                        });
+                      }}
+                      className="bg-transparent border-none outline-none text-xs text-slate-600 font-bold"
+                    />
+                    {editingNote.reminderAt && (
+                      <button onClick={() => setEditingNote({ ...editingNote, reminderAt: null, repeatInterval: "NONE" })} className="p-0.5 hover:bg-slate-200 rounded-full">
+                        <X className="w-3.5 h-3.5 text-slate-500" />
+                      </button>
+                    )}
+                  </div>
+
                   {editingNote.reminderAt && (
-                    <button onClick={() => setEditingNote({ ...editingNote, reminderAt: null })} className="p-0.5 hover:bg-slate-200 rounded-full">
-                      <X className="w-3.5 h-3.5 text-slate-500" />
-                    </button>
+                    <div className="flex items-center gap-2 p-2 bg-slate-50/50 rounded-xl border border-slate-100 max-w-fit">
+                      <span className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Repeat:</span>
+                      <select
+                        value={editingNote.repeatInterval || "NONE"}
+                        onChange={(e) => setEditingNote({ ...editingNote, repeatInterval: e.target.value })}
+                        className="bg-transparent border-none outline-none text-xs text-slate-700 font-bold cursor-pointer"
+                      >
+                        <option value="NONE">{lang === "EN" ? "Does not repeat" : "Tidak berulang"}</option>
+                        <option value="DAILY">{lang === "EN" ? "Daily" : "Harian"}</option>
+                        <option value="WEEKLY">{lang === "EN" ? "Weekly" : "Mingguan"}</option>
+                        <option value="MONTHLY">{lang === "EN" ? "Monthly" : "Bulanan"}</option>
+                      </select>
+                    </div>
                   )}
                 </div>
 
@@ -750,10 +799,18 @@ function NoteCard({
 
       {/* Reminder Pill */}
       {note.reminderAt && (
-        <div className={cn("mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black w-fit tracking-wider", note.reminderSent ? "bg-slate-100 text-slate-400" : "bg-blue-600/10 text-blue-700")}>
-          <Clock className="w-3 h-3" />
-          <span>{formattedReminder}</span>
-          {note.reminderSent && <span className="text-[8px] font-normal italic">(Sent)</span>}
+        <div className="mt-4 flex flex-wrap gap-1.5 items-center">
+          <div className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider w-fit", note.reminderSent ? "bg-slate-100 text-slate-400" : "bg-blue-600/10 text-blue-700")}>
+            <Clock className="w-3 h-3" />
+            <span>{formattedReminder}</span>
+            {note.reminderSent && <span className="text-[8px] font-normal italic">(Sent)</span>}
+          </div>
+          {note.repeatInterval && note.repeatInterval !== "NONE" && (
+            <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-extrabold bg-indigo-50 text-indigo-600 border border-indigo-100 uppercase tracking-widest w-fit">
+              <RotateCcw className="w-2.5 h-2.5" />
+              <span>{note.repeatInterval}</span>
+            </div>
+          )}
         </div>
       )}
 
