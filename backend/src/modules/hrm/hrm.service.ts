@@ -376,6 +376,10 @@ export class HrmService {
       totalHours,
       timestamp: now,
     };
+    } catch (err) {
+      this.logger.error(`Clock-out failed for user ${userId}: ${err.message}`, err.stack);
+      throw err;
+    }
   }
 
   async getMyTimesheets(userId: string, year: number, month: number) {
