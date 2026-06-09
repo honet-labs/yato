@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
@@ -24,7 +24,19 @@ import {
   ChevronRight,
   Info,
   Clock,
-  Trash
+  Trash,
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  List,
+  ListOrdered,
+  Heading1,
+  Heading2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -45,6 +57,196 @@ const COLOR_PALETTE = [
   { name: "Brown", value: "#e6c9a8" },
   { name: "Gray", value: "#e8eaed" },
 ];
+
+function stripHtml(html: string) {
+  if (!html) return "";
+  return html.replace(/<[^>]*>/g, "");
+}
+
+interface RichTextEditorProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  minHeight?: string;
+}
+
+function RichTextEditor({ value, onChange, placeholder, minHeight = "120px" }: RichTextEditorProps) {
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  // Sync internal editor HTML when external value changes
+  useEffect(() => {
+    if (editorRef.current) {
+      if (editorRef.current.innerHTML !== value) {
+        // If we are currently focused and typing, don't force update to prevent cursor jumping
+        if (document.activeElement === editorRef.current) {
+          return;
+        }
+        editorRef.current.innerHTML = value || "";
+      }
+    }
+  }, [value]);
+
+  const handleInput = () => {
+    if (editorRef.current) {
+      const html = editorRef.current.innerHTML;
+      onChange(html === "<br>" ? "" : html);
+    }
+  };
+
+  const execCommand = (command: string, arg: string = "") => {
+    document.execCommand(command, false, arg);
+    handleInput();
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
+  };
+
+  return (
+    <div className="w-full border border-slate-200/60 rounded-xl overflow-hidden bg-slate-50/10">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-50 border-b border-slate-100">
+        <button
+          type="button"
+          onClick={() => execCommand("bold")}
+          className="p-1 hover:bg-slate-200 rounded text-slate-600 font-bold"
+          title="Bold"
+        >
+          <Bold className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => execCommand("italic")}
+          className="p-1 hover:bg-slate-200 rounded text-slate-600 italic"
+          title="Italic"
+        >
+          <Italic className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => execCommand("underline")}
+          className="p-1 hover:bg-slate-200 rounded text-slate-600 underline"
+          title="Underline"
+        >
+          <Underline className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => execCommand("strikeThrough")}
+          className="p-1 hover:bg-slate-200 rounded text-slate-600 line-through"
+          title="Strikethrough"
+        >
+          <Strikethrough className="w-3.5 h-3.5" />
+        </button>
+
+        <span className="w-[1px] h-4 bg-slate-200 mx-1" />
+
+        <button
+          type="button"
+          onClick={() => execCommand("formatBlock", "<h1>")}
+          className="p-1 hover:bg-slate-200 rounded text-slate-600 font-extrabold text-[10px]"
+          title="Heading 1"
+        >
+          <Heading1 className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => execCommand("formatBlock", "<h2>")}
+          className="p-1 hover:bg-slate-200 rounded text-slate-600 font-bold text-[10px]"
+          title="Heading 2"
+        >
+          <Heading2 className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => execCommand("formatBlock", "<p>")}
+          className="p-1.5 px-2 hover:bg-slate-200 rounded text-slate-600 font-bold text-[10px]"
+          title="Paragraph"
+        >
+          P
+        </button>
+
+        <span className="w-[1px] h-4 bg-slate-200 mx-1" />
+
+        <button
+          type="button"
+          onClick={() => execCommand("justifyLeft")}
+          className="p-1 hover:bg-slate-200 rounded text-slate-600"
+          title="Align Left"
+        >
+          <AlignLeft className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => execCommand("justifyCenter")}
+          className="p-1 hover:bg-slate-200 rounded text-slate-600"
+          title="Align Center"
+        >
+          <AlignCenter className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => execCommand("justifyRight")}
+          className="p-1 hover:bg-slate-200 rounded text-slate-600"
+          title="Align Right"
+        >
+          <AlignRight className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => execCommand("justifyFull")}
+          className="p-1 hover:bg-slate-200 rounded text-slate-600"
+          title="Justify"
+        >
+          <AlignJustify className="w-3.5 h-3.5" />
+        </button>
+
+        <span className="w-[1px] h-4 bg-slate-200 mx-1" />
+
+        <button
+          type="button"
+          onClick={() => execCommand("insertUnorderedList")}
+          className="p-1 hover:bg-slate-200 rounded text-slate-600"
+          title="Bullet List"
+        >
+          <List className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => execCommand("insertOrderedList")}
+          className="p-1 hover:bg-slate-200 rounded text-slate-600"
+          title="Numbered List"
+        >
+          <ListOrdered className="w-3.5 h-3.5" />
+        </button>
+
+        <span className="w-[1px] h-4 bg-slate-200 mx-1" />
+
+        <div className="flex items-center gap-1">
+          <select
+            onChange={(e) => execCommand("fontSize", e.target.value)}
+            className="bg-transparent border-none text-[11px] font-bold outline-none text-slate-600 cursor-pointer"
+            defaultValue="3"
+          >
+            <option value="1">Small</option>
+            <option value="3">Normal</option>
+            <option value="5">Large</option>
+            <option value="7">Huge</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Editor Content Area */}
+      <div
+        ref={editorRef}
+        contentEditable
+        onInput={handleInput}
+        className="p-3.5 outline-none text-[13px] text-slate-700 bg-white overflow-y-auto rich-note-content"
+        placeholder={placeholder}
+        style={{ minHeight }}
+      />
+    </div>
+  );
+}
 
 export default function NotesPage() {
   const queryClient = useQueryClient();
@@ -149,7 +351,7 @@ export default function NotesPage() {
   // Filter notes locally for search
   const filteredNotes = notes.filter(note => {
     const titleMatch = note.title?.toLowerCase().includes(searchQuery.toLowerCase());
-    const contentMatch = note.content.toLowerCase().includes(searchQuery.toLowerCase());
+    const contentMatch = stripHtml(note.content).toLowerCase().includes(searchQuery.toLowerCase());
     return titleMatch || contentMatch;
   });
 
@@ -299,12 +501,11 @@ export default function NotesPage() {
                       onChange={(e) => setNewTitle(e.target.value)}
                       className="w-full bg-transparent border-none outline-none font-bold text-base text-slate-800 placeholder-slate-400"
                     />
-                    <textarea 
-                      placeholder="Take a note..." 
-                      rows={3}
+                    <RichTextEditor
                       value={newContent}
-                      onChange={(e) => setNewContent(e.target.value)}
-                      className="w-full bg-transparent border-none outline-none text-sm text-slate-700 placeholder-slate-400 resize-none"
+                      onChange={setNewContent}
+                      placeholder={lang === "EN" ? "Take a note..." : "Buat catatan..."}
+                      minHeight="120px"
                     />
                     
                     {/* Add Reminder Input */}
@@ -588,11 +789,11 @@ export default function NotesPage() {
                                 }}
                                 className="p-1.5 rounded-lg border border-slate-200/50 text-[10px] font-bold text-slate-800 truncate shadow-sm transition-all hover:brightness-95 active:scale-95"
                                 style={{ backgroundColor: note.color || "#ffffff" }}
-                                title={`${note.title || "Note"}: ${note.content}`}
+                                title={`${note.title || "Note"}: ${stripHtml(note.content)}`}
                               >
                                 <span className="flex items-center gap-1">
                                   {note.isPinned && <Pin className="w-2.5 h-2.5 text-slate-600 shrink-0" />}
-                                  {note.title || note.content}
+                                  {note.title || stripHtml(note.content)}
                                 </span>
                               </div>
                             ))}
@@ -637,12 +838,11 @@ export default function NotesPage() {
                   className="w-full bg-transparent border-none outline-none font-bold text-lg text-slate-800 placeholder-slate-400"
                 />
                 
-                <textarea 
-                  placeholder="Take a note..." 
-                  rows={6}
+                <RichTextEditor
                   value={editingNote.content || ""}
-                  onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
-                  className="w-full bg-transparent border-none outline-none text-sm text-slate-700 placeholder-slate-400 resize-none"
+                  onChange={(val) => setEditingNote({ ...editingNote, content: val })}
+                  placeholder={lang === "EN" ? "Take a note..." : "Buat catatan..."}
+                  minHeight="200px"
                 />
 
                 {/* Edit Reminder Input */}
@@ -796,7 +996,10 @@ function NoteCard({
           )}
         </div>
         
-        <p className="text-slate-600 text-xs leading-relaxed whitespace-pre-wrap">{note.content}</p>
+        <div 
+          className="text-slate-600 text-xs leading-relaxed rich-note-content line-clamp-6 overflow-hidden"
+          dangerouslySetInnerHTML={{ __html: note.content || "" }}
+        />
       </div>
 
       {/* Reminder Pill */}
