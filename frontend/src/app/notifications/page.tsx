@@ -152,7 +152,7 @@ export default function NotificationsPage() {
                         {formatDate(note.createdAt)}
                       </div>
                     </div>
-                    <p className="text-[14px] text-slate-500 leading-relaxed font-medium">{note.message}</p>
+                    <p className="text-[14px] text-slate-500 leading-relaxed font-medium" dangerouslySetInnerHTML={{ __html: note.message }} />
                     
                     {note.link && (
                       <div className="mt-3">
