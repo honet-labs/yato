@@ -1077,6 +1077,7 @@ export default function AttendancePage() {
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
       {/* Lightbox / Selfie Modal */}
       <AnimatePresence>
         {selectedSelfieUrl && (
