@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
+import { Footer } from "@/components/Footer";
 import api from "@/lib/api";
 import { useBranding } from "@/context/branding-context";
 import { 
@@ -60,7 +61,8 @@ export default function SystemConfigPage() {
     appName: "YATO",
     appTitle: "YATO | Infrastructure Platform",
     appLogo: "",
-    appFavicon: ""
+    appFavicon: "",
+    appFooter: "© 2026 YATO. All rights reserved."
   });
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1326,6 +1328,17 @@ export default function SystemConfigPage() {
                 </div>
               </div>
 
+              <div className="space-y-1.5">
+                <label>Platform Footer Text</label>
+                <input 
+                  type="text" 
+                  className="input-field w-full font-semibold text-slate-800" 
+                  value={brandingConfig.appFooter || ""}
+                  onChange={e => setBrandingConfig({...brandingConfig, appFooter: e.target.value})}
+                  placeholder="© 2026 YATO. All rights reserved."
+                />
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Logo Upload */}
                 <div className="space-y-1.5">
@@ -2304,7 +2317,7 @@ export default function SystemConfigPage() {
           </div>
         )}
 
-        <div className="pb-20" />
+        <Footer />
       </main>
 
       <AnimatePresence>

@@ -11,7 +11,7 @@ export function MobileNav() {
   const { appName, appLogo } = useBranding();
 
   return (
-    <div className="xl:hidden">
+    <div className="lg:hidden">
       {/* Mobile Header Bar */}
       <div className="fixed top-0 left-0 right-0 h-16 bg-white flex items-center justify-between px-6 z-[60] border-b border-slate-100 shadow-sm">
         <div className="flex items-center gap-2.5">

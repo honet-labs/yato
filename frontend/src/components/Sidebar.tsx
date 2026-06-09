@@ -241,7 +241,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
   return (
     <aside className={cn(
       "w-60 bg-white h-screen flex flex-col shrink-0 border-r border-slate-100 z-50 sticky top-0",
-      !isMobile && "xl:flex hidden"
+      !isMobile && "lg:flex hidden"
     )}>
       <div className="p-6 flex items-center gap-2.5">
         {appLogo ? (

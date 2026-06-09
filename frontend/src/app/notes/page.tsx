@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
+import { Footer } from "@/components/Footer";
 import { PageHeader } from "@/components/PageHeader";
 import api from "@/lib/api";
 import { 
@@ -241,7 +242,7 @@ function RichTextEditor({ value, onChange, placeholder, minHeight = "120px" }: R
         contentEditable
         onInput={handleInput}
         className="p-3.5 outline-none text-[13px] text-slate-700 bg-white overflow-y-auto rich-note-content"
-        placeholder={placeholder}
+        data-placeholder={placeholder}
         style={{ minHeight }}
       />
     </div>
@@ -427,7 +428,7 @@ export default function NotesPage() {
         <MobileNav />
         
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+        <main className="page-container overflow-y-auto custom-scrollbar">
           
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
@@ -807,6 +808,7 @@ export default function NotesPage() {
             </div>
           )}
 
+          <Footer />
         </main>
       </div>
 

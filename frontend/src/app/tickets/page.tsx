@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
+import { Footer } from "@/components/Footer";
 import { Pagination } from "@/components/Pagination";
 import { TicketDetailModal } from "@/components/TicketDetailModal";
 import { 
@@ -820,6 +821,8 @@ function TicketsContent() {
                 itemsPerPage={itemsPerPage}
               />
             </div>
+            
+            <Footer />
         </main>
       </div>
 

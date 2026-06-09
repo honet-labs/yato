@@ -6,6 +6,7 @@ import { Suspense, useState, useEffect } from "react";
 import api from "@/lib/api";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
+import { Footer } from "@/components/Footer";
 import Link from "next/link";
 import { 
   Server, 
@@ -267,7 +268,7 @@ function DashboardContent() {
       <Sidebar />
       
       <div className="flex-1 flex flex-col min-w-0 bg-slate-50">
-        <main className="page-container p-8 flex-1">
+        <main className="page-container">
             {/* Standard Clean Header */}
             <header className="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <PageHeader 
@@ -533,6 +534,8 @@ function DashboardContent() {
               </div>
 
             </div>
+            
+            <Footer />
         </main>
       </div>
     </div>

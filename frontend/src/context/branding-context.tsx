@@ -8,6 +8,7 @@ interface BrandingContextType {
   appLogo: string;
   appTitle: string;
   appFavicon: string;
+  appFooter: string;
   appTimezone: string;
   isLoading: boolean;
   refreshBranding: () => Promise<void>;
@@ -21,6 +22,7 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const [appLogo, setAppLogo] = useState("");
   const [appTitle, setAppTitle] = useState("YATO | Infrastructure Platform");
   const [appFavicon, setAppFavicon] = useState("");
+  const [appFooter, setAppFooter] = useState("© 2026 YATO. All rights reserved.");
   const [appTimezone, setAppTimezone] = useState("Asia/Jakarta");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,6 +35,7 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
         if (data.appLogo) setAppLogo(data.appLogo);
         if (data.appTitle) setAppTitle(data.appTitle);
         if (data.appFavicon) setAppFavicon(data.appFavicon);
+        if (data.appFooter) setAppFooter(data.appFooter);
         if (data.appTimezone) setAppTimezone(data.appTimezone);
 
         // Apply Tab Title dynamically
@@ -85,6 +88,7 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
         appLogo,
         appTitle,
         appFavicon,
+        appFooter,
         appTimezone,
         isLoading,
         refreshBranding: fetchBranding,

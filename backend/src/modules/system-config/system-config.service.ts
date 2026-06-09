@@ -436,6 +436,7 @@ export class SystemConfigService {
     if (!branding.appTitle) branding.appTitle = 'YATO | Infrastructure Platform';
     if (!branding.appLogo) branding.appLogo = '';
     if (!branding.appFavicon) branding.appFavicon = '';
+    if (!branding.appFooter) branding.appFooter = '© 2026 YATO. All rights reserved.';
 
     // Retrieve active timezone config
     try {

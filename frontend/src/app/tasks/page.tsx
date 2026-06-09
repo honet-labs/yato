@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
+import { Footer } from "@/components/Footer";
 import api from "@/lib/api";
 import { 
   Plus, 
@@ -672,7 +673,7 @@ export default function TasksPage() {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 bg-slate-50">
-        <main className="page-container p-8 flex-1">
+        <main className="page-container">
           <div className="w-full">
           {/* Header Ribbon */}
           <header className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -2592,6 +2593,8 @@ export default function TasksPage() {
             </div>
           )}
         </AnimatePresence>
+        
+        <Footer />
         </main>
       </div>
     </div>
