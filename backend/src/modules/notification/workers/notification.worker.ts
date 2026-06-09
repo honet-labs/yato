@@ -24,7 +24,7 @@ export class NotificationWorker extends WorkerHost {
 
     // Verify system integration configuration
     if (type === 'EMAIL') {
-      const config = await this.notificationService.getSetting('EMAIL_CONFIG');
+      const config = (await this.notificationService.getSetting('EMAIL_CONFIG')) as any;
       if (!config || !config.host || !config.user) {
         this.logger.warn(`[NotificationWorker] Skipping Email notification: SMTP is not configured.`);
         this.eventEmitter.emit('notification.finished', {
@@ -36,7 +36,7 @@ export class NotificationWorker extends WorkerHost {
         return { success: true, skipped: true };
       }
     } else if (type === 'WHATSAPP') {
-      const config = await this.notificationService.getSetting('WHATSAPP_CONFIG');
+      const config = (await this.notificationService.getSetting('WHATSAPP_CONFIG')) as any;
       if (!config || !config.url) {
         this.logger.warn(`[NotificationWorker] Skipping WhatsApp notification: WAHA gateway is not configured.`);
         this.eventEmitter.emit('notification.finished', {
@@ -48,7 +48,7 @@ export class NotificationWorker extends WorkerHost {
         return { success: true, skipped: true };
       }
     } else if (type === 'TELEGRAM') {
-      const config = await this.notificationService.getSetting('TELEGRAM_CONFIG');
+      const config = (await this.notificationService.getSetting('TELEGRAM_CONFIG')) as any;
       if (!config || !config.botToken) {
         this.logger.warn(`[NotificationWorker] Skipping Telegram notification: Bot token is not configured.`);
         this.eventEmitter.emit('notification.finished', {
