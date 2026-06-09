@@ -263,12 +263,11 @@ function DashboardContent() {
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-600">
-      <MobileNav />
+    <div className="flex h-screen bg-slate-50 font-sans text-slate-600">
       <Sidebar />
-      
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-50">
-        <main className="page-container">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+        <MobileNav />
+        <main className="page-container overflow-y-auto custom-scrollbar">
             {/* Standard Clean Header */}
             <header className="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <PageHeader 

@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 import api from "@/lib/api";
 import { useLanguage } from "@/context/language-context";
+import { Footer } from "@/components/Footer";
 import { 
   FolderOpen, 
   Search, 
@@ -203,12 +204,11 @@ export default function FileManagerPage() {
   const gdriveBytes = files?.filter(f => f.driver === "GOOGLE_DRIVE").reduce((acc, f) => acc + f.size, 0) || 0;
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800">
-      <MobileNav />
+    <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
       <Sidebar />
-
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-50">
-        <main className="page-container p-8 flex-1">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+        <MobileNav />
+        <main className="page-container overflow-y-auto custom-scrollbar">
           <div className="w-full">
           {/* Page Ribbon Header */}
           <header className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -920,6 +920,7 @@ export default function FileManagerPage() {
             </div>
           )}
         </AnimatePresence>
+        <Footer />
         </main>
       </div>
     </div>

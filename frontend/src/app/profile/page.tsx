@@ -87,11 +87,10 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-white font-sans text-slate-600">
-      <MobileNav />
+    <div className="flex h-screen bg-white font-sans text-slate-600">
       <Sidebar />
-      
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <MobileNav />
         
         <main className="flex-1 p-8 overflow-y-auto pt-24 lg:pt-8 bg-slate-50/30">
           <div className="max-w-2xl">

@@ -518,11 +518,12 @@ export default function SystemConfigPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background font-sans text-[13px]">
-      <MobileNav />
+    <div className="flex h-screen bg-background font-sans text-[13px]">
       <Sidebar />
-      
-      <main className="page-container">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <MobileNav />
+        
+        <main className="page-container overflow-y-auto custom-scrollbar">
         <header className="mb-10 flex items-center justify-between">
           <div>
             <PageHeader title="System Parameters" subtitle="Global platform orchestration and alert delivery" />
@@ -2319,6 +2320,7 @@ export default function SystemConfigPage() {
 
         <Footer />
       </main>
+    </div>
 
       <AnimatePresence>
         {isAddCatalogModalOpen && (

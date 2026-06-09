@@ -668,12 +668,11 @@ export default function TasksPage() {
   }) || [];
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800">
-      <MobileNav />
+    <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
       <Sidebar />
-
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-50">
-        <main className="page-container">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+        <MobileNav />
+        <main className="page-container overflow-y-auto custom-scrollbar">
           <div className="w-full">
           {/* Header Ribbon */}
           <header className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">

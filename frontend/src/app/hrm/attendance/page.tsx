@@ -313,11 +313,12 @@ export default function AttendancePage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background font-sans text-[13px] text-slate-900">
-      <MobileNav />
+    <div className="flex h-screen bg-background font-sans text-[13px] text-slate-900">
       <Sidebar />
-
-      <main className="page-container">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <MobileNav />
+        
+        <main className="page-container overflow-y-auto custom-scrollbar">
         <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-5">
           <div className="flex-1">
             <PageHeader 
@@ -965,6 +966,7 @@ export default function AttendancePage() {
         )}
         <Footer />
       </main>
+    </div>
 
       {/* Selected Day Details Modal */}
       <AnimatePresence>
