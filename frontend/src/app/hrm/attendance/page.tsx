@@ -3,6 +3,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
+import { Footer } from "@/components/Footer";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
@@ -316,7 +317,7 @@ export default function AttendancePage() {
       <MobileNav />
       <Sidebar />
 
-      <main className="page-container flex-1">
+      <main className="page-container">
         <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-5">
           <div className="flex-1">
             <PageHeader 
@@ -425,9 +426,9 @@ export default function AttendancePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
               {/* Live Terminal Clock Card */}
-              <div className="bg-white border border-slate-150/60 rounded-[2rem] p-8 shadow-sm flex flex-col justify-between min-h-[380px] relative overflow-hidden group">
+              <div className="bg-white border border-slate-150/60 rounded-[2rem] p-6 sm:p-8 shadow-sm flex flex-col justify-between min-h-[380px] relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/30 rounded-full filter blur-3xl" />
                 
                 <div className="space-y-6">
@@ -442,7 +443,7 @@ export default function AttendancePage() {
                   </div>
 
                   <div className="py-4 text-center z-10 relative">
-                    <div className="text-5xl font-extrabold tracking-widest text-slate-850 font-mono bg-slate-50 border border-slate-100 inline-block px-6 py-3.5 rounded-2xl">
+                    <div className="text-3xl sm:text-4xl xl:text-5xl font-extrabold tracking-wider text-slate-850 font-mono bg-slate-50 border border-slate-100 inline-block px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-2xl">
                       {currentTime.toLocaleTimeString("en-GB", { hour12: false })}
                     </div>
                     <div className="text-xs font-bold text-slate-400 mt-3">
@@ -580,7 +581,7 @@ export default function AttendancePage() {
               </div>
 
               {/* Today's Log History */}
-              <div className="bg-white border border-slate-150/60 rounded-[2rem] p-8 shadow-sm lg:col-span-2 flex flex-col justify-between min-h-[380px]">
+              <div className="bg-white border border-slate-150/60 rounded-[2rem] p-6 sm:p-8 shadow-sm xl:col-span-2 flex flex-col justify-between min-h-[380px]">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -962,6 +963,7 @@ export default function AttendancePage() {
             </div>
           </div>
         )}
+        <Footer />
       </main>
 
       {/* Selected Day Details Modal */}
