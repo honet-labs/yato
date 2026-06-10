@@ -356,114 +356,116 @@ export default function FileManagerPage() {
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t("No files found")}</span>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {paginatedFiles.map((file) => {
-                        const category = getFileCategory(file.mimeType);
-                        const driverObj = DRIVER_STYLES[file.driver] || { label: file.driver, color: "text-slate-600 border-slate-200", bg: "bg-slate-50", icon: File };
-                        
-                        return (
-                          <motion.div
-                            key={file.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.2 }}
-                            onClick={() => setSelectedFile(file)}
-                            className="bg-white border border-slate-100 hover:border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 flex flex-col justify-between gap-4 group"
-                            whileHover={{ y: -2 }}
-                          >
-                            <div className="space-y-3">
-                              {/* File Type Banner Display */}
-                              <div className="h-24 w-full bg-slate-50 border border-slate-100/50 rounded-lg flex items-center justify-center relative overflow-hidden group-hover:bg-slate-100/50 transition-colors">
-                                {category === "IMAGE" && file.driver === "DATABASE" ? (
-                                  <img 
-                                    src={file.path} 
-                                    alt={file.filename}
-                                    className="w-full h-full object-cover" 
-                                  />
-                                ) : category === "IMAGE" ? (
-                                  // Proxy download URL to render image
-                                  <img 
-                                    src={`/api/storage/download/${file.id}`} 
-                                    alt={file.filename}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      // If failed to load remote proxy, display standard icon
-                                      e.currentTarget.style.display = 'none';
-                                    }}
-                                  />
-                                ) : null}
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {paginatedFiles.map((file) => {
+                          const category = getFileCategory(file.mimeType);
+                          const driverObj = DRIVER_STYLES[file.driver] || { label: file.driver, color: "text-slate-600 border-slate-200", bg: "bg-slate-50", icon: File };
+                          
+                          return (
+                            <motion.div
+                              key={file.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.2 }}
+                              onClick={() => setSelectedFile(file)}
+                              className="bg-white border border-slate-100 hover:border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 flex flex-col justify-between gap-4 group"
+                              whileHover={{ y: -2 }}
+                            >
+                              <div className="space-y-3">
+                                {/* File Type Banner Display */}
+                                <div className="h-24 w-full bg-slate-50 border border-slate-100/50 rounded-lg flex items-center justify-center relative overflow-hidden group-hover:bg-slate-100/50 transition-colors">
+                                  {category === "IMAGE" && file.driver === "DATABASE" ? (
+                                    <img 
+                                      src={file.path} 
+                                      alt={file.filename}
+                                      className="w-full h-full object-cover" 
+                                    />
+                                  ) : category === "IMAGE" ? (
+                                    // Proxy download URL to render image
+                                    <img 
+                                      src={`/api/storage/download/${file.id}`} 
+                                      alt={file.filename}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        // If failed to load remote proxy, display standard icon
+                                        e.currentTarget.style.display = 'none';
+                                      }}
+                                    />
+                                  ) : null}
 
-                                <div className="absolute inset-0 bg-transparent flex items-center justify-center p-2">
-                                  {category === "IMAGE" ? null : (
-                                    <div className="w-12 h-12 rounded-full bg-white border border-slate-100 flex items-center justify-center shadow-sm">
-                                      {category === "DOCUMENT" ? (
-                                        <FileText className="w-5.5 h-5.5 text-blue-500" />
-                                      ) : category === "ARCHIVE" ? (
-                                        <Archive className="w-5.5 h-5.5 text-amber-500" />
-                                      ) : (
-                                        <File className="w-5.5 h-5.5 text-slate-400" />
-                                      )}
-                                    </div>
-                                  )}
+                                  <div className="absolute inset-0 bg-transparent flex items-center justify-center p-2">
+                                    {category === "IMAGE" ? null : (
+                                      <div className="w-12 h-12 rounded-full bg-white border border-slate-100 flex items-center justify-center shadow-sm">
+                                        {category === "DOCUMENT" ? (
+                                          <FileText className="w-5.5 h-5.5 text-blue-500" />
+                                        ) : category === "ARCHIVE" ? (
+                                          <Archive className="w-5.5 h-5.5 text-amber-500" />
+                                        ) : (
+                                          <File className="w-5.5 h-5.5 text-slate-400" />
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Active Driver Tag Badge */}
+                                  <div className="absolute top-2 left-2">
+                                    <span className={cn("px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border flex items-center gap-1", driverObj.color, driverObj.bg)}>
+                                      <driverObj.icon className="w-2.5 h-2.5" /> {driverObj.label}
+                                    </span>
+                                  </div>
                                 </div>
 
-                                {/* Active Driver Tag Badge */}
-                                <div className="absolute top-2 left-2">
-                                  <span className={cn("px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border flex items-center gap-1", driverObj.color, driverObj.bg)}>
-                                    <driverObj.icon className="w-2.5 h-2.5" /> {driverObj.label}
-                                  </span>
+                                <div>
+                                  <h4 className="text-[11px] font-bold text-slate-800 truncate mb-1" title={file.filename}>
+                                    {file.filename}
+                                  </h4>
+                                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                                    <span>{formatSize(file.size)}</span>
+                                    <span>{new Date(file.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+                                  </div>
                                 </div>
                               </div>
 
-                              <div>
-                                <h4 className="text-[11px] font-bold text-slate-800 truncate mb-1" title={file.filename}>
-                                  {file.filename}
-                                </h4>
-                                <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
-                                  <span>{formatSize(file.size)}</span>
-                                  <span>{new Date(file.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+                              {/* Card Footer Actions */}
+                              <div className="border-t border-slate-50 pt-3 flex items-center justify-between gap-2">
+                                <span className="text-[9px] font-bold text-slate-400 truncate max-w-[100px]">
+                                  By {file.uploadedBy?.fullName || "System"}
+                                </span>
+
+                                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                  <a
+                                    href={`/api/storage/download/${file.id}`}
+                                    download={file.filename}
+                                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg border border-transparent hover:border-blue-100 transition-all"
+                                    title="Download File"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                  </a>
+                                  <button
+                                    onClick={() => handleDeleteFile(file.id, file.filename)}
+                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-100 transition-all"
+                                    title="Delete File"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
                                 </div>
                               </div>
-                            </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
 
-                            {/* Card Footer Actions */}
-                            <div className="border-t border-slate-50 pt-3 flex items-center justify-between gap-2">
-                              <span className="text-[9px] font-bold text-slate-400 truncate max-w-[100px]">
-                                By {file.uploadedBy?.fullName || "System"}
-                              </span>
-
-                              <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                                <a
-                                  href={`/api/storage/download/${file.id}`}
-                                  download={file.filename}
-                                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg border border-transparent hover:border-blue-100 transition-all"
-                                  title="Download File"
-                                >
-                                  <Download className="w-3.5 h-3.5" />
-                                </a>
-                                <button
-                                  onClick={() => handleDeleteFile(file.id, file.filename)}
-                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-100 transition-all"
-                                  title="Delete File"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="mt-6">
-                      <Pagination 
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={setCurrentPage}
-                        totalItems={filesData?.total || 0}
-                        itemsPerPage={itemsPerPage}
-                      />
-                    </div>
+                      <div className="mt-6">
+                        <Pagination 
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          onPageChange={setCurrentPage}
+                          totalItems={filesData?.total || 0}
+                          itemsPerPage={itemsPerPage}
+                        />
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
