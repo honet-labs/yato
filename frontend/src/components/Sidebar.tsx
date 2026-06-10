@@ -187,12 +187,22 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
       items: [
         { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", permission: "VIEW_DASHBOARD" },
         { icon: Ticket, label: "Support Tickets", href: "/tickets", permission: "VIEW_SUPPORT_TICKETS" },
+        { icon: HardDrive, label: "File Manager", href: "/files" },
+      ]
+    },
+    {
+      title: "Productivity",
+      items: [
         { icon: CheckSquare, label: "Tasks Tracker", href: "/tasks" },
+        { icon: Edit, label: "Notes & Schedule", href: "/notes" },
         { icon: Calendar, label: "PMO Calendar", href: "/pmo-calendar", permission: "VIEW_PMO_CALENDAR" },
+      ]
+    },
+    {
+      title: "Attendance & Timesheet",
+      items: [
         { icon: Clock, label: "Attendance", href: "/hrm/attendance" },
         { icon: Coffee, label: "Leave Hub", href: "/hrm/leaves" },
-        { icon: Edit, label: "Notes & Schedule", href: "/notes" },
-        { icon: HardDrive, label: "File Manager", href: "/files" },
       ]
     },
     {
