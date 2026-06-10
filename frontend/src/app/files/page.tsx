@@ -53,11 +53,11 @@ const DRIVER_STYLES = {
 export default function FileManagerPage() {
   const queryClient = useQueryClient();
   const { showToast, t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<string>("explorer");
-  const [activeCategory, setActiveCategory] = useState<string>("ALL");
+  const [activeTab, setActiveTab] = useState("explorer");
+  const [activeCategory, setActiveCategory] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [driverFilter, setDriverFilter] = useState("ALL");
-  const [selectedFile, setSelectedFile] = useState<any>(null);
+  const [selectedFile, setSelectedFile] = useState(null as any);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
