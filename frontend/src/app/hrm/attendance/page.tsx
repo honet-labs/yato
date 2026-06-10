@@ -467,7 +467,7 @@ export default function AttendancePage() {
                   )}
 
                   {/* Selfie UI Component */}
-                  {(!todayTimesheet || !todayTimesheet.logs.find((l: any) => l.type === "CHECK_OUT")) && (
+                  {(!todayTimesheet || todayTimesheet.logs.length === 0 || todayTimesheet.logs[todayTimesheet.logs.length - 1].type === "CHECK_IN" || todayTimesheet.logs[todayTimesheet.logs.length - 1].type === "CHECK_OUT") && (
                     <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -546,15 +546,23 @@ export default function AttendancePage() {
                   )}
 
                   <div>
-                    {!todayTimesheet ? (
-                      <button
-                        onClick={handleClockIn}
-                        disabled={clockInMutation.isPending}
-                        className="btn-primary w-full py-4 text-xs font-black uppercase tracking-widest bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl active:scale-[0.98] shadow-md shadow-blue-500/10 cursor-pointer"
-                      >
-                        {clockInMutation.isPending ? "Checking In..." : "🚀 CHECK IN (PRESENT)"}
-                      </button>
-                    ) : !todayTimesheet.logs.find((l: any) => l.type === "CHECK_OUT") ? (
+                    {!todayTimesheet || todayTimesheet.logs.length === 0 || todayTimesheet.logs[todayTimesheet.logs.length - 1].type === "CHECK_OUT" ? (
+                      <div className="space-y-4">
+                        {todayTimesheet && todayTimesheet.logs.find((l: any) => l.type === "CHECK_OUT") && (
+                          <div className="bg-emerald-50 border border-emerald-100 text-emerald-600 text-xs font-bold p-4 rounded-2xl flex items-center justify-center gap-2">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                            <span>Shift Completed for Today! ({todayTimesheet.totalHours} hrs worked)</span>
+                          </div>
+                        )}
+                        <button
+                          onClick={handleClockIn}
+                          disabled={clockInMutation.isPending}
+                          className="btn-primary w-full py-4 text-xs font-black uppercase tracking-widest bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl active:scale-[0.98] shadow-md shadow-blue-500/10 cursor-pointer"
+                        >
+                          {clockInMutation.isPending ? "Checking In..." : "🚀 CHECK IN (PRESENT)"}
+                        </button>
+                      </div>
+                    ) : (
                       <div className="space-y-3">
                         <input
                           type="text"
@@ -570,11 +578,6 @@ export default function AttendancePage() {
                         >
                           {clockOutMutation.isPending ? "Checking Out..." : "🏁 CHECK OUT"}
                         </button>
-                      </div>
-                    ) : (
-                      <div className="bg-emerald-50 border border-emerald-100 text-emerald-600 text-xs font-bold p-4 rounded-2xl flex items-center justify-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                        <span>Shift Completed for Today! ({todayTimesheet.totalHours} hrs worked)</span>
                       </div>
                     )}
                   </div>

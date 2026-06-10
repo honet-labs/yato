@@ -53,7 +53,9 @@ export class StorageController {
       
       res.setHeader('Content-Type', file.mimeType);
       res.setHeader('Content-Length', file.size);
-      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.filename)}"`);
+      
+      const isImage = file.mimeType.toLowerCase().startsWith('image/');
+      res.setHeader('Content-Disposition', `${isImage ? 'inline' : 'attachment'}; filename="${encodeURIComponent(file.filename)}"`);
       
       if (Buffer.isBuffer(file.stream)) {
         res.send(file.stream);
