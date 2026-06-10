@@ -252,7 +252,7 @@ function RichTextEditor({ value, onChange, placeholder, minHeight = "120px" }: R
 export default function NotesPage() {
   const queryClient = useQueryClient();
   const { lang } = useLanguage();
-  const [currentView, setCurrentView] = useState<"notes" | "reminders" | "archive" | "trash" | "calendar">("notes");
+  const [currentView, setCurrentView] = useState("notes" as "notes" | "reminders" | "archive" | "trash" | "calendar");
   const [searchQuery, setSearchQuery] = useState("");
   
   // Note Creator State
@@ -263,16 +263,16 @@ export default function NotesPage() {
   const [newIsPinned, setNewIsPinned] = useState(false);
   const [newReminderAt, setNewReminderAt] = useState("");
   const [newRepeatInterval, setNewRepeatInterval] = useState("NONE");
-  const [showColorPicker, setShowColorPicker] = useState<string | null>(null); // "new" or note.id
+  const [showColorPicker, setShowColorPicker] = useState(null as string | null); // "new" or note.id
 
   // Editor Modal State
-  const [editingNote, setEditingNote] = useState<any | null>(null);
+  const [editingNote, setEditingNote] = useState(null as any | null);
 
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
 
   // Fetch Notes
-  const { data: notes = [], isLoading } = useQuery<any[]>({
+  const { data: notes = [], isLoading } = useQuery({
     queryKey: ["notes", currentView],
     queryFn: async () => {
       let params = "";

@@ -9,13 +9,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/Skeleton";
 
 export default function SecurityPage() {
-  const [step, setStep] = useState<"initial" | "setup" | "verify" | "completed">("initial");
-  const [mfaData, setMfaData] = useState<{ secret: string; qrCode: string } | null>(null);
+  const [step, setStep] = useState("initial" as "initial" | "setup" | "verify" | "completed");
+  const [mfaData, setMfaData] = useState(null as { secret: string; qrCode: string } | null);
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isInitializing, setIsInitializing] = useState(true);
-  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [recoveryCodes, setRecoveryCodes] = useState([] as string[]);
 
   useEffect(() => {
     fetchProfile();

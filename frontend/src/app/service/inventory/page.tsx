@@ -52,9 +52,9 @@ interface ServiceInventory {
 
 export default function ServiceInventoryPage() {
   const queryClient = useQueryClient();
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [showEditModal, setShowEditModal] = useState<ServiceInventory | null>(null);
-  const [viewingDetails, setViewingDetails] = useState<ServiceInventory | null>(null);
+  const [copiedId, setCopiedId] = useState(null as string | null);
+  const [showEditModal, setShowEditModal] = useState(null as ServiceInventory | null);
+  const [viewingDetails, setViewingDetails] = useState(null as ServiceInventory | null);
   const [editData, setEditData] = useState({
     endpoint: "",
     address: "",
@@ -74,7 +74,7 @@ export default function ServiceInventoryPage() {
 
   const isAdmin = userProfile?.roles?.some((r: any) => r.role.name === 'ADMIN' || r.role.name === 'SUPERADMIN');
 
-  const { data: items, isLoading } = useQuery<ServiceInventory[]>({
+  const { data: items, isLoading } = useQuery({
     queryKey: ["service-inventory"],
     queryFn: async () => {
       const response = await api.get("/service-inventory/");

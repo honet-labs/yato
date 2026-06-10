@@ -7,7 +7,7 @@ import { useBranding } from "@/context/branding-context";
 export function Footer() {
   const { appFooter } = useBranding();
   const [mounted, setMounted] = useState(false);
-  const [container, setContainer] = useState<Element | null>(null);
+  const [container, setContainer] = useState(null as Element | null);
 
   useEffect(() => {
     setMounted(true);

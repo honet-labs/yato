@@ -397,9 +397,9 @@ function translateNode(node: Node, targetLang: Language) {
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Language>("EN");
+  const [lang, setLangState] = useState("EN" as Language);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [toasts, setToasts] = useState<{ id: string; message: string; type: "success" | "error" | "info" | "warning" }[]>([]);
+  const [toasts, setToasts] = useState([] as { id: string; message: string; type: "success" | "error" | "info" | "warning" }[]);
 
   useEffect(() => {
     const saved = localStorage.getItem("yato_lang") as Language;

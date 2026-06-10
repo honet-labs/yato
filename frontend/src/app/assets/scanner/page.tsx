@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 export default function AssetScannerPage() {
   const queryClient = useQueryClient();
   const [assetCode, setAssetCode] = useState("");
-  const [scannedAsset, setScannedAsset] = useState<any>(null);
+  const [scannedAsset, setScannedAsset] = useState(null as any);
   const [errorMsg, setErrorMsg] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   
@@ -38,7 +38,7 @@ export default function AssetScannerPage() {
   const streamRef = useRef<MediaStream | null>(null);
 
   // Queries all assets for simulation scanner panel
-  const { data: assets } = useQuery<any[]>({
+  const { data: assets } = useQuery({
     queryKey: ["assets"],
     queryFn: async () => {
       const response = await api.get("/assets");

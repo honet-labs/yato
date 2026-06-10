@@ -80,7 +80,7 @@ interface TicketDetailModalProps {
 export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModalProps) {
   const queryClient = useQueryClient();
   const [commentText, setCommentText] = useState("");
-  const [attachment, setAttachment] = useState<string | null>(null);
+  const [attachment, setAttachment] = useState(null as string | null);
 
   const sanitizeDataUrl = (url: string | undefined | null) => {
     if (!url) return "";
@@ -116,8 +116,8 @@ export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModal
   };
 
   const [showFollowerPanel, setShowFollowerPanel] = useState(false);
-  const [replyTo, setReplyTo] = useState<Comment | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState(null as Comment | null);
+  const [previewImage, setPreviewImage] = useState(null as string | null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const commentScrollRef = useRef<HTMLDivElement>(null);
   
@@ -141,7 +141,7 @@ export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModal
     attachments: [] as string[]
   });
 
-  const { data: comments, isLoading: isLoadingComments } = useQuery<Comment[]>({
+  const { data: comments, isLoading: isLoadingComments } = useQuery({
     queryKey: ["ticket-comments", ticket.id],
     queryFn: async () => {
       const response = await api.get(`/ticket-comments/${ticket.id}?type=${ticket.type}`);
@@ -150,7 +150,7 @@ export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModal
     enabled: isOpen
   });
 
-  const { data: osTemplates } = useQuery<any[]>({
+  const { data: osTemplates } = useQuery({
     queryKey: ["catalog", "OS_TEMPLATE"],
     queryFn: async () => {
       const response = await api.get("/catalog?category=OS_TEMPLATE");
@@ -159,7 +159,7 @@ export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModal
     enabled: isOpen && ticket.type === 'VM'
   });
 
-  const { data: users } = useQuery<any[]>({
+  const { data: users } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
       const response = await api.get("/users");

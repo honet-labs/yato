@@ -38,9 +38,9 @@ export default function RolesManagementPage() {
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [selectedRole, setSelectedRole] = useState(null as Role | null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
+  const [roleToDelete, setRoleToDelete] = useState(null as string | null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -48,7 +48,7 @@ export default function RolesManagementPage() {
     permissions: [] as string[]
   });
 
-  const { data: roles, isLoading } = useQuery<Role[]>({
+  const { data: roles, isLoading } = useQuery({
     queryKey: ["roles"],
     queryFn: async () => {
       const response = await api.get("/roles");
@@ -56,7 +56,7 @@ export default function RolesManagementPage() {
     },
   });
 
-  const { data: availablePermissions } = useQuery<string[]>({
+  const { data: availablePermissions } = useQuery({
     queryKey: ["available-permissions"],
     queryFn: async () => {
       const response = await api.get("/roles/permissions");

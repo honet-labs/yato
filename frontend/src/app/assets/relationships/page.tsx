@@ -30,7 +30,7 @@ export default function AssetRelationshipsPage() {
   const [relationType, setRelationType] = useState("VM_TO_HYPERVISOR");
   
   // Queries
-  const { data: assets, isLoading: assetsLoading } = useQuery<any[]>({
+  const { data: assets, isLoading: assetsLoading } = useQuery({
     queryKey: ["assets"],
     queryFn: async () => {
       const response = await api.get("/assets");
@@ -38,7 +38,7 @@ export default function AssetRelationshipsPage() {
     },
   });
 
-  const { data: relationships, isLoading: relsLoading } = useQuery<any[]>({
+  const { data: relationships, isLoading: relsLoading } = useQuery({
     queryKey: ["asset-relationships-topology", rootAssetId],
     queryFn: async () => {
       const response = await api.get(`/assets/${rootAssetId}/relationship`);

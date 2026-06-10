@@ -24,7 +24,7 @@ export default function ShiftSchedulerPage() {
   const queryClient = useQueryClient();
   const [showShiftModal, setShowShiftModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [editShiftCategoryId, setEditShiftCategoryId] = useState<string | null>(null);
+  const [editShiftCategoryId, setEditShiftCategoryId] = useState(null as string | null);
 
   // Form states
   const [shiftForm, setShiftForm] = useState({

@@ -35,13 +35,13 @@ export default function LeaveHubPage() {
   const queryClient = useQueryClient();
   const currentYear = new Date().getFullYear();
   const { appName, appLogo } = useBranding();
-  const [selectedPrintLeave, setSelectedPrintLeave] = useState<any | null>(null);
+  const [selectedPrintLeave, setSelectedPrintLeave] = useState(null as any | null);
   
   // Navigation Tabs: "my" (personal leave hub) vs "admin" (admin panel control)
-  const [activeTab, setActiveTab] = useState<"my" | "admin">("my");
+  const [activeTab, setActiveTab] = useState("my" as "my" | "admin");
 
   // Admin Modals & Controls state
-  const [isAdjustingBalance, setIsAdjustingBalance] = useState<any | null>(null);
+  const [isAdjustingBalance, setIsAdjustingBalance] = useState(null as any | null);
   const [adjustForm, setAdjustForm] = useState({ allocated: 12, used: 0 });
   const [newLeaveType, setNewLeaveType] = useState("");
 
@@ -67,7 +67,7 @@ export default function LeaveHubPage() {
   const canAccessAdmin = isAdmin || userPermissions.includes("VIEW_HRM_ADMIN_PANEL") || userPermissions.includes("MANAGE_HRM") || userPermissions.includes("MANAGE_HRM_LEAVES");
 
   // 2. Load and save customizable leave types (saved in localStorage for tenant flexibility)
-  const [customLeaveTypes, setCustomLeaveTypes] = useState<string[]>(() => {
+  const [customLeaveTypes, setCustomLeaveTypes] = useState((() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("yato_custom_leave_types");
       if (saved) return JSON.parse(saved);
@@ -79,7 +79,7 @@ export default function LeaveHubPage() {
       "Maternity Leave (Cuti Melahirkan)",
       "Marriage Leave (Cuti Menikah)",
     ];
-  });
+  }) as string[]);
 
   useEffect(() => {
     localStorage.setItem("yato_custom_leave_types", JSON.stringify(customLeaveTypes));
@@ -103,7 +103,7 @@ export default function LeaveHubPage() {
   }, [customFormSettings]);
 
   // Personal Form state
-  const [leaveForm, setLeaveForm] = useState<any>({
+  const [leaveForm, setLeaveForm] = useState({
     type: "Annual Leave (Cuti Tahunan)",
     startDate: "",
     endDate: "",
@@ -111,7 +111,7 @@ export default function LeaveHubPage() {
     backupEmployee: "",
     emergencyContact: "",
     attachmentUrl: "",
-  });
+  } as any);
 
   // Fetch Leave Balance
   const { data: leaveBalance } = useQuery({

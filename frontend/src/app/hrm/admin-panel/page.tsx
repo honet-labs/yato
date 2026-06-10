@@ -54,9 +54,9 @@ function ManagementAdminPanelContent() {
   const queryClient = useQueryClient();
   const { appName, appLogo } = useBranding();
   const { t, showToast } = useLanguage();
-  const [activeTab, setActiveTab] = useState<"attendance" | "leaves">("attendance");
+  const [activeTab, setActiveTab] = useState("attendance" as "attendance" | "leaves");
   const currentYear = new Date().getFullYear();
-  const [selectedPrintLeave, setSelectedPrintLeave] = useState<any | null>(null);
+  const [selectedPrintLeave, setSelectedPrintLeave] = useState(null as any | null);
 
   useEffect(() => {
     const tabParam = searchParams.get("tab");
@@ -77,7 +77,7 @@ function ManagementAdminPanelContent() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // LEAVE ADMINISTRATIVE STATES
-  const [isAdjustingBalance, setIsAdjustingBalance] = useState<any | null>(null);
+  const [isAdjustingBalance, setIsAdjustingBalance] = useState(null as any | null);
   const [adjustForm, setAdjustForm] = useState({ allocated: 12, used: 0 });
   const [newLeaveType, setNewLeaveType] = useState("");
 
@@ -137,7 +137,7 @@ function ManagementAdminPanelContent() {
   });
 
   // 5. Load/Save customizable leave types from localStorage
-  const [customLeaveTypes, setCustomLeaveTypes] = useState<string[]>(() => {
+  const [customLeaveTypes, setCustomLeaveTypes] = useState((() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("yato_custom_leave_types");
       if (saved) return JSON.parse(saved);
@@ -149,7 +149,7 @@ function ManagementAdminPanelContent() {
       "Maternity Leave (Cuti Melahirkan)",
       "Marriage Leave (Cuti Menikah)",
     ];
-  });
+  }) as string[]);
 
   useEffect(() => {
     localStorage.setItem("yato_custom_leave_types", JSON.stringify(customLeaveTypes));

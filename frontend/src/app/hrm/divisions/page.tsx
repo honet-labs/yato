@@ -23,7 +23,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function DivisionMappingsPage() {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
-  const [editingDivision, setEditingDivision] = useState<any>(null);
+  const [editingDivision, setEditingDivision] = useState(null as any);
   
   // Form State
   const [form, setForm] = useState({

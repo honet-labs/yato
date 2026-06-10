@@ -57,14 +57,14 @@ const PRIORITIES = [
 
 export default function TasksPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"board" | "list">("board");
+  const [activeTab, setActiveTab] = useState("board" as "board" | "list");
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("ALL");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [tagFilter, setTagFilter] = useState("ALL");
   
   // Fetch dynamic task types from settings catalog
-  const { data: catalogTaskTypes } = useQuery<any[]>({
+  const { data: catalogTaskTypes } = useQuery({
     queryKey: ["catalog", "TASK_TYPE"],
     queryFn: async () => {
       const res = await api.get("/catalog?category=TASK_TYPE");
@@ -78,7 +78,7 @@ export default function TasksPage() {
 
   // State for Task Templates
   const [isTemplateEditorOpen, setIsTemplateEditorOpen] = useState(false);
-  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [editingTemplateId, setEditingTemplateId] = useState(null as string | null);
   const [templateForm, setTemplateForm] = useState({
     templateName: "",
     title: "",
@@ -101,13 +101,13 @@ export default function TasksPage() {
   const [newTaskPriority, setNewTaskPriority] = useState("MEDIUM");
   const [newTaskType, setNewTaskType] = useState("TASK");
   const [newTaskDueDate, setNewTaskDueDate] = useState("");
-  const [newTaskAssignees, setNewTaskAssignees] = useState<string[]>([]);
-  const [newTaskTags, setNewTaskTags] = useState<string[]>([]);
+  const [newTaskAssignees, setNewTaskAssignees] = useState([] as string[]);
+  const [newTaskTags, setNewTaskTags] = useState([] as string[]);
   const [newTagInput, setNewTagInput] = useState("");
   const [templateTagInput, setTemplateTagInput] = useState("");
 
   // State for Task Detail Side-Drawer
-  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [selectedTask, setSelectedTask] = useState(null as any | null);
   const [detailTitle, setDetailTitle] = useState("");
   const [detailDesc, setNewDetailDesc] = useState("");
   const [detailStatus, setDetailStatus] = useState("");
@@ -118,20 +118,20 @@ export default function TasksPage() {
   const [newCommentText, setNewCommentText] = useState("");
 
   // New Features States
-  const [drawerWidth, setDrawerWidth] = useState<"normal" | "wide" | "full">("normal");
-  const [replyToId, setReplyToId] = useState<string | null>(null);
-  const [replyToUser, setReplyToUser] = useState<string | null>(null);
+  const [drawerWidth, setDrawerWidth] = useState("normal" as "normal" | "wide" | "full");
+  const [replyToId, setReplyToId] = useState(null as string | null);
+  const [replyToUser, setReplyToUser] = useState(null as string | null);
   const [copyNotification, setCopyNotification] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [commentAttachments, setCommentAttachments] = useState<{ filename: string; base64Data: string }[]>([]);
+  const [commentAttachments, setCommentAttachments] = useState([] as { filename: string; base64Data: string }[]);
 
   const [isAssigneePanelOpen, setIsAssigneePanelOpen] = useState(false);
   const [isFollowerPanelOpen, setIsFollowerPanelOpen] = useState(false);
   const [isTagPanelOpen, setIsTagPanelOpen] = useState(false);
 
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [loadedTaskId, setLoadedTaskId] = useState<string | null>(null);
-  const [detailChecklist, setDetailChecklist] = useState<any[]>([]);
+  const [previewImage, setPreviewImage] = useState(null as string | null);
+  const [loadedTaskId, setLoadedTaskId] = useState(null as string | null);
+  const [detailChecklist, setDetailChecklist] = useState([] as any[]);
 
   const isImageFile = (filename: string, mimeType?: string) => {
     if (mimeType && mimeType.toLowerCase().startsWith('image/')) return true;
@@ -215,11 +215,11 @@ export default function TasksPage() {
   };
 
   // Drag and Drop States
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const [draggedOverColumn, setDraggedOverColumn] = useState<string | null>(null);
+  const [activeDragId, setActiveDragId] = useState(null as string | null);
+  const [draggedOverColumn, setDraggedOverColumn] = useState(null as string | null);
 
   // Fetch all tasks
-  const { data: tasks, isLoading: isLoadingTasks } = useQuery<any[]>({
+  const { data: tasks, isLoading: isLoadingTasks } = useQuery({
     queryKey: ["tasks"],
     queryFn: async () => {
       const res = await api.get("/tasks");
@@ -228,7 +228,7 @@ export default function TasksPage() {
   });
 
   // Fetch all templates
-  const { data: templates } = useQuery<any[]>({
+  const { data: templates } = useQuery({
     queryKey: ["task-templates"],
     queryFn: async () => {
       const res = await api.get("/tasks/templates");
@@ -293,7 +293,7 @@ export default function TasksPage() {
   });
 
   // Fetch all users for Assignee list
-  const { data: users } = useQuery<any[]>({
+  const { data: users } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
       const res = await api.get("/users");
@@ -302,7 +302,7 @@ export default function TasksPage() {
   });
 
   // Fetch single task details (including comments) when selected
-  const { data: taskDetail, refetch: refetchDetail } = useQuery<any>({
+  const { data: taskDetail, refetch: refetchDetail } = useQuery({
     queryKey: ["task-detail", selectedTask?.id],
     queryFn: async () => {
       if (!selectedTask?.id) return null;

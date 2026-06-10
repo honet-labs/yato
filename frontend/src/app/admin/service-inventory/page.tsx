@@ -61,10 +61,10 @@ interface ServiceInventory {
 export default function GlobalServiceAssetsPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [viewingDetails, setViewingDetails] = useState<ServiceInventory | null>(null);
+  const [copiedId, setCopiedId] = useState(null as string | null);
+  const [viewingDetails, setViewingDetails] = useState(null as ServiceInventory | null);
 
-  const { data: inventory, isLoading } = useQuery<ServiceInventory[]>({
+  const { data: inventory, isLoading } = useQuery({
     queryKey: ["service-inventory-all"],
     queryFn: async () => {
       const response = await api.get("/service-inventory?scope=all");

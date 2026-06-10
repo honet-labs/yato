@@ -51,7 +51,7 @@ export default function AdminUsersPage() {
   const queryClient = useQueryClient();
   const { showToast, t } = useLanguage();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserData | null>(null);
+  const [editingUser, setEditingUser] = useState(null as UserData | null);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -68,7 +68,7 @@ export default function AdminUsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 30;
 
-  const { data: users, isLoading } = useQuery<UserData[]>({
+  const { data: users, isLoading } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
       const response = await api.get("/users/");
@@ -76,7 +76,7 @@ export default function AdminUsersPage() {
     },
   });
 
-  const { data: roles } = useQuery<any[]>({
+  const { data: roles } = useQuery({
     queryKey: ["admin-roles"],
     queryFn: async () => {
       const response = await api.get("/roles");

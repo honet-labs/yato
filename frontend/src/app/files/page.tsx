@@ -43,7 +43,14 @@ const formatSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
-const DRIVER_STYLES = {
+interface DriverStyle {
+  label: string;
+  color: string;
+  bg: string;
+  icon: any;
+}
+
+const DRIVER_STYLES: { [key: string]: DriverStyle } = {
   DATABASE: { label: "Database", color: "text-indigo-600 border-indigo-100", bg: "bg-indigo-50", icon: Database },
   NAS: { label: "NAS (Local)", color: "text-amber-600 border-amber-100", bg: "bg-amber-50", icon: HardDrive },
   S3: { label: "S3 Bucket", color: "text-blue-600 border-blue-100", bg: "bg-blue-50", icon: Cloud },
@@ -311,13 +318,13 @@ export default function FileManagerPage() {
                     { id: "DOCUMENT", label: "Dokumen Kerja", count: docCount, icon: FileText },
                     { id: "ARCHIVE", label: "Berkas Arsip", count: archiveCount, icon: Archive },
                     { id: "OTHER", label: "File Lainnya", count: otherCount, icon: File },
-                  ].map(cat => (
-                    <button
-                      key={cat.id}
-                      onClick={() => setActiveCategory(cat.id as any)}
-                      className={cn(
-                        "w-full px-4 py-3 rounded-xl font-bold text-[11px] uppercase tracking-wider flex items-center justify-between border transition-all duration-200",
-                        activeCategory === cat.id 
+                    ].map(cat => (
+                      <button
+                        key={cat.id}
+                        onClick={() => setActiveCategory(cat.id)}
+                        className={cn(
+                          "w-full px-4 py-3 rounded-xl font-bold text-[11px] uppercase tracking-wider flex items-center justify-between border transition-all duration-200",
+                          activeCategory === cat.id 
                           ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/10"
                           : "bg-white text-slate-600 border-slate-100 hover:border-slate-200 hover:bg-slate-50/50"
                       )}
@@ -352,7 +359,7 @@ export default function FileManagerPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                       {paginatedFiles.map((file) => {
                         const category = getFileCategory(file.mimeType);
-                        const driverObj = DRIVER_STYLES[file.driver as keyof typeof DRIVER_STYLES] || { label: file.driver, color: "text-slate-600 border-slate-200", bg: "bg-slate-50", icon: File };
+                        const driverObj = DRIVER_STYLES[file.driver] || { label: file.driver, color: "text-slate-600 border-slate-200", bg: "bg-slate-50", icon: File };
                         
                         return (
                           <motion.div
@@ -890,7 +897,7 @@ export default function FileManagerPage() {
                     <div className="space-y-1">
                       <span className="text-[9px] font-black text-slate-400 uppercase block">Storage Driver</span>
                       <span className="text-[11px] font-bold text-slate-800 block">
-                        {DRIVER_STYLES[selectedFile.driver as keyof typeof DRIVER_STYLES]?.label || selectedFile.driver} ({selectedFile.driver})
+                        {DRIVER_STYLES[selectedFile.driver]?.label || selectedFile.driver} ({selectedFile.driver})
                       </span>
                     </div>
 

@@ -43,7 +43,7 @@ interface EngineGroup {
 }
 
 export default function SystemStatusPage() {
-  const [activeTab, setActiveTab] = useState<'cores' | 'docker' | 'systemd' | 'logs'>('cores');
+  const [activeTab, setActiveTab] = useState('cores' as 'cores' | 'docker' | 'systemd' | 'logs');
 
   const { data: statusData, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["system-status"],
@@ -55,12 +55,12 @@ export default function SystemStatusPage() {
   });
 
   // System logs state
-  const [selectedFile, setSelectedFile] = useState<string>("");
-  const [logLimit, setLogLimit] = useState<number>(200);
-  const [logSearch, setLogSearch] = useState<string>("");
-  const [logLevel, setLogLevel] = useState<string>("");
-  const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
-  const [expandedLogIdx, setExpandedLogIdx] = useState<number | null>(null);
+  const [selectedFile, setSelectedFile] = useState("" as string);
+  const [logLimit, setLogLimit] = useState(200 as number);
+  const [logSearch, setLogSearch] = useState("" as string);
+  const [logLevel, setLogLevel] = useState("" as string);
+  const [autoRefresh, setAutoRefresh] = useState(true as boolean);
+  const [expandedLogIdx, setExpandedLogIdx] = useState(null as number | null);
 
   const { data: logsData, isLoading: isLogsLoading, refetch: refetchLogs, isRefetching: isLogsRefetching } = useQuery({
     queryKey: ["system-logs", selectedFile, logLimit, logSearch, logLevel],

@@ -58,10 +58,10 @@ interface VM {
 export default function VmInventoryPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [activeMenu, setActiveMenu] = useState(null as string | null);
   
   // Modals
-  const [showConsole, setShowConsole] = useState<VM | null>(null);
+  const [showConsole, setShowConsole] = useState(null as VM | null);
   const [isCopied, setIsCopied] = useState(false);
 
   const terminateMutation = useMutation({
@@ -84,7 +84,7 @@ export default function VmInventoryPage() {
 
   const isAdmin = userProfile?.roles?.some((r: any) => r.role.name === 'ADMIN' || r.role.name === 'SUPERADMIN');
 
-  const { data: inventory, isLoading } = useQuery<VM[]>({
+  const { data: inventory, isLoading } = useQuery({
     queryKey: ["vm-inventory"],
     queryFn: async () => {
       const response = await api.get("/vm-inventory/");

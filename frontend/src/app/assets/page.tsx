@@ -66,19 +66,19 @@ export default function AssetsPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selectedTypeFilter, setSelectedTypeFilter] = useState("");
-  const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [activeMenu, setActiveMenu] = useState(null as string | null);
   
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isRelationshipOpen, setIsRelationshipOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
-  const [qrZoomAsset, setQrZoomAsset] = useState<Asset | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState(null as Asset | null);
+  const [qrZoomAsset, setQrZoomAsset] = useState(null as Asset | null);
   
   const [isCopied, setIsCopied] = useState(false);
 
-  const [formData, setFormData] = useState<any>({
+  const [formData, setFormData] = useState({
     assetType: "",
     hostname: "",
     serialNumber: "",
@@ -88,7 +88,7 @@ export default function AssetsPage() {
     uPosition: 1,
     ownerId: "",
     metadata: {},
-  });
+  } as any);
 
   const [relData, setRelData] = useState({
     targetId: "",
@@ -103,7 +103,7 @@ export default function AssetsPage() {
     },
   });
 
-  const { data: assetTypes } = useQuery<any[]>({
+  const { data: assetTypes } = useQuery({
     queryKey: ["catalog", "PHYSICAL_ASSET_TYPE"],
     queryFn: async () => {
       const response = await api.get("/catalog?category=PHYSICAL_ASSET_TYPE");
@@ -115,7 +115,7 @@ export default function AssetsPage() {
   const userPermissions = userProfile?.roles?.flatMap((ur: any) => ur.role.permissions || []) || [];
   const canManageAssets = isAdmin || userPermissions.includes("MANAGE_ASSETS");
 
-  const { data: assets, isLoading } = useQuery<Asset[]>({
+  const { data: assets, isLoading } = useQuery({
     queryKey: ["assets", search],
     queryFn: async () => {
       const response = await api.get("/assets", {

@@ -39,7 +39,7 @@ export default function RegisterPage() {
     telegramId: ""
   });
 
-  const [otpChannel, setOtpChannel] = useState<'EMAIL' | 'WHATSAPP' | 'TELEGRAM'>('EMAIL');
+  const [otpChannel, setOtpChannel] = useState('EMAIL' as 'EMAIL' | 'WHATSAPP' | 'TELEGRAM');
   const [otpCode, setOtpCode] = useState("");
 
   const handleRequestOtp = async (e: React.FormEvent) => {

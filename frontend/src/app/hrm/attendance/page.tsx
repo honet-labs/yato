@@ -53,10 +53,10 @@ export default function AttendancePage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [workNotes, setWorkNotes] = useState("");
   const [clientIp, setClientIp] = useState("192.168.201.18");
-  const [selfieImage, setSelfieImage] = useState<string | null>(null);
+  const [selfieImage, setSelfieImage] = useState(null as string | null);
   const [isCameraActive, setIsCameraActive] = useState(false);
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const [selectedSelfieUrl, setSelectedSelfieUrl] = useState<string | null>(null);
+  const [cameraStream, setCameraStream] = useState(null as MediaStream | null);
+  const [selectedSelfieUrl, setSelectedSelfieUrl] = useState(null as string | null);
 
   const startCamera = async () => {
     try {
@@ -116,13 +116,13 @@ export default function AttendancePage() {
   }, [cameraStream]);
 
   // Navigation tab: "terminal" | "calendar" | "admin"
-  const [activeTab, setActiveTab] = useState<"terminal" | "calendar" | "admin">("terminal");
+  const [activeTab, setActiveTab] = useState("terminal" as "terminal" | "calendar" | "admin");
   
   // Calendar states
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth() + 1); // 1-indexed
-  const [selectedDayTimesheet, setSelectedDayTimesheet] = useState<any | null>(null);
-  const [selectedDayDate, setSelectedDayDate] = useState<Date | null>(null);
+  const [selectedDayTimesheet, setSelectedDayTimesheet] = useState(null as any | null);
+  const [selectedDayDate, setSelectedDayDate] = useState(null as Date | null);
 
   // Admin Dashboard states
   const [selectedAdminDate, setSelectedAdminDate] = useState(getFormattedDate(new Date()));

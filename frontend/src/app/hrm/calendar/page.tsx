@@ -41,8 +41,8 @@ export default function CalendarPage() {
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth() + 1); // 1-indexed
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedDayTimesheet, setSelectedDayTimesheet] = useState<any | null>(null);
-  const [selectedDayDate, setSelectedDayDate] = useState<Date | null>(null);
+  const [selectedDayTimesheet, setSelectedDayTimesheet] = useState(null as any | null);
+  const [selectedDayDate, setSelectedDayDate] = useState(null as Date | null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {

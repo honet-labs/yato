@@ -79,7 +79,7 @@ function TicketsContent() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 30;
-  const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(null as string | null);
 
   // Catalogs Query for Dynamic Categories
   const { data: catalogs = [] } = useQuery({
@@ -108,8 +108,8 @@ function TicketsContent() {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showCreateSupportModal, setShowCreateSupportModal] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
-  const [selectedTicketForAction, setSelectedTicketForAction] = useState<UnifiedTicket | null>(null);
-  const [selectedTicketForDetail, setSelectedTicketForDetail] = useState<UnifiedTicket | null>(null);
+  const [selectedTicketForAction, setSelectedTicketForAction] = useState(null as UnifiedTicket | null);
+  const [selectedTicketForDetail, setSelectedTicketForDetail] = useState(null as UnifiedTicket | null);
   
   const [rejectionReason, setRejectionReason] = useState("");
   const [approveData, setApproveData] = useState({ ipAddress: "", sshUser: "root", sshPassword: "", sshPort: "22" });
@@ -140,7 +140,7 @@ function TicketsContent() {
     (!approveData.ipAddress || (selectedTicketForAction?.type === 'VM' ? isValidIPv4(approveData.ipAddress) : (isValidIPv4(approveData.ipAddress) || isValidHostname(approveData.ipAddress)))) &&
     (!approveData.sshPort || (/^\d+$/.test(approveData.sshPort) && parseInt(approveData.sshPort) > 0 && parseInt(approveData.sshPort) <= 65535));
   
-  const [ticketViews, setTicketViews] = useState<Record<string, number>>({});
+  const [ticketViews, setTicketViews] = useState({} as Record<string, number>);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -163,26 +163,26 @@ function TicketsContent() {
     localStorage.setItem("yato_ticket_views", JSON.stringify(updatedViews));
   };
 
-  const [newSupportTicket, setNewSupportTicket] = useState<{
+  const [newSupportTicket, setNewSupportTicket] = useState({ 
+    subject: "", 
+    description: "", 
+    priority: "NORMAL", 
+    category: "GENERAL",
+    tags: [] as string[],
+    attachments: [] as string[] 
+  } as {
     subject: string;
     description: string;
     priority: string;
     category: string;
     tags: string[];
     attachments: string[];
-  }>({ 
-    subject: "", 
-    description: "", 
-    priority: "NORMAL", 
-    category: "GENERAL",
-    tags: [],
-    attachments: [] 
   });
   
   const [tagInput, setTagInput] = useState("");
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
 
-  const { data: existingTags = [], refetch: refetchTags } = useQuery<string[]>({
+  const { data: existingTags = [], refetch: refetchTags } = useQuery({
     queryKey: ["support-tags"],
     queryFn: async () => {
       const res = await api.get("/support-tickets/tags");
@@ -368,7 +368,7 @@ function TicketsContent() {
     finally { setIsProcessing(null); }
   };
 
-  const { data: vmRequests, isLoading: isLoadingVm } = useQuery<any[]>({
+  const { data: vmRequests, isLoading: isLoadingVm } = useQuery({
     queryKey: ["vm-requests"],
     queryFn: async () => {
       try {
@@ -378,7 +378,7 @@ function TicketsContent() {
     },
   });
 
-  const { data: serviceRequests, isLoading: isLoadingService } = useQuery<any[]>({
+  const { data: serviceRequests, isLoading: isLoadingService } = useQuery({
     queryKey: ["service-requests"],
     queryFn: async () => {
       try {
@@ -388,7 +388,7 @@ function TicketsContent() {
     },
   });
 
-  const { data: supportTickets, isLoading: isLoadingSupport } = useQuery<any[]>({
+  const { data: supportTickets, isLoading: isLoadingSupport } = useQuery({
     queryKey: ["support-tickets"],
     queryFn: async () => {
       try {

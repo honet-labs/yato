@@ -83,7 +83,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  const [collapsedSections, setCollapsedSections] = useState({} as Record<string, boolean>);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const toggleSection = (title: string) => {

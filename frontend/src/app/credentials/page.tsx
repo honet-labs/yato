@@ -52,23 +52,23 @@ export default function CredentialsPage() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [selectedCred, setSelectedCred] = useState<Credential | null>(null);
+  const [selectedCred, setSelectedCred] = useState(null as Credential | null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [credToDelete, setCredToDelete] = useState<string | null>(null);
+  const [credToDelete, setCredToDelete] = useState(null as string | null);
   
   const [showPassInForm, setShowPassInForm] = useState(false);
   const [showPassInDetail, setShowPassInDetail] = useState(false);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState(null as string | null);
   
   // Password verification state for revealing secrets
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
-  const [verifyPurpose, setVerifyPurpose] = useState<"REVEAL" | "EXPORT" | "EDIT">("REVEAL");
+  const [verifyPurpose, setVerifyPurpose] = useState("REVEAL" as "REVEAL" | "EXPORT" | "EDIT");
   const [verifyPassword, setVerifyPassword] = useState("");
   const [verifyError, setVerifyError] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
-  const [pendingRevealCredId, setPendingRevealCredId] = useState<string | null>(null);
-  const [pendingEditCred, setPendingEditCred] = useState<Credential | null>(null);
+  const [pendingRevealCredId, setPendingRevealCredId] = useState(null as string | null);
+  const [pendingEditCred, setPendingEditCred] = useState(null as Credential | null);
   const [secretVerified, setSecretVerified] = useState(false);
   const [failedVerifyAttempts, setFailedVerifyAttempts] = useState(0);
   
@@ -90,7 +90,7 @@ export default function CredentialsPage() {
     metadata: {} as Record<string, any>
   });
 
-  const { data: credentials, isLoading } = useQuery<Credential[]>({
+  const { data: credentials, isLoading } = useQuery({
     queryKey: ["credentials"],
     queryFn: async () => {
       const response = await api.get("/credentials/");
@@ -98,7 +98,7 @@ export default function CredentialsPage() {
     },
   });
 
-  const { data: allTags } = useQuery<string[]>({
+  const { data: allTags } = useQuery({
     queryKey: ["credential-tags"],
     queryFn: async () => {
       const response = await api.get("/credentials/tags");

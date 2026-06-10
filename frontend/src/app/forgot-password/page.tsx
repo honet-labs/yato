@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
-  const [otpChannel, setOtpChannel] = useState<'EMAIL' | 'WHATSAPP' | 'TELEGRAM'>('EMAIL');
+  const [otpChannel, setOtpChannel] = useState('EMAIL' as 'EMAIL' | 'WHATSAPP' | 'TELEGRAM');
   const [otpCode, setOtpCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
 

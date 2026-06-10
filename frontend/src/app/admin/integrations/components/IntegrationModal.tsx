@@ -23,11 +23,11 @@ export function IntegrationModal({ isOpen, onClose, editingIntegration }: Integr
   });
   
   // Custom dynamic form values based on selected plugin fields
-  const [dynamicValues, setDynamicValues] = useState<Record<string, string>>({});
+  const [dynamicValues, setDynamicValues] = useState({} as Record<string, string>);
   const [validationError, setValidationError] = useState("");
 
   // Fetch all available connector plugins
-  const { data: plugins } = useQuery<any[]>({
+  const { data: plugins } = useQuery({
     queryKey: ["connector-plugins"],
     queryFn: async () => {
       const response = await api.get("/integrations/plugins");

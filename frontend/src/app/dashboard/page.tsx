@@ -46,9 +46,9 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get("search")?.toLowerCase() || "";
 
-  const [copiedIp, setCopiedIp] = useState<string | null>(null);
+  const [copiedIp, setCopiedIp] = useState(null as string | null);
 
-  const [ticketViews, setTicketViews] = useState<Record<string, number>>({});
+  const [ticketViews, setTicketViews] = useState({} as Record<string, number>);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -127,7 +127,7 @@ function DashboardContent() {
     },
   });
 
-  const { data: tasks, isLoading: tasksLoading } = useQuery<any[]>({
+  const { data: tasks, isLoading: tasksLoading } = useQuery({
     queryKey: ["tasks"],
     queryFn: async () => {
       const res = await api.get("/tasks");

@@ -63,12 +63,12 @@ export default function PmoCalendarPage() {
   const canManagePmo = isAdmin || userPermissions.includes("MANAGE_PMO_CALENDAR");
 
   // Navigation and Tabs state
-  const [activeTab, setActiveTab] = useState<"calendar" | "timeline" | "projects">("calendar");
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("ALL");
-  const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>("ALL");
+  const [activeTab, setActiveTab] = useState("calendar" as "calendar" | "timeline" | "projects");
+  const [selectedProjectId, setSelectedProjectId] = useState("ALL");
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState("ALL");
 
   // Date states for Monthly/Weekly calendar views
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date());
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
 
@@ -79,10 +79,10 @@ export default function PmoCalendarPage() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
   // Editing items state
-  const [editingProject, setEditingProject] = useState<any | null>(null);
-  const [editingMilestone, setEditingMilestone] = useState<any | null>(null);
-  const [editingNote, setEditingNote] = useState<any | null>(null);
-  const [editingTask, setEditingTask] = useState<any | null>(null);
+  const [editingProject, setEditingProject] = useState(null as any | null);
+  const [editingMilestone, setEditingMilestone] = useState(null as any | null);
+  const [editingNote, setEditingNote] = useState(null as any | null);
+  const [editingTask, setEditingTask] = useState(null as any | null);
 
   // Project Form State
   const [projectForm, setProjectForm] = useState({
@@ -126,10 +126,10 @@ export default function PmoCalendarPage() {
   });
 
   // Dynamic values helper
-  const [hoveredDay, setHoveredDay] = useState<string | null>(null);
+  const [hoveredDay, setHoveredDay] = useState(null as string | null);
 
   // Queries
-  const { data: projects = [] } = useQuery<any[]>({
+  const { data: projects = [] } = useQuery({
     queryKey: ["pmo-projects"],
     queryFn: async () => {
       const res = await api.get("/pmo/projects");
@@ -137,7 +137,7 @@ export default function PmoCalendarPage() {
     }
   });
 
-  const { data: milestones = [] } = useQuery<any[]>({
+  const { data: milestones = [] } = useQuery({
     queryKey: ["pmo-milestones"],
     queryFn: async () => {
       const res = await api.get("/pmo/milestones");
@@ -145,7 +145,7 @@ export default function PmoCalendarPage() {
     }
   });
 
-  const { data: calendarNotes = [] } = useQuery<any[]>({
+  const { data: calendarNotes = [] } = useQuery({
     queryKey: ["pmo-calendar-notes"],
     queryFn: async () => {
       const res = await api.get("/pmo/calendar-notes");
@@ -153,7 +153,7 @@ export default function PmoCalendarPage() {
     }
   });
 
-  const { data: tasks = [] } = useQuery<any[]>({
+  const { data: tasks = [] } = useQuery({
     queryKey: ["tasks"],
     queryFn: async () => {
       const res = await api.get("/tasks");
@@ -161,7 +161,7 @@ export default function PmoCalendarPage() {
     }
   });
 
-  const { data: users = [] } = useQuery<any[]>({
+  const { data: users = [] } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
       const res = await api.get("/users");

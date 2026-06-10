@@ -60,7 +60,7 @@ interface VM {
 export default function GlobalVmInventoryPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [activeMenu, setActiveMenu] = useState(null as string | null);
   const [isCopied, setIsCopied] = useState(false);
   
   const { data: userProfile } = useQuery({
@@ -71,7 +71,7 @@ export default function GlobalVmInventoryPage() {
     },
   });
 
-  const { data: inventory, isLoading } = useQuery<VM[]>({
+  const { data: inventory, isLoading } = useQuery({
     queryKey: ["vm-inventory-all"],
     queryFn: async () => {
       const response = await api.get("/vm-inventory?scope=all");

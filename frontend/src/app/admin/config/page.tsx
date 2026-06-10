@@ -44,17 +44,17 @@ import { cn } from "@/lib/utils";
 
 export default function SystemConfigPage() {
   const { refreshBranding } = useBranding();
-  const [activeTab, setActiveTab] = useState<"notifications" | "identity" | "database" | "catalogs" | "api-portal" | "tuning" | "hrm-security">("notifications");
+  const [activeTab, setActiveTab] = useState("notifications" as "notifications" | "identity" | "database" | "catalogs" | "api-portal" | "tuning" | "hrm-security");
   const [isAddCatalogModalOpen, setIsAddCatalogModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
-  const [officeIpEnabled, setOfficeIpEnabled] = useState<boolean>(false);
-  const [officeIpWhitelist, setOfficeIpWhitelist] = useState<string>("127.0.0.1, 192.168.201.18");
-  const [detectedIp, setDetectedIp] = useState<string>("");
-  const [sessionTimeout, setSessionTimeout] = useState<string>("15");
+  const [saveStatus, setSaveStatus] = useState("idle" as "idle" | "success" | "error");
+  const [officeIpEnabled, setOfficeIpEnabled] = useState(false as boolean);
+  const [officeIpWhitelist, setOfficeIpWhitelist] = useState("127.0.0.1, 192.168.201.18" as string);
+  const [detectedIp, setDetectedIp] = useState("" as string);
+  const [sessionTimeout, setSessionTimeout] = useState("15" as string);
 
 
-  const [catalogs, setCatalogs] = useState<any[]>([]);
+  const [catalogs, setCatalogs] = useState([] as any[]);
   const [isLoadingCatalogs, setIsLoadingCatalogs] = useState(true);
 
   const [brandingConfig, setBrandingConfig] = useState({
@@ -95,11 +95,11 @@ export default function SystemConfigPage() {
   
   // Test statuses
   const [isTestingEmail, setIsTestingEmail] = useState(false);
-  const [emailTestStatus, setEmailTestStatus] = useState<any>(null);
+  const [emailTestStatus, setEmailTestStatus] = useState(null as any);
   const [isTestingWa, setIsTestingWa] = useState(false);
-  const [waTestStatus, setWaTestStatus] = useState<any>(null);
+  const [waTestStatus, setWaTestStatus] = useState(null as any);
   const [isTestingTelegram, setIsTestingTelegram] = useState(false);
-  const [telegramTestStatus, setTelegramTestStatus] = useState<any>(null);
+  const [telegramTestStatus, setTelegramTestStatus] = useState(null as any);
 
   const [emailConfig, setEmailConfig] = useState({
     host: "",
@@ -123,9 +123,9 @@ export default function SystemConfigPage() {
   });
 
   const [isTestingDb, setIsTestingDb] = useState(false);
-  const [dbTestStatus, setDbTestStatus] = useState<any>(null);
+  const [dbTestStatus, setDbTestStatus] = useState(null as any);
   const [isSavingDb, setIsSavingDb] = useState(false);
-  const [dbSaveStatus, setDbSaveStatus] = useState<any>(null);
+  const [dbSaveStatus, setDbSaveStatus] = useState(null as any);
 
   const [dbConfig, setDbConfig] = useState({
     host: "localhost",
@@ -144,28 +144,28 @@ export default function SystemConfigPage() {
   });
   const [serverTimezone, setServerTimezone] = useState("UTC");
 
-  const [routingRules, setRoutingRules] = useState<any[]>([]);
-  const [roles, setRoles] = useState<any[]>([]);
+  const [routingRules, setRoutingRules] = useState([] as any[]);
+  const [roles, setRoles] = useState([] as any[]);
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
-  const [editingRuleIndex, setEditingRuleIndex] = useState<number | null>(null);
-  const [ruleForm, setRuleForm] = useState<any>({
+  const [editingRuleIndex, setEditingRuleIndex] = useState(null as number | null);
+  const [ruleForm, setRuleForm] = useState({
     name: "",
     categories: [],
     priorities: ["LOW", "NORMAL", "HIGH", "URGENT", "CRITICAL"],
     ticketTypes: ["SUPPORT", "SERVICE", "VM"],
     targetRoles: []
-  });
+  } as any);
 
-  const [existingTags, setExistingTags] = useState<string[]>([]);
+  const [existingTags, setExistingTags] = useState([] as string[]);
   const [tagSearchInput, setTagSearchInput] = useState("");
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
 
   // API Token Portal States
-  const [patDuration, setPatDuration] = useState<number>(30);
-  const [patToken, setPatToken] = useState<string>("");
-  const [patExpiresAt, setPatExpiresAt] = useState<string>("");
-  const [isGeneratingPat, setIsGeneratingPat] = useState<boolean>(false);
-  const [selectedSnippet, setSelectedSnippet] = useState<"curl" | "js" | "python" | "n8n">("curl");
+  const [patDuration, setPatDuration] = useState(30 as number);
+  const [patToken, setPatToken] = useState("" as string);
+  const [patExpiresAt, setPatExpiresAt] = useState("" as string);
+  const [isGeneratingPat, setIsGeneratingPat] = useState(false as boolean);
+  const [selectedSnippet, setSelectedSnippet] = useState("curl" as "curl" | "js" | "python" | "n8n");
 
   // Tuning & Optimization States
   const [tuningConfig, setTuningConfig] = useState({
@@ -323,13 +323,13 @@ export default function SystemConfigPage() {
     } catch (e: any) { console.error(e); }
   };
 
-  const [newCatalog, setNewCatalog] = useState<any>({
+  const [newCatalog, setNewCatalog] = useState({
     category: "SERVICE_TYPE",
     name: "",
     value: "",
     metadata: { customFields: [] }
-  });
-  const [editingCatalogId, setEditingCatalogId] = useState<string | null>(null);
+  } as any);
+  const [editingCatalogId, setEditingCatalogId] = useState(null as string | null);
 
   const handleOpenAddCatalog = () => {
     setNewCatalog({

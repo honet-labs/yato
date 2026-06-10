@@ -50,9 +50,9 @@ interface PluginManifest {
 
 export default function IntegrationsPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"CONNECTIONS" | "PLUGINS">("CONNECTIONS");
+  const [activeTab, setActiveTab] = useState("CONNECTIONS" as "CONNECTIONS" | "PLUGINS");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingIntegration, setEditingIntegration] = useState<IntegrationData | null>(null);
+  const [editingIntegration, setEditingIntegration] = useState(null as IntegrationData | null);
   
   // Custom Plugin Upload Form State
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -60,7 +60,7 @@ export default function IntegrationsPage() {
   const [uploadError, setUploadError] = useState("");
 
   // Fetch active connections
-  const { data: integrations, isLoading: isIntegrationsLoading } = useQuery<IntegrationData[]>({
+  const { data: integrations, isLoading: isIntegrationsLoading } = useQuery({
     queryKey: ["integrations"],
     queryFn: async () => {
       const response = await api.get("/integrations");
@@ -69,7 +69,7 @@ export default function IntegrationsPage() {
   });
 
   // Fetch uploaded connector plugins
-  const { data: plugins, isLoading: isPluginsLoading } = useQuery<PluginManifest[]>({
+  const { data: plugins, isLoading: isPluginsLoading } = useQuery({
     queryKey: ["connector-plugins"],
     queryFn: async () => {
       const response = await api.get("/integrations/plugins");

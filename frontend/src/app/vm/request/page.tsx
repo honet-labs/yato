@@ -38,7 +38,7 @@ export default function VmRequestPage() {
     hypervisor: "manual" // Default fallback
   });
 
-  const { data: osTemplates } = useQuery<any[]>({
+  const { data: osTemplates } = useQuery({
     queryKey: ["catalog", "OS_TEMPLATE"],
     queryFn: async () => {
       const response = await api.get("/catalog?category=OS_TEMPLATE");
