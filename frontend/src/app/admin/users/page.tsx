@@ -31,6 +31,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useBranding } from "@/context/branding-context";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/context/language-context";
 
 interface UserData {
   id: string;
@@ -48,6 +49,7 @@ interface UserData {
 export default function AdminUsersPage() {
   const { formatDate } = useBranding();
   const queryClient = useQueryClient();
+  const { showToast } = useLanguage();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -60,6 +62,7 @@ export default function AdminUsersPage() {
     personalEmail: "",
     telegramId: "",
     roleIds: [] as string[],
+    isMfaEnabled: false,
   });
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -101,8 +104,12 @@ export default function AdminUsersPage() {
       queryClient.invalidateQueries({ queryKey: ["roles"] });
       setIsModalOpen(false);
       setEditingUser(null);
-      setFormData({ email: "", username: "", password: "", fullName: "", phoneNumber: "", personalEmail: "", telegramId: "", roleIds: [] });
+      setFormData({ email: "", username: "", password: "", fullName: "", phoneNumber: "", personalEmail: "", telegramId: "", roleIds: [], isMfaEnabled: false });
+      showToast("User berhasil didaftarkan.", "success");
     },
+    onError: (err: any) => {
+      showToast(err.response?.data?.message || "Gagal mendaftarkan user.", "error");
+    }
   });
 
   const updateMutation = useMutation({
@@ -114,8 +121,12 @@ export default function AdminUsersPage() {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       setIsModalOpen(false);
       setEditingUser(null);
-      setFormData({ email: "", username: "", password: "", fullName: "", phoneNumber: "", personalEmail: "", telegramId: "", roleIds: [] });
+      setFormData({ email: "", username: "", password: "", fullName: "", phoneNumber: "", personalEmail: "", telegramId: "", roleIds: [], isMfaEnabled: false });
+      showToast("User berhasil diupdate.", "success");
     },
+    onError: (err: any) => {
+      showToast(err.response?.data?.message || "Gagal mengupdate user.", "error");
+    }
   });
 
   const deleteMutation = useMutation({
@@ -127,6 +138,23 @@ export default function AdminUsersPage() {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
   });
+  
+  const resetMfaMutation = useMutation({
+    mutationFn: (id: string) => api.patch(`/users/${id}`, { isMfaEnabled: false }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      showToast("MFA berhasil dinonaktifkan.", "success");
+    },
+    onError: (err: any) => {
+      showToast(err.response?.data?.message || "Gagal menonaktifkan MFA.", "error");
+    }
+  });
+
+  const handleResetMfa = (id: string, fullName: string) => {
+    if (confirm(`Apakah Anda yakin ingin menonaktifkan/reset MFA untuk ${fullName}?`)) {
+      resetMfaMutation.mutate(id);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,6 +176,7 @@ export default function AdminUsersPage() {
       personalEmail: user.personalEmail || "",
       telegramId: user.telegramId || "",
       roleIds: user.roles?.map((r: any) => r.role.id) || [],
+      isMfaEnabled: user.isMfaEnabled,
     });
     setIsModalOpen(true);
   };
@@ -287,6 +316,15 @@ export default function AdminUsersPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {user.isMfaEnabled && (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleResetMfa(user.id, user.fullName); }}
+                              className="p-2 text-slate-400 hover:text-amber-600 hover:bg-white rounded-lg transition-all border border-transparent hover:border-slate-100 shadow-sm"
+                              title="Disable & Reset MFA"
+                            >
+                              <ShieldAlert className="w-4 h-4" />
+                            </button>
+                          )}
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleEdit(user); }}
                             className="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all border border-transparent hover:border-slate-100 shadow-sm"
@@ -457,6 +495,27 @@ export default function AdminUsersPage() {
                       </button>
                     </div>
                   </div>
+
+                  {editingUser && (
+                    <div className="space-y-1.5 flex flex-col justify-center">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Multi-Factor Authentication</label>
+                      <label className={cn(
+                        "flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-100/50 hover:border-slate-200 transition-all mt-1",
+                        formData.isMfaEnabled && "border-emerald-200 bg-emerald-50/10 hover:bg-emerald-50/20"
+                      )}>
+                        <input 
+                          type="checkbox"
+                          className="w-4 h-4 text-emerald-600 border-slate-200 rounded focus:ring-emerald-500 cursor-pointer"
+                          checked={formData.isMfaEnabled}
+                          onChange={(e) => setFormData({ ...formData, isMfaEnabled: e.target.checked })}
+                        />
+                        <div>
+                          <p className="text-[11px] font-bold text-slate-900 uppercase tracking-wide">MFA Enabled</p>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-tighter">Disable to clear the MFA/2FA token secret</p>
+                        </div>
+                      </label>
+                    </div>
+                  )}
 
                   {/* Role Assignment Checkbox Grid */}
                   <div className="space-y-1.5 col-span-2">
