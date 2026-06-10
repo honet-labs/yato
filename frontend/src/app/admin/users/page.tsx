@@ -214,7 +214,7 @@ export default function AdminUsersPage() {
             <button 
               onClick={() => {
                 setEditingUser(null);
-                setFormData({ email: "", username: "", password: "", fullName: "", phoneNumber: "", personalEmail: "", telegramId: "", roleIds: [] });
+                setFormData({ email: "", username: "", password: "", fullName: "", phoneNumber: "", personalEmail: "", telegramId: "", roleIds: [], isMfaEnabled: false });
                 setIsModalOpen(true);
               }}
               className="btn-primary flex items-center gap-2.5 whitespace-nowrap"
@@ -246,10 +246,8 @@ export default function AdminUsersPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {paginatedUsers?.map((user: any) => (
-                    <motion.tr 
+                    <tr 
                       key={user.id} 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
                       className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
                     >
                       <td className="px-6 py-4">
@@ -343,7 +341,7 @@ export default function AdminUsersPage() {
                           <ChevronRight className="w-4 h-4 text-slate-300 ml-2" />
                         </div>
                       </td>
-                    </motion.tr>
+                    </tr>
                   ))}
                 </tbody>
               </table>
