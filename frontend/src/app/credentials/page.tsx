@@ -325,11 +325,11 @@ export default function CredentialsPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background font-sans text-[13px]">
-      <MobileNav />
+    <div className="flex h-screen bg-background font-sans text-[13px]">
       <Sidebar />
-      
-      <main className="page-container">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
+        <MobileNav />
+        <main className="page-container overflow-y-auto custom-scrollbar">
         <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <PageHeader title="Credential Vault" subtitle="Secure identity and resource access management" />
@@ -392,7 +392,7 @@ export default function CredentialsPage() {
         </div>
 
         <div className="bg-white border border-slate-50 rounded-2xl overflow-visible shadow-sm">
-          <div className="overflow-x-auto md:overflow-x-visible">
+          <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
@@ -527,6 +527,7 @@ export default function CredentialsPage() {
           />
         </div>
       </main>
+      </div>
 
       {/* Add/Edit Modal */}
       <AnimatePresence>

@@ -167,11 +167,11 @@ export default function IntegrationsPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background font-sans text-[13px]">
-      <MobileNav />
+    <div className="flex h-screen bg-background font-sans text-[13px]">
       <Sidebar />
-      
-      <main className="page-container">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
+        <MobileNav />
+        <main className="page-container overflow-y-auto custom-scrollbar">
         <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <PageHeader title="Integration Hub" subtitle="Manage connector plugins, dynamic drivers, and active hypervisor endpoints" />
@@ -400,6 +400,7 @@ export default function IntegrationsPage() {
           </div>
         )}
       </main>
+      </div>
 
       {/* Dynamic Connection Modeler Modal */}
       <IntegrationModal 

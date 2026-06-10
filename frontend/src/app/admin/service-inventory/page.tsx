@@ -111,13 +111,11 @@ export default function GlobalServiceAssetsPage() {
   );
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800">
-      <MobileNav />
+    <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
       <Sidebar />
-      
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-50">
-        
-        <main className="page-container p-8 flex-1">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+        <MobileNav />
+        <main className="page-container overflow-y-auto custom-scrollbar p-8 flex-1">
           <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <PageHeader title="Global Service Assets" subtitle="Full registry of provisioned services and endpoints across all teams" />
@@ -144,7 +142,7 @@ export default function GlobalServiceAssetsPage() {
             </header>
 
             <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-visible">
-              <div className="overflow-x-auto md:overflow-x-visible min-h-[400px]">
+              <div className="overflow-x-auto min-h-[400px]">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/50 border-b border-slate-100">

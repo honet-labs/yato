@@ -295,12 +295,11 @@ export default function AssetsPage() {
   ) || [];
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800">
-      <MobileNav />
+    <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
       <Sidebar />
-      
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-50">
-        <main className="page-container p-8 flex-1">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+        <MobileNav />
+        <main className="page-container overflow-y-auto custom-scrollbar p-8 flex-1">
           <header className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <PageHeader title="Asset Registry" subtitle="Globally unique identities, printable labels, and lifecycle placement tracking" />
@@ -411,7 +410,7 @@ export default function AssetsPage() {
 
           {/* Main asset table */}
           <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-visible">
-            <div className="overflow-x-auto md:overflow-x-visible min-h-[400px]">
+            <div className="overflow-x-auto min-h-[400px]">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/50 border-b border-slate-100">

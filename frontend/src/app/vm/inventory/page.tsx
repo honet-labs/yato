@@ -166,7 +166,7 @@ export default function VmInventoryPage() {
             </header>
 
             <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-visible">
-              <div className="overflow-x-auto md:overflow-x-visible min-h-[400px]">
+              <div className="overflow-x-auto min-h-[400px]">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/50 border-b border-slate-100">

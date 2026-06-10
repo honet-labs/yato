@@ -166,7 +166,7 @@ export default function ServiceInventoryPage() {
         </div>
 
         <div className="bg-white border border-slate-50 rounded-2xl overflow-visible shadow-sm">
-          <div className="overflow-x-auto md:overflow-x-visible">
+          <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
