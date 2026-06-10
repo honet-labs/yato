@@ -149,6 +149,7 @@ export default function NewServiceRequestPage() {
             </div>
           </form>
         </div>
+        </div>
         </main>
       </div>
     </div>

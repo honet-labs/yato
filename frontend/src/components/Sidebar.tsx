@@ -38,6 +38,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBranding } from "@/context/branding-context";
+import { useLanguage } from "@/context/language-context";
 import { Footer } from "./Footer";
 
 

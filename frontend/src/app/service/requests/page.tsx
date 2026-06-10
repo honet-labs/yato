@@ -172,7 +172,6 @@ export default function ServiceRequestsPage() {
             </div>
           )}
         </div>
-      </main>
 
       <AnimatePresence>
         {isModalOpen && (
