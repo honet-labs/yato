@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import { Sidebar } from "@/components/Sidebar";
+import { MobileNav } from "@/components/MobileNav";
 import { Shield, Key, QrCode, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/Skeleton";
@@ -79,10 +80,11 @@ export default function SecurityPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background font-sans">
+    <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
       <Sidebar />
-      
-      <main className="page-container">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+        <MobileNav />
+        <main className="page-container overflow-y-auto custom-scrollbar">
         <header className="mb-10">
           <h1 className="page-title">Security & Authentication</h1>
           <p className="text-slate-400 text-[13px] font-bold uppercase tracking-widest mt-1">Manage your account security and MFA</p>
@@ -270,7 +272,8 @@ export default function SecurityPage() {
             </p>
           </div>
         </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

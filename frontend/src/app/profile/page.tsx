@@ -303,8 +303,6 @@ export default function ProfilePage() {
               </form>
             </motion.div>
           </div>
-          
-          <Footer />
         </main>
       </div>
     </div>

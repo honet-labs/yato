@@ -113,6 +113,12 @@ const enToId: Record<string, string> = {
   "check out": "pulang kerja",
   "anti-fraud safeguard": "perlindungan anti-fraud",
   "no scheduled shift": "tidak ada shift terjadwal",
+  "no attendance activity recorded for this date.": "belum ada aktivitas absensi ditanggal ini.",
+  "no attendance activity today. please check-in.": "belum ada aktivitas absensi hari ini. silakan check-in.",
+  "check-in recorded successfully": "check-in berhasil direkam",
+  "check-out recorded successfully": "check-out berhasil direkam",
+  "date:": "tanggal:",
+  "time:": "jam:",
   "choose employee": "pilih karyawan",
   "roster shift code": "kode shift roster",
   "roster date": "tanggal roster",
@@ -283,7 +289,19 @@ const enToId: Record<string, string> = {
   "applicant (employee),": "pemohon (karyawan),",
   "signature & date": "tanda tangan & tanggal",
   "final approver (dept head),": "penyetuju akhir (dept head),",
-  "this form is an official digital document generated automatically by": "formulir ini adalah dokumen digital resmi yang dihasilkan secara otomatis oleh"
+  "this form is an official digital document generated automatically by": "formulir ini adalah dokumen digital resmi yang dihasilkan secara otomatis oleh",
+  "file deleted successfully.": "file berhasil dihapus.",
+  "failed to delete file from server.": "gagal menghapus file dari server.",
+  "are you sure you want to permanently delete file '{name}' from the server?": "apakah anda yakin ingin menghapus file '{name}' secara permanen dari server?",
+  "loading file database...": "memuat database file...",
+  "no files found": "tidak ada file yang ditemukan",
+  "user registered successfully.": "user berhasil didaftarkan.",
+  "failed to register user.": "gagal mendaftarkan user.",
+  "user updated successfully.": "user berhasil diupdate.",
+  "failed to update user.": "gagal mengupdate user.",
+  "mfa disabled successfully.": "mfa berhasil dinonaktifkan.",
+  "failed to disable mfa.": "gagal menonaktifkan mfa.",
+  "are you sure you want to disable/reset mfa for {name}?": "apakah anda yakin ingin menonaktifkan/reset mfa untuk {name}?"
 };
 
 // Build optimized reverse maps for clean two-way matching

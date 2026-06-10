@@ -3,6 +3,7 @@ import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { NotificationService } from '../notification.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { AuditService } from '../../audit/audit.service';
 
 @Processor('notifications', {
   concurrency: parseInt(process.env.NOTIFICATION_CONCURRENCY || '5', 10),
@@ -12,7 +13,8 @@ export class NotificationWorker extends WorkerHost {
 
   constructor(
     private notificationService: NotificationService,
-    private eventEmitter: EventEmitter2
+    private eventEmitter: EventEmitter2,
+    private auditService: AuditService,
   ) {
     super();
   }
@@ -27,6 +29,11 @@ export class NotificationWorker extends WorkerHost {
       const config = (await this.notificationService.getSetting('EMAIL_CONFIG')) as any;
       if (!config || !config.host || !config.user) {
         this.logger.warn(`[NotificationWorker] Skipping Email notification: SMTP is not configured.`);
+        await this.auditService.log(userId, 'SEND_NOTIFICATION_SKIPPED', 'Notification', null, {
+          type,
+          recipient,
+          reason: 'SMTP is not configured'
+        });
         this.eventEmitter.emit('notification.finished', {
           userId,
           success: true,
@@ -39,6 +46,11 @@ export class NotificationWorker extends WorkerHost {
       const config = (await this.notificationService.getSetting('WHATSAPP_CONFIG')) as any;
       if (!config || !config.url) {
         this.logger.warn(`[NotificationWorker] Skipping WhatsApp notification: WAHA gateway is not configured.`);
+        await this.auditService.log(userId, 'SEND_NOTIFICATION_SKIPPED', 'Notification', null, {
+          type,
+          recipient,
+          reason: 'WAHA gateway is not configured'
+        });
         this.eventEmitter.emit('notification.finished', {
           userId,
           success: true,
@@ -51,6 +63,11 @@ export class NotificationWorker extends WorkerHost {
       const config = (await this.notificationService.getSetting('TELEGRAM_CONFIG')) as any;
       if (!config || !config.botToken) {
         this.logger.warn(`[NotificationWorker] Skipping Telegram notification: Bot token is not configured.`);
+        await this.auditService.log(userId, 'SEND_NOTIFICATION_SKIPPED', 'Notification', null, {
+          type,
+          recipient,
+          reason: 'Bot token is not configured'
+        });
         this.eventEmitter.emit('notification.finished', {
           userId,
           success: true,
@@ -65,6 +82,11 @@ export class NotificationWorker extends WorkerHost {
     const isChannelEnabled = await this.notificationService.checkUserPreference(userId, type);
     if (!isChannelEnabled) {
       this.logger.log(`[NotificationWorker] Skipping ${type} notification dispatch for user ${userId} due to channel disabled in user settings.`);
+      await this.auditService.log(userId, 'SEND_NOTIFICATION_SKIPPED', 'Notification', null, {
+        type,
+        recipient,
+        reason: 'Disabled in user settings'
+      });
       
       this.eventEmitter.emit('notification.finished', {
         userId,
@@ -97,13 +119,28 @@ export class NotificationWorker extends WorkerHost {
       if (result && result.success) {
         success = true;
         this.logger.log(`[NotificationWorker] Job ${job.id} succeeded. Notification sent to ${recipient} via ${type}.`);
+        await this.auditService.log(userId, 'SEND_NOTIFICATION_SUCCESS', 'Notification', null, {
+          type,
+          recipient,
+          title
+        });
       } else {
         errorDetail = result?.message || 'Unknown error';
         this.logger.error(`[NotificationWorker] Job ${job.id} failed to send to ${recipient} via ${type}. Details: ${errorDetail}`);
+        await this.auditService.log(userId, 'SEND_NOTIFICATION_FAILED', 'Notification', null, {
+          type,
+          recipient,
+          error: errorDetail
+        });
       }
     } catch (error) {
       errorDetail = error.message;
       this.logger.error(`[NotificationWorker] Unexpected error in job ${job.id} while sending to ${recipient} via ${type}: ${error.message}`, error.stack);
+      await this.auditService.log(userId, 'SEND_NOTIFICATION_FAILED', 'Notification', null, {
+        type,
+        recipient,
+        error: errorDetail
+      });
     }
 
     // Emit finished event

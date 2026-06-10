@@ -967,7 +967,6 @@ export default function AttendancePage() {
             </div>
           </div>
         )}
-        <Footer />
       </main>
     </div>
 
@@ -1028,8 +1027,8 @@ export default function AttendancePage() {
                           <div className="text-blue-800 font-extrabold text-xs mb-2">
                             Check-In Recorded Successfully
                           </div>
-                          <p><strong className="text-slate-800">Tanggal:</strong> {new Date(checkInLog.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
-                          <p><strong className="text-slate-800">Jam:</strong> {new Date(checkInLog.timestamp).toLocaleTimeString("en-GB", { hour12: false })}</p>
+                          <p><strong className="text-slate-800">Date:</strong> {new Date(checkInLog.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+                          <p><strong className="text-slate-800">Time:</strong> {new Date(checkInLog.timestamp).toLocaleTimeString("en-GB", { hour12: false })}</p>
                           <p><strong className="text-slate-800">IP Address:</strong> {checkInLog.ipAddress || "LAN/Office Network"}</p>
                         </div>
                         {checkInLog.selfieUrl && (
@@ -1056,8 +1055,8 @@ export default function AttendancePage() {
                           <div className="text-emerald-800 font-extrabold text-xs mb-2">
                             Check-Out Recorded Successfully
                           </div>
-                          <p><strong className="text-slate-800">Tanggal:</strong> {new Date(checkOutLog.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
-                          <p><strong className="text-slate-800">Jam:</strong> {new Date(checkOutLog.timestamp).toLocaleTimeString("en-GB", { hour12: false })}</p>
+                          <p><strong className="text-slate-800">Date:</strong> {new Date(checkOutLog.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+                          <p><strong className="text-slate-800">Time:</strong> {new Date(checkOutLog.timestamp).toLocaleTimeString("en-GB", { hour12: false })}</p>
                           <p><strong className="text-slate-800">Total Hours:</strong> {selectedDayTimesheet.totalHours} hrs</p>
                         </div>
                         {checkOutLog.selfieUrl && (
@@ -1076,7 +1075,7 @@ export default function AttendancePage() {
 
                   {!selectedDayTimesheet.logs?.length && (
                     <div className="bg-slate-50 border border-slate-100 p-5 rounded-2xl flex items-center justify-center text-slate-400 font-semibold text-[11px]">
-                      <span>Belum ada aktivitas absensi ditanggal ini.</span>
+                      <span>No attendance activity recorded for this date.</span>
                     </div>
                   )}
                 </div>

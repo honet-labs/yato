@@ -383,7 +383,15 @@ export class StorageService {
   }
 
   // List all registered files inside database
-  async listFiles(user: any, query: string = '', driver: string = '', extension: string = '') {
+  async listFiles(
+    user: any,
+    query: string = '',
+    driver: string = '',
+    extension: string = '',
+    category: string = '',
+    page?: number,
+    limit?: number,
+  ) {
     const isAdmin = user.roles?.some((r: any) => r.role.name === 'ADMIN');
     
     // Non-admins can ONLY see their own files
@@ -407,7 +415,112 @@ export class StorageService {
       };
     }
 
-    return this.prisma.storageFile.findMany({
+    // Helper to determine category from mimeType
+    const getFileCategory = (mime: string): 'IMAGE' | 'DOCUMENT' | 'ARCHIVE' | 'OTHER' => {
+      const m = mime.toLowerCase();
+      if (m.startsWith('image/')) return 'IMAGE';
+      if (
+        m.startsWith('application/pdf') ||
+        m.includes('word') ||
+        m.includes('excel') ||
+        m.includes('sheet') ||
+        m.startsWith('text/')
+      ) {
+        return 'DOCUMENT';
+      }
+      if (m.includes('zip') || m.includes('tar') || m.includes('rar') || m.includes('gzip')) {
+        return 'ARCHIVE';
+      }
+      return 'OTHER';
+    };
+
+    // First fetch all files matching the filters (excluding category and page/limit) to calculate counts and metrics
+    const allMatchingFiles = await this.prisma.storageFile.findMany({
+      where,
+      select: {
+        id: true,
+        mimeType: true,
+        driver: true,
+        size: true,
+      },
+    });
+
+    // Calculate counts
+    const counts = {
+      ALL: allMatchingFiles.length,
+      IMAGE: 0,
+      DOCUMENT: 0,
+      ARCHIVE: 0,
+      OTHER: 0,
+    };
+
+    // Calculate metrics
+    const metrics = {
+      totalBytesUsed: 0,
+      dbBytes: 0,
+      nasBytes: 0,
+      s3Bytes: 0,
+      gdriveBytes: 0,
+    };
+
+    for (const file of allMatchingFiles) {
+      const cat = getFileCategory(file.mimeType);
+      counts[cat]++;
+
+      metrics.totalBytesUsed += file.size;
+      if (file.driver === 'DATABASE') metrics.dbBytes += file.size;
+      else if (file.driver === 'NAS') metrics.nasBytes += file.size;
+      else if (file.driver === 'S3') metrics.s3Bytes += file.size;
+      else if (file.driver === 'GOOGLE_DRIVE') metrics.gdriveBytes += file.size;
+    }
+
+    // Apply category filter for data retrieval
+    if (category && category !== 'ALL') {
+      if (category === 'IMAGE') {
+        where.mimeType = { startsWith: 'image/', mode: 'insensitive' };
+      } else if (category === 'DOCUMENT') {
+        where.OR = [
+          { mimeType: { startsWith: 'text/', mode: 'insensitive' } },
+          { mimeType: { contains: 'pdf', mode: 'insensitive' } },
+          { mimeType: { contains: 'word', mode: 'insensitive' } },
+          { mimeType: { contains: 'excel', mode: 'insensitive' } },
+          { mimeType: { contains: 'sheet', mode: 'insensitive' } },
+          { mimeType: { contains: 'document', mode: 'insensitive' } },
+        ];
+      } else if (category === 'ARCHIVE') {
+        where.OR = [
+          { mimeType: { contains: 'zip', mode: 'insensitive' } },
+          { mimeType: { contains: 'tar', mode: 'insensitive' } },
+          { mimeType: { contains: 'rar', mode: 'insensitive' } },
+          { mimeType: { contains: 'gzip', mode: 'insensitive' } },
+        ];
+      } else if (category === 'OTHER') {
+        where.NOT = [
+          { mimeType: { startsWith: 'image/', mode: 'insensitive' } },
+          { mimeType: { startsWith: 'text/', mode: 'insensitive' } },
+          { mimeType: { contains: 'pdf', mode: 'insensitive' } },
+          { mimeType: { contains: 'word', mode: 'insensitive' } },
+          { mimeType: { contains: 'excel', mode: 'insensitive' } },
+          { mimeType: { contains: 'sheet', mode: 'insensitive' } },
+          { mimeType: { contains: 'document', mode: 'insensitive' } },
+          { mimeType: { contains: 'zip', mode: 'insensitive' } },
+          { mimeType: { contains: 'tar', mode: 'insensitive' } },
+          { mimeType: { contains: 'rar', mode: 'insensitive' } },
+          { mimeType: { contains: 'gzip', mode: 'insensitive' } },
+        ];
+      }
+    }
+
+    // Determine the count after applying the category filter
+    const totalFiltered = category && category !== 'ALL'
+      ? await this.prisma.storageFile.count({ where })
+      : allMatchingFiles.length;
+
+    // Fetch the paginated data
+    const skip = page && limit ? (page - 1) * limit : undefined;
+    const take = limit || undefined;
+
+    const data = await this.prisma.storageFile.findMany({
       where,
       include: {
         uploadedBy: {
@@ -421,6 +534,18 @@ export class StorageService {
       orderBy: {
         createdAt: 'desc',
       },
+      skip,
+      take,
     });
+
+    return {
+      data,
+      total: totalFiltered,
+      page: page || 1,
+      limit: limit || data.length,
+      totalPages: limit ? Math.ceil(totalFiltered / limit) : 1,
+      counts,
+      metrics,
+    };
   }
 }

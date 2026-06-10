@@ -229,7 +229,7 @@ model Credential {
   type        String   // SSH, DB, API_KEY
   address     String?  // IP, Domain, or Service Name
   username    String?
-  password    String   // AES-256 Encrypted
+  password    String?  // AES-256 Encrypted
   description String?
   tags        String[] // Array of tagging
   metadata    Json?    // Stores custom field values

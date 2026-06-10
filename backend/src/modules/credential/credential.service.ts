@@ -12,7 +12,7 @@ export class CredentialService {
   ) {}
 
   async create(data: any, userId: string) {
-    const encryptedPassword = this.encryptionService.encrypt(data.password);
+    const encryptedPassword = data.password ? this.encryptionService.encrypt(data.password) : null;
     const credential = await this.prisma.credential.create({
       data: {
         ...data,
@@ -67,7 +67,7 @@ export class CredentialService {
 
       return {
         ...credential,
-        password: '••••••••••••••••••••••••',
+        password: credential.password ? '••••••••••••••••••••••••' : null,
       };
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
@@ -93,7 +93,7 @@ export class CredentialService {
 
     return {
       ...credential,
-      password: this.encryptionService.decrypt(credential.password),
+      password: credential.password ? this.encryptionService.decrypt(credential.password) : null,
     };
   }
 
@@ -126,7 +126,7 @@ export class CredentialService {
   private maskCredential(credential: any) {
     return {
       ...credential,
-      password: '****************',
+      password: credential.password ? '****************' : null,
     };
   }
 }

@@ -134,11 +134,11 @@ export default function ServiceInventoryPage() {
   );
 
   return (
-    <div className="flex min-h-screen bg-background font-sans text-[13px]">
-      <MobileNav />
+    <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
       <Sidebar />
-      
-      <main className="page-container">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+        <MobileNav />
+        <main className="page-container overflow-y-auto custom-scrollbar">
         <header className="mb-10 flex items-center justify-between">
           <div>
             <PageHeader title="Service Assets" subtitle="Active infrastructure services and endpoints" />
@@ -529,7 +529,8 @@ export default function ServiceInventoryPage() {
             </div>
           )}
         </AnimatePresence>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

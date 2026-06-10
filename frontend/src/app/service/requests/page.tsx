@@ -77,10 +77,11 @@ export default function ServiceRequestsPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background font-sans text-[13px]">
+    <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
       <Sidebar />
-      
-      <main className="page-container">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+        <MobileNav />
+        <main className="page-container overflow-y-auto custom-scrollbar">
         <header className="mb-10 flex items-center justify-between">
           <div>
             <h1 className="page-title">Service Provisioning</h1>
@@ -293,6 +294,8 @@ export default function ServiceRequestsPage() {
           </div>
         )}
       </AnimatePresence>
+        </main>
+      </div>
     </div>
   );
 }

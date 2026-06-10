@@ -284,18 +284,22 @@ export class NotificationService {
 
   async sendToUserQueue(userId: string, title: string, message: string, link?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) return;
+    if (!user) {
+      this.logger.error(`[sendToUserQueue] Failed to send notification: User with ID ${userId} not found.`);
+      return;
+    }
 
     const isOnLeave = await this.isUserOnLeave(userId);
     if (isOnLeave) {
-      this.logger.log(`User ${user.fullName} (${userId}) is currently ON LEAVE. Auto-snoozing external queued alerts.`);
+      this.logger.log(`[sendToUserQueue] User ${user.fullName} (${userId}) is currently ON LEAVE. Auto-snoozing external queued alerts.`);
     }
 
     const plainMessage = message.replace(/<[^>]*>/g, '');
+    let queuedCount = 0;
 
     // 1. Queue Telegram if ID exists (snoozed if on leave)
     if (user.telegramId && !isOnLeave) {
-      this.logger.log(`Queuing Telegram notification for user ${user.id} (${user.telegramId})`);
+      this.logger.log(`[sendToUserQueue] Queuing Telegram notification for user ${user.id} (${user.telegramId})`);
       this.eventEmitter.emit('notification.trigger', {
         userId: user.id,
         type: 'TELEGRAM',
@@ -303,11 +307,12 @@ export class NotificationService {
         message, // HTML message supported by Telegram
         recipient: user.telegramId
       });
+      queuedCount++;
     }
 
     // 2. Queue WhatsApp if phone exists (snoozed if on leave)
     if (user.phoneNumber && !isOnLeave) {
-      this.logger.log(`Queuing WhatsApp notification for user ${user.id} (${user.phoneNumber})`);
+      this.logger.log(`[sendToUserQueue] Queuing WhatsApp notification for user ${user.id} (${user.phoneNumber})`);
       this.eventEmitter.emit('notification.trigger', {
         userId: user.id,
         type: 'WHATSAPP',
@@ -315,11 +320,12 @@ export class NotificationService {
         message: plainMessage,
         recipient: user.phoneNumber
       });
+      queuedCount++;
     }
 
     // 3. Queue Email if email exists (snoozed if on leave)
     if (user.email && !isOnLeave) {
-      this.logger.log(`Queuing Email notification for user ${user.id} (${user.email})`);
+      this.logger.log(`[sendToUserQueue] Queuing Email notification for user ${user.id} (${user.email})`);
       this.eventEmitter.emit('notification.trigger', {
         userId: user.id,
         type: 'EMAIL',
@@ -327,6 +333,15 @@ export class NotificationService {
         message: plainMessage,
         recipient: user.email
       });
+      queuedCount++;
+    }
+
+    if (queuedCount === 0) {
+      if (isOnLeave) {
+        this.logger.log(`[sendToUserQueue] No notification channels queued for user ${user.fullName} (${user.id}) because they are on leave.`);
+      } else {
+        this.logger.warn(`[sendToUserQueue] No notification channels configured for user ${user.fullName} (${user.id}). (Email: ${user.email ? 'yes' : 'no'}, Phone: ${user.phoneNumber ? 'yes' : 'no'}, Telegram: ${user.telegramId ? 'yes' : 'no'})`);
+      }
     }
 
     // Automatically extract link from message if not explicitly provided

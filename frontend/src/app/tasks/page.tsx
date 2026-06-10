@@ -2593,7 +2593,6 @@ export default function TasksPage() {
           )}
         </AnimatePresence>
         
-        <Footer />
         </main>
       </div>
     </div>

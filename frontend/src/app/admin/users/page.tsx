@@ -49,7 +49,7 @@ interface UserData {
 export default function AdminUsersPage() {
   const { formatDate } = useBranding();
   const queryClient = useQueryClient();
-  const { showToast } = useLanguage();
+  const { showToast, t } = useLanguage();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -105,10 +105,10 @@ export default function AdminUsersPage() {
       setIsModalOpen(false);
       setEditingUser(null);
       setFormData({ email: "", username: "", password: "", fullName: "", phoneNumber: "", personalEmail: "", telegramId: "", roleIds: [], isMfaEnabled: false });
-      showToast("User berhasil didaftarkan.", "success");
+      showToast(t("User registered successfully."), "success");
     },
     onError: (err: any) => {
-      showToast(err.response?.data?.message || "Gagal mendaftarkan user.", "error");
+      showToast(err.response?.data?.message || t("Failed to register user."), "error");
     }
   });
 
@@ -122,10 +122,10 @@ export default function AdminUsersPage() {
       setIsModalOpen(false);
       setEditingUser(null);
       setFormData({ email: "", username: "", password: "", fullName: "", phoneNumber: "", personalEmail: "", telegramId: "", roleIds: [], isMfaEnabled: false });
-      showToast("User berhasil diupdate.", "success");
+      showToast(t("User updated successfully."), "success");
     },
     onError: (err: any) => {
-      showToast(err.response?.data?.message || "Gagal mengupdate user.", "error");
+      showToast(err.response?.data?.message || t("Failed to update user."), "error");
     }
   });
 
@@ -143,15 +143,15 @@ export default function AdminUsersPage() {
     mutationFn: (id: string) => api.patch(`/users/${id}`, { isMfaEnabled: false }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      showToast("MFA berhasil dinonaktifkan.", "success");
+      showToast(t("MFA disabled successfully."), "success");
     },
     onError: (err: any) => {
-      showToast(err.response?.data?.message || "Gagal menonaktifkan MFA.", "error");
+      showToast(err.response?.data?.message || t("Failed to disable MFA."), "error");
     }
   });
 
   const handleResetMfa = (id: string, fullName: string) => {
-    if (confirm(`Apakah Anda yakin ingin menonaktifkan/reset MFA untuk ${fullName}?`)) {
+    if (confirm(t("Are you sure you want to disable/reset MFA for {name}?").replace("{name}", fullName))) {
       resetMfaMutation.mutate(id);
     }
   };

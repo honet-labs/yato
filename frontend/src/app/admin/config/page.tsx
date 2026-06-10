@@ -2319,8 +2319,6 @@ export default function SystemConfigPage() {
             </div>
           </div>
         )}
-
-        <Footer />
       </main>
     </div>
 

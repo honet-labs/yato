@@ -50,11 +50,11 @@ export default function NewServiceRequestPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background font-sans text-[13px]">
-      <MobileNav />
+    <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
       <Sidebar />
-      
-      <main className="page-container">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+        <MobileNav />
+        <main className="page-container overflow-y-auto custom-scrollbar">
         <div className="max-w-2xl mx-auto">
         <header className="mb-10">
           <Link href="/service/inventory" className="flex items-center gap-2 text-slate-400 hover:text-blue-600 transition-colors mb-6 group">
@@ -149,8 +149,8 @@ export default function NewServiceRequestPage() {
             </div>
           </form>
         </div>
+        </main>
       </div>
-    </main>
     </div>
   );
 }

@@ -38,8 +38,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBranding } from "@/context/branding-context";
-import { useLanguage } from "@/context/language-context";
-
+import { Footer } from "./Footer";
 
 
 const formatNotificationTime = (dateStr: string) => {
@@ -249,10 +248,11 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
   })).filter(section => section.items.length > 0);
 
   return (
-    <aside className={cn(
-      "w-60 bg-white h-screen flex flex-col shrink-0 border-r border-slate-100 z-50 sticky top-0 pb-10",
-      !isMobile && "lg:flex hidden"
-    )}>
+    <>
+      <aside className={cn(
+        "w-60 bg-white h-screen flex flex-col shrink-0 border-r border-slate-100 z-50 sticky top-0 pb-10",
+        !isMobile && "lg:flex hidden"
+      )}>
       <div className="p-6 flex items-center gap-2.5">
         {appLogo ? (
           <img src={appLogo} alt="Logo" className="w-8 h-8 object-contain rounded-lg shadow-sm" />
@@ -500,6 +500,8 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
           </AnimatePresence>
         </div>
       </div>
-    </aside>
+      </aside>
+      <Footer />
+    </>
   );
 }

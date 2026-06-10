@@ -821,8 +821,7 @@ function TicketsContent() {
               />
             </div>
             
-            <Footer />
-        </main>
+         </main>
       </div>
 
       {/* Detail Modal */}

@@ -19,8 +19,19 @@ export class StorageController {
     @Query('query') query?: string,
     @Query('driver') driver?: string,
     @Query('extension') extension?: string,
+    @Query('category') category?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.storageService.listFiles(req.user, query, driver, extension);
+    return this.storageService.listFiles(
+      req.user,
+      query,
+      driver,
+      extension,
+      category,
+      page ? parseInt(page, 10) : undefined,
+      limit ? parseInt(limit, 10) : undefined,
+    );
   }
 
   @Get('config')

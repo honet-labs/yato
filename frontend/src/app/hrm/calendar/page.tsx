@@ -338,8 +338,8 @@ export default function CalendarPage() {
                         <span>Check-In Recorded Successfully</span>
                       </div>
                       <div className="text-[11px] text-slate-655 font-medium space-y-1 pl-6">
-                        <p><strong className="text-slate-800">Tanggal:</strong> {new Date(checkInLog.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
-                        <p><strong className="text-slate-800">Jam:</strong> {new Date(checkInLog.timestamp).toLocaleTimeString("en-GB", { hour12: false })}</p>
+                        <p><strong className="text-slate-800">Date:</strong> {new Date(checkInLog.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+                        <p><strong className="text-slate-800">Time:</strong> {new Date(checkInLog.timestamp).toLocaleTimeString("en-GB", { hour12: false })}</p>
                         <p><strong className="text-slate-800">IP Address:</strong> {checkInLog.ipAddress || "LAN/Office Network"}</p>
                       </div>
                     </div>
@@ -352,8 +352,8 @@ export default function CalendarPage() {
                         <span>Check-Out Recorded Successfully</span>
                       </div>
                       <div className="text-[11px] text-slate-655 font-medium space-y-1 pl-6">
-                        <p><strong className="text-slate-800">Tanggal:</strong> {new Date(checkOutLog.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
-                        <p><strong className="text-slate-800">Jam:</strong> {new Date(checkOutLog.timestamp).toLocaleTimeString("en-GB", { hour12: false })}</p>
+                        <p><strong className="text-slate-800">Date:</strong> {new Date(checkOutLog.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+                        <p><strong className="text-slate-800">Time:</strong> {new Date(checkOutLog.timestamp).toLocaleTimeString("en-GB", { hour12: false })}</p>
                         <p><strong className="text-slate-800">Total Hours:</strong> {todayTimesheet?.totalHours || 0} hrs</p>
                       </div>
                     </div>
@@ -362,7 +362,7 @@ export default function CalendarPage() {
                   {!checkInLog && (
                     <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-center gap-2.5 text-slate-400 font-semibold text-[11px]">
                       <AlertCircle className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>Belum ada aktivitas absensi hari ini. Silakan Check-in.</span>
+                      <span>No attendance activity today. Please Check-in.</span>
                     </div>
                   )}
                 </div>
@@ -429,8 +429,8 @@ export default function CalendarPage() {
                           Check-In Recorded Successfully
                         </div>
                         <div className="text-[11px] text-slate-600 font-medium space-y-1.5 pl-1">
-                          <p><strong className="text-slate-800">Tanggal:</strong> {new Date(checkInLog.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
-                          <p><strong className="text-slate-800">Jam:</strong> {new Date(checkInLog.timestamp).toLocaleTimeString("en-GB", { hour12: false })}</p>
+                          <p><strong className="text-slate-800">Date:</strong> {new Date(checkInLog.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+                          <p><strong className="text-slate-800">Time:</strong> {new Date(checkInLog.timestamp).toLocaleTimeString("en-GB", { hour12: false })}</p>
                           <p><strong className="text-slate-800">IP Address:</strong> {checkInLog.ipAddress || "LAN/Office Network"}</p>
                         </div>
                       </div>
@@ -447,8 +447,8 @@ export default function CalendarPage() {
                           Check-Out Recorded Successfully
                         </div>
                         <div className="text-[11px] text-slate-600 font-medium space-y-1.5 pl-1">
-                          <p><strong className="text-slate-800">Tanggal:</strong> {new Date(checkOutLog.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
-                          <p><strong className="text-slate-800">Jam:</strong> {new Date(checkOutLog.timestamp).toLocaleTimeString("en-GB", { hour12: false })}</p>
+                          <p><strong className="text-slate-800">Date:</strong> {new Date(checkOutLog.timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+                          <p><strong className="text-slate-800">Time:</strong> {new Date(checkOutLog.timestamp).toLocaleTimeString("en-GB", { hour12: false })}</p>
                           <p><strong className="text-slate-800">Total Hours:</strong> {selectedDayTimesheet.totalHours} hrs</p>
                         </div>
                       </div>
@@ -457,7 +457,7 @@ export default function CalendarPage() {
 
                   {!selectedDayTimesheet.logs?.length && (
                     <div className="bg-slate-50 border border-slate-100 p-5 rounded-2xl flex items-center justify-center text-slate-400 font-semibold text-[11px]">
-                      <span>Belum ada aktivitas absensi ditanggal ini.</span>
+                      <span>No attendance activity recorded for this date.</span>
                     </div>
                   )}
                 </div>

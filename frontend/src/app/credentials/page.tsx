@@ -476,18 +476,20 @@ export default function CredentialsPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <button 
-                          onClick={() => {
-                            setPendingRevealCredId(cred.id);
-                            setVerifyPassword("");
-                            setVerifyError("");
-                            setIsVerifyModalOpen(true);
-                          }}
-                          className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                          title="View Secret"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
+                        {cred.password && (
+                          <button 
+                            onClick={() => {
+                              setPendingRevealCredId(cred.id);
+                              setVerifyPassword("");
+                              setVerifyError("");
+                              setIsVerifyModalOpen(true);
+                            }}
+                            className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                            title="View Secret"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        )}
                         <button 
                           onClick={() => {
                             setPendingEditCred(cred);
@@ -612,27 +614,7 @@ export default function CredentialsPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2 col-span-2">
-                    <label>Secret Key / Password</label>
-                    <div className="relative group">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                      <input 
-                        type={showPassInForm ? "text" : "password"} 
-                        required
-                        className="input-field pl-12 pr-10 w-full py-2.5 bg-slate-50/50 font-mono" 
-                        placeholder="e.g. your-secure-secret-key"
-                        value={formData.password}
-                        onChange={e => setFormData({...formData, password: e.target.value})}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassInForm(!showPassInForm)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                      >
-                        {showPassInForm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
+
 
                   {/* Render Dynamic Custom Fields */}
                   {identityTypes?.find((t: any) => t.value === formData.type)?.metadata?.customFields?.map((field: any, idx: number) => {
@@ -892,28 +874,30 @@ export default function CredentialsPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between p-5 bg-indigo-50/30 rounded-2xl border border-indigo-100 group">
-                    <div className="flex-1">
-                      <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Secure Secret / Password</p>
-                      <p className="text-sm font-mono font-bold text-slate-900 break-all pr-4">
-                        {showPassInDetail ? selectedCred.password : "••••••••••••••••••••••••"}
-                      </p>
+                  {selectedCred.password && (
+                    <div className="flex items-center justify-between p-5 bg-indigo-50/30 rounded-2xl border border-indigo-100 group">
+                      <div className="flex-1">
+                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Secure Secret / Password</p>
+                        <p className="text-sm font-mono font-bold text-slate-900 break-all pr-4">
+                          {showPassInDetail ? selectedCred.password : "••••••••••••••••••••••••"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => setShowPassInDetail(!showPassInDetail)}
+                          className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm"
+                        >
+                          {showPassInDetail ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                        <button 
+                          onClick={() => handleCopy(selectedCred.password || "", 'password')}
+                          className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-white rounded-xl transition-all shadow-sm"
+                        >
+                          {copiedField === 'password' ? <Check className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => setShowPassInDetail(!showPassInDetail)}
-                        className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm"
-                      >
-                        {showPassInDetail ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                      <button 
-                        onClick={() => handleCopy(selectedCred.password || "", 'password')}
-                        className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-white rounded-xl transition-all shadow-sm"
-                      >
-                        {copiedField === 'password' ? <Check className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
-                      </button>
-                    </div>
-                  </div>
+                  )}
                 </div>
                 
                 <div className="pt-4">

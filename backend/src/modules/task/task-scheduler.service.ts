@@ -164,8 +164,8 @@ export class TaskSchedulerService {
           );
 
           // Create the Task
-          await this.prisma.$transaction(async (tx) => {
-            const task = await tx.task.create({
+          const task = await this.prisma.$transaction(async (tx) => {
+            const t = await tx.task.create({
               data: {
                 title: replaceDatePlaceholders(template.title),
                 description: template.description || '',
@@ -176,6 +176,10 @@ export class TaskSchedulerService {
                 createdById: template.createdById,
                 templateId: template.id,
                 tags: (template as any).tags || [],
+                assigneeId: template.createdById,
+                assignees: {
+                  connect: [{ id: template.createdById }]
+                }
               },
             });
 
@@ -186,17 +190,32 @@ export class TaskSchedulerService {
             });
 
             try {
-              await this.auditService.log(template.createdById, 'CREATE_TASK', 'Task', task.id, {
-                title: task.title,
+              await this.auditService.log(template.createdById, 'CREATE_TASK', 'Task', t.id, {
+                title: t.title,
                 templateId: template.id,
                 reason: 'AUTOMATED_SCHEDULE',
               });
             } catch (err) {
               // Safe catch
             }
+            return t;
           });
 
           this.logger.log(`Successfully generated task for template ID: ${template.id}`);
+
+          // Trigger immediate notification for the generated task
+          try {
+            const frontendUrl = process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+            const taskUrl = `${frontendUrl}/tasks?taskId=${task.id}`;
+            await this.notificationService.sendToUserQueue(
+              template.createdById,
+              `New Repeating Task Generated`,
+              `Hello,\n\nA new automated task <b>${task.title}</b> has been generated from your daily template <b>${template.templateName}</b>.\n\nLink: ${taskUrl}`,
+            );
+            this.logger.log(`Dispatched generation notification for template ID: ${template.id} to user ${template.createdById}`);
+          } catch (notificationError) {
+            this.logger.error(`Failed to send generation notification for template ${template.id}: ${notificationError.message}`);
+          }
         }
       }
     } catch (error) {

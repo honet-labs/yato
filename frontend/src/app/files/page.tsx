@@ -7,7 +7,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 import api from "@/lib/api";
 import { useLanguage } from "@/context/language-context";
-import { Footer } from "@/components/Footer";
+import { Pagination } from "@/components/Pagination";
 import { 
   FolderOpen, 
   Search, 
@@ -52,12 +52,18 @@ const DRIVER_STYLES: Record<string, { label: string; color: string; bg: string; 
 
 export default function FileManagerPage() {
   const queryClient = useQueryClient();
-  const { showToast } = useLanguage();
+  const { showToast, t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"explorer" | "config" | "metrics">("explorer");
   const [activeCategory, setActiveCategory] = useState<"ALL" | "IMAGE" | "DOCUMENT" | "ARCHIVE" | "OTHER">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [driverFilter, setDriverFilter] = useState("ALL");
   const [selectedFile, setSelectedFile] = useState<any | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategory, driverFilter, searchQuery]);
 
   // Storage configuration state
   const [activeDriver, setActiveDriver] = useState("DATABASE");
@@ -76,14 +82,24 @@ export default function FileManagerPage() {
 
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Fetch all registered files
-  const { data: files, isLoading: isLoadingFiles } = useQuery<any[]>({
-    queryKey: ["storage-files"],
+  // Fetch registered files with server-side pagination and filtering
+  const { data: filesData, isLoading: isLoadingFiles } = useQuery<any>({
+    queryKey: ["storage-files", currentPage, activeCategory, searchQuery, driverFilter],
     queryFn: async () => {
-      const res = await api.get("/storage/files");
+      const res = await api.get("/storage/files", {
+        params: {
+          page: currentPage,
+          limit: itemsPerPage,
+          query: searchQuery || undefined,
+          driver: driverFilter !== "ALL" ? driverFilter : undefined,
+          category: activeCategory !== "ALL" ? activeCategory : undefined,
+        }
+      });
       return res.data;
     }
   });
+
+  const files = filesData?.data || [];
 
   // Fetch active configurations
   const { data: config, isLoading: isLoadingConfig } = useQuery<any>({
@@ -134,10 +150,10 @@ export default function FileManagerPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["storage-files"] });
       setSelectedFile(null);
-      showToast("File berhasil dihapus.", "success");
+      showToast(t("File deleted successfully."), "success");
     },
     onError: (err: any) => {
-      showToast(err.response?.data?.message || "Gagal menghapus file dari server.", "error");
+      showToast(err.response?.data?.message || t("Failed to delete file from server."), "error");
     }
   });
 
@@ -165,7 +181,7 @@ export default function FileManagerPage() {
   };
 
   const handleDeleteFile = (id: string, name: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus file '${name}' secara permanen dari server?`)) {
+    if (confirm(t("Are you sure you want to permanently delete file '{name}' from the server?").replace("{name}", name))) {
       deleteFileMutation.mutate(id);
     }
   };
@@ -179,29 +195,24 @@ export default function FileManagerPage() {
     return "OTHER";
   };
 
-  // Filter files based on category, driver, and search input
-  const filteredFiles = files?.filter(file => {
-    const category = getFileCategory(file.mimeType);
-    const matchesCategory = activeCategory === "ALL" || category === activeCategory;
-    const matchesDriver = driverFilter === "ALL" || file.driver === driverFilter;
-    const matchesSearch = file.filename.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      (file.uploadedBy?.fullName && file.uploadedBy.fullName.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesDriver && matchesSearch;
-  }) || [];
+  // Since pagination and filtering is handled on the server-side:
+  const filteredFiles = files;
+  const paginatedFiles = files;
+  const totalPages = filesData?.totalPages || 1;
 
-  // Categorized counts
-  const allCount = files?.length || 0;
-  const imageCount = files?.filter(f => getFileCategory(f.mimeType) === "IMAGE").length || 0;
-  const docCount = files?.filter(f => getFileCategory(f.mimeType) === "DOCUMENT").length || 0;
-  const archiveCount = files?.filter(f => getFileCategory(f.mimeType) === "ARCHIVE").length || 0;
-  const otherCount = files?.filter(f => getFileCategory(f.mimeType) === "OTHER").length || 0;
+  // Categorized counts (from server-side calculation)
+  const allCount = filesData?.counts?.ALL || 0;
+  const imageCount = filesData?.counts?.IMAGE || 0;
+  const docCount = filesData?.counts?.DOCUMENT || 0;
+  const archiveCount = filesData?.counts?.ARCHIVE || 0;
+  const otherCount = filesData?.counts?.OTHER || 0;
 
-  // Calculate simulated usage metrics
-  const totalBytesUsed = files?.reduce((acc, f) => acc + f.size, 0) || 0;
-  const dbBytes = files?.filter(f => f.driver === "DATABASE").reduce((acc, f) => acc + f.size, 0) || 0;
-  const nasBytes = files?.filter(f => f.driver === "NAS").reduce((acc, f) => acc + f.size, 0) || 0;
-  const s3Bytes = files?.filter(f => f.driver === "S3").reduce((acc, f) => acc + f.size, 0) || 0;
-  const gdriveBytes = files?.filter(f => f.driver === "GOOGLE_DRIVE").reduce((acc, f) => acc + f.size, 0) || 0;
+  // Usage metrics (from server-side calculation)
+  const totalBytesUsed = filesData?.metrics?.totalBytesUsed || 0;
+  const dbBytes = filesData?.metrics?.dbBytes || 0;
+  const nasBytes = filesData?.metrics?.nasBytes || 0;
+  const s3Bytes = filesData?.metrics?.s3Bytes || 0;
+  const gdriveBytes = filesData?.metrics?.gdriveBytes || 0;
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
@@ -330,23 +341,25 @@ export default function FileManagerPage() {
                   {isLoadingFiles ? (
                     <div className="flex flex-col items-center justify-center py-32 gap-3 bg-white border border-slate-100 rounded-2xl">
                       <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Memuat database file...</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t("Loading file database...")}</span>
                     </div>
                   ) : filteredFiles.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-32 gap-3 bg-white border border-slate-100 rounded-2xl text-slate-400">
                       <FolderOpen className="w-10 h-10 text-slate-200" />
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tidak ada file yang ditemukan</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t("No files found")}</span>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {filteredFiles.map((file) => {
+                      {paginatedFiles.map((file) => {
                         const category = getFileCategory(file.mimeType);
                         const driverObj = DRIVER_STYLES[file.driver] || { label: file.driver, color: "text-slate-600 border-slate-200", bg: "bg-slate-50", icon: File };
                         
                         return (
                           <motion.div
-                            layoutId={file.id}
                             key={file.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2 }}
                             onClick={() => setSelectedFile(file)}
                             className="bg-white border border-slate-100 hover:border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 flex flex-col justify-between gap-4 group"
                             whileHover={{ y: -2 }}
@@ -433,6 +446,16 @@ export default function FileManagerPage() {
                           </motion.div>
                         );
                       })}
+                    </div>
+
+                    <div className="mt-6">
+                      <Pagination 
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                        totalItems={filesData?.total || 0}
+                        itemsPerPage={itemsPerPage}
+                      />
                     </div>
                   )}
                 </div>
@@ -920,7 +943,6 @@ export default function FileManagerPage() {
             </div>
           )}
         </AnimatePresence>
-        <Footer />
         </main>
       </div>
     </div>

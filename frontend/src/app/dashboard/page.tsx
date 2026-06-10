@@ -533,8 +533,6 @@ function DashboardContent() {
               </div>
 
             </div>
-            
-            <Footer />
         </main>
       </div>
     </div>

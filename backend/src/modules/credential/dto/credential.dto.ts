@@ -22,10 +22,10 @@ export class CreateCredentialDto {
   @IsOptional()
   username?: string;
 
-  @ApiProperty({ example: 'secret-password' })
+  @ApiProperty({ example: 'secret-password', required: false })
   @IsString()
-  @IsNotEmpty()
-  password: string;
+  @IsOptional()
+  password?: string;
 
   @ApiProperty({ example: 'Access to prod server', required: false })
   @IsString()

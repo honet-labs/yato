@@ -807,8 +807,6 @@ export default function NotesPage() {
               </div>
             </div>
           )}
-
-          <Footer />
         </main>
       </div>
 
