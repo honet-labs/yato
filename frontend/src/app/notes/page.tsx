@@ -372,7 +372,7 @@ export default function NotesPage() {
   const generateCalendarDays = () => {
     const totalDays = getDaysInMonth(currentDate);
     const firstDay = getFirstDayOfMonth(currentDate);
-    const days = [];
+    const days: (Date | null)[] = [];
 
     // Padding for previous month
     for (let i = 0; i < firstDay; i++) {

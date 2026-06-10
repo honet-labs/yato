@@ -284,7 +284,7 @@ export default function PmoCalendarPage() {
 
     // Padding day indices (Sunday = 0, Monday = 1, etc.)
     const startDayOfWeek = startOfMonth.getDay();
-    const cells = [];
+    const cells: { date: Date; isCurrentMonth: boolean }[] = [];
 
     // Pre-padding from previous month
     const prevMonthEnd = new Date(currentYear, currentMonth, 0).getDate();
@@ -562,7 +562,7 @@ export default function PmoCalendarPage() {
   // Timeline (Gantt) configuration
   const timelineDays = useMemo(() => {
     // Generates 30 days starting from start of current visible month
-    const list = [];
+    const list: Date[] = [];
     const base = new Date(currentYear, currentMonth, 1);
     for (let i = 0; i < 30; i++) {
       const d = new Date(base);
