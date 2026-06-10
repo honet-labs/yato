@@ -187,7 +187,7 @@ export default function FileManagerPage() {
   };
 
   // Helper to categorize files
-  const getFileCategory = (mime: string): "IMAGE" | "DOCUMENT" | "ARCHIVE" | "OTHER" => {
+  const getFileCategory = (mime: string) => {
     const m = mime.toLowerCase();
     if (m.startsWith("image/")) return "IMAGE";
     if (m.startsWith("application/pdf") || m.includes("word") || m.includes("excel") || m.includes("sheet") || m.startsWith("text/")) return "DOCUMENT";
