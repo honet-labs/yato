@@ -137,7 +137,7 @@ function ManagementAdminPanelContent() {
   });
 
   // 5. Load/Save customizable leave types from localStorage
-  const [customLeaveTypes, setCustomLeaveTypes] = useState((() => {
+  const [customLeaveTypes, setCustomLeaveTypes] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("yato_custom_leave_types");
       if (saved) return JSON.parse(saved);
@@ -149,7 +149,7 @@ function ManagementAdminPanelContent() {
       "Maternity Leave (Cuti Melahirkan)",
       "Marriage Leave (Cuti Menikah)",
     ];
-  }) as string[]);
+  });
 
   useEffect(() => {
     localStorage.setItem("yato_custom_leave_types", JSON.stringify(customLeaveTypes));

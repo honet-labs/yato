@@ -67,7 +67,7 @@ export default function LeaveHubPage() {
   const canAccessAdmin = isAdmin || userPermissions.includes("VIEW_HRM_ADMIN_PANEL") || userPermissions.includes("MANAGE_HRM") || userPermissions.includes("MANAGE_HRM_LEAVES");
 
   // 2. Load and save customizable leave types (saved in localStorage for tenant flexibility)
-  const [customLeaveTypes, setCustomLeaveTypes] = useState((() => {
+  const [customLeaveTypes, setCustomLeaveTypes] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("yato_custom_leave_types");
       if (saved) return JSON.parse(saved);
@@ -79,7 +79,7 @@ export default function LeaveHubPage() {
       "Maternity Leave (Cuti Melahirkan)",
       "Marriage Leave (Cuti Menikah)",
     ];
-  }) as string[]);
+  });
 
   useEffect(() => {
     localStorage.setItem("yato_custom_leave_types", JSON.stringify(customLeaveTypes));
