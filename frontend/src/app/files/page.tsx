@@ -43,7 +43,7 @@ const formatSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
-const DRIVER_STYLES: Record<string, { label: string; color: string; bg: string; icon: any }> = {
+const DRIVER_STYLES = {
   DATABASE: { label: "Database", color: "text-indigo-600 border-indigo-100", bg: "bg-indigo-50", icon: Database },
   NAS: { label: "NAS (Local)", color: "text-amber-600 border-amber-100", bg: "bg-amber-50", icon: HardDrive },
   S3: { label: "S3 Bucket", color: "text-blue-600 border-blue-100", bg: "bg-blue-50", icon: Cloud },
@@ -53,11 +53,11 @@ const DRIVER_STYLES: Record<string, { label: string; color: string; bg: string; 
 export default function FileManagerPage() {
   const queryClient = useQueryClient();
   const { showToast, t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<"explorer" | "config" | "metrics">("explorer");
-  const [activeCategory, setActiveCategory] = useState<"ALL" | "IMAGE" | "DOCUMENT" | "ARCHIVE" | "OTHER">("ALL");
+  const [activeTab, setActiveTab] = useState<string>("explorer");
+  const [activeCategory, setActiveCategory] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [driverFilter, setDriverFilter] = useState("ALL");
-  const [selectedFile, setSelectedFile] = useState<any | null>(null);
+  const [selectedFile, setSelectedFile] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
@@ -83,7 +83,7 @@ export default function FileManagerPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Fetch registered files with server-side pagination and filtering
-  const { data: filesData, isLoading: isLoadingFiles } = useQuery<any>({
+  const { data: filesData, isLoading: isLoadingFiles } = useQuery({
     queryKey: ["storage-files", currentPage, activeCategory, searchQuery, driverFilter],
     queryFn: async () => {
       const res = await api.get("/storage/files", {
@@ -102,7 +102,7 @@ export default function FileManagerPage() {
   const files = filesData?.data || [];
 
   // Fetch active configurations
-  const { data: config, isLoading: isLoadingConfig } = useQuery<any>({
+  const { data: config, isLoading: isLoadingConfig } = useQuery({
     queryKey: ["storage-config"],
     queryFn: async () => {
       const res = await api.get("/storage/config");
@@ -352,7 +352,7 @@ export default function FileManagerPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                       {paginatedFiles.map((file) => {
                         const category = getFileCategory(file.mimeType);
-                        const driverObj = DRIVER_STYLES[file.driver] || { label: file.driver, color: "text-slate-600 border-slate-200", bg: "bg-slate-50", icon: File };
+                        const driverObj = DRIVER_STYLES[file.driver as keyof typeof DRIVER_STYLES] || { label: file.driver, color: "text-slate-600 border-slate-200", bg: "bg-slate-50", icon: File };
                         
                         return (
                           <motion.div
@@ -890,7 +890,7 @@ export default function FileManagerPage() {
                     <div className="space-y-1">
                       <span className="text-[9px] font-black text-slate-400 uppercase block">Storage Driver</span>
                       <span className="text-[11px] font-bold text-slate-800 block">
-                        {DRIVER_STYLES[selectedFile.driver]?.label || selectedFile.driver} ({selectedFile.driver})
+                        {DRIVER_STYLES[selectedFile.driver as keyof typeof DRIVER_STYLES]?.label || selectedFile.driver} ({selectedFile.driver})
                       </span>
                     </div>
 
