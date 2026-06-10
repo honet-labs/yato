@@ -44,7 +44,7 @@ export default function ServiceRequestsPage() {
     notes: ""
   });
 
-  const { data: requests, isLoading } = useQuery<ServiceRequest[]>({
+  const { data: requests, isLoading } = useQuery({
     queryKey: ["service-requests"],
     queryFn: async () => {
       try {
@@ -54,7 +54,7 @@ export default function ServiceRequestsPage() {
     },
   });
 
-  const { data: serviceTypes } = useQuery<any[]>({
+  const { data: serviceTypes } = useQuery({
     queryKey: ["catalog", "SERVICE_TYPE"],
     queryFn: async () => {
       const response = await api.get("/catalog?category=SERVICE_TYPE");

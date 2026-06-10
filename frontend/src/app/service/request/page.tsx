@@ -29,7 +29,7 @@ export default function NewServiceRequestPage() {
     notes: ""
   });
 
-  const { data: serviceTypes } = useQuery<any[]>({
+  const { data: serviceTypes } = useQuery({
     queryKey: ["catalog", "SERVICE_TYPE"],
     queryFn: async () => {
       const response = await api.get("/catalog?category=SERVICE_TYPE");

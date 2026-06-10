@@ -101,7 +101,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
     },
   });
 
-  const { data: notifications, isLoading: isLoadingNotifications } = useQuery<any>({
+  const { data: notifications, isLoading: isLoadingNotifications } = useQuery({
     queryKey: ["notifications"],
     queryFn: async () => {
       const response = await api.get("/notifications");
@@ -120,7 +120,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
-  const { data: sidebarTasks } = useQuery<any[]>({
+  const { data: sidebarTasks } = useQuery({
     queryKey: ["tasks"],
     queryFn: async () => {
       try {
