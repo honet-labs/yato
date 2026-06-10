@@ -37,7 +37,7 @@ export function IntegrationModal({ isOpen, onClose, editingIntegration }: Integr
   });
 
   // Find currently selected plugin template
-  const activePlugin = plugins?.find(p => p.connectorKey === selectedPluginKey);
+  const activePlugin = plugins?.find((p: any) => p.connectorKey === selectedPluginKey);
 
   useEffect(() => {
     if (editingIntegration) {
