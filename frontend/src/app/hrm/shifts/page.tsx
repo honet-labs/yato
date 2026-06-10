@@ -132,7 +132,7 @@ export default function ShiftTradesPage() {
   };
 
   const handleActionSwap = (swapId: string, action: "ACCEPT" | "REJECT") => {
-    let notes = undefined;
+    let notes: string | undefined = undefined;
     if (action === "REJECT") {
       const reason = prompt("Enter required reason for rejecting the trade offer:");
       if (reason === null) return;
