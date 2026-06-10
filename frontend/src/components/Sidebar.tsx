@@ -347,10 +347,10 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                   initial={{ opacity: 0, x: 20, scale: 0.95 }}
                   animate={{ opacity: 1, x: 0, scale: 1 }}
                   exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                  className="absolute bottom-14 left-0 w-[350px] bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden z-[100]"
+                  className="absolute bottom-14 left-0 w-[290px] sm:w-[420px] bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden z-[100]"
                 >
                     <div className="p-5 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
-                      <h3 className="text-[13px] font-extrabold text-slate-900 uppercase tracking-widest">{t("Notifications")}</h3>
+                      <h3 className="text-[14px] font-extrabold text-slate-900 uppercase tracking-widest">{t("Notifications")}</h3>
                     {unreadCount > 0 && (
                       <button 
                         onClick={() => markAllReadMutation.mutate()}
@@ -360,7 +360,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                       </button>
                     )}
                   </div>
-                  <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
+                  <div className="max-h-[480px] overflow-y-auto custom-scrollbar">
                     {isLoadingNotifications ? (
                       <div className="p-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-slate-200" /></div>
                     ) : displayNotifications?.length === 0 ? (
@@ -402,10 +402,10 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                               </div>
                               <div className="flex-1">
                                 <div className="flex items-start justify-between gap-3 mb-1.5">
-                                  <p className="text-[13px] font-bold text-slate-900 leading-tight">{n.title}</p>
-                                  <span className="text-[10px] font-bold text-slate-550 uppercase tracking-wider whitespace-nowrap">{formatNotificationTime(n.createdAt)}</span>
+                                  <p className="text-[14px] font-bold text-slate-900 leading-tight">{n.title}</p>
+                                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">{formatNotificationTime(n.createdAt)}</span>
                                 </div>
-                                <p className="text-[12px] text-slate-650 leading-normal" dangerouslySetInnerHTML={{ __html: cleanMsg }} />
+                                <p className="text-[13px] text-slate-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: cleanMsg }} />
                               </div>
                             </div>
                           </div>
