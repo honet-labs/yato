@@ -200,7 +200,7 @@ export function IntegrationModal({ isOpen, onClose, editingIntegration }: Integr
                       disabled={!!editingIntegration} // Prevent key modifications on edit
                     >
                       <option value="">-- Choose Plugin Connector --</option>
-                      {plugins?.map((plugin) => (
+                      {plugins?.map((plugin: any) => (
                         <option key={plugin.connectorKey} value={plugin.connectorKey}>
                           {plugin.name} ({plugin.type})
                         </option>

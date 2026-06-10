@@ -237,7 +237,7 @@ export default function IntegrationsPage() {
               </div>
             ) : (
               integrations?.map((integration) => {
-                const pluginMeta = plugins?.find(p => p.connectorKey === integration.connectorKey);
+                const pluginMeta = plugins?.find((p: any) => p.connectorKey === integration.connectorKey);
                 return (
                   <motion.div 
                     key={integration.id}
@@ -327,7 +327,7 @@ export default function IntegrationsPage() {
                 <p className="text-[11px] font-bold uppercase tracking-widest mt-1 text-slate-400">Click "Upload Plugin Manifest" to install a connector driver</p>
               </div>
             ) : (
-              plugins?.map((plugin) => (
+              plugins?.map((plugin: any) => (
                 <motion.div 
                   key={plugin.connectorKey}
                   initial={{ opacity: 0, y: 10 }}
