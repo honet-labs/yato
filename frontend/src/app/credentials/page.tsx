@@ -171,13 +171,28 @@ export default function CredentialsPage() {
       username: cred.username || "",
       address: cred.address || "",
       description: cred.description || "",
-      password: "****************", // Masked on edit unless changed
+      password: cred.password ? "****************" : "", // Masked on edit unless changed
       type: cred.type,
       tags: cred.tags,
       metadata: cred.metadata || {}
     });
     setIsEditMode(true);
     setIsModalOpen(true);
+  };
+
+  const handleView = (cred: Credential) => {
+    if (cred.password) {
+      setPendingRevealCredId(cred.id);
+      setVerifyPassword("");
+      setVerifyError("");
+      setVerifyPurpose("REVEAL");
+      setIsVerifyModalOpen(true);
+    } else {
+      setSelectedCred(cred);
+      setShowPassInDetail(false);
+      setSecretVerified(false);
+      setIsDetailOpen(true);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -476,20 +491,13 @@ export default function CredentialsPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {cred.password && (
-                          <button 
-                            onClick={() => {
-                              setPendingRevealCredId(cred.id);
-                              setVerifyPassword("");
-                              setVerifyError("");
-                              setIsVerifyModalOpen(true);
-                            }}
-                            className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                            title="View Secret"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button 
+                          onClick={() => handleView(cred)}
+                          className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                          title={cred.password ? "View Secret" : "View Details"}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
                         <button 
                           onClick={() => {
                             setPendingEditCred(cred);
