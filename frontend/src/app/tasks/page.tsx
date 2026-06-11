@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
 import api from "@/lib/api";
+import { useSearchParams } from "next/navigation";
 import { 
   Plus, 
   Search, 
@@ -56,6 +57,8 @@ const PRIORITIES = [
 ];
 
 export default function TasksPage() {
+  const searchParams = useSearchParams();
+  const taskIdParam = searchParams.get("taskId");
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("board" as "board" | "list");
   const [searchQuery, setSearchQuery] = useState("");
@@ -321,15 +324,13 @@ export default function TasksPage() {
 
   // Deep-Link query param parser effect
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const taskId = params.get("taskId");
-    if (taskId && tasks) {
-      const matchingTask = tasks.find((t: any) => t.id === taskId);
+    if (taskIdParam && tasks) {
+      const matchingTask = tasks.find((t: any) => t.id === taskIdParam);
       if (matchingTask) {
         setSelectedTask(matchingTask);
       }
     }
-  }, [tasks]);
+  }, [taskIdParam, tasks]);
 
   // Keep detail forms updated when taskDetail loads
   useEffect(() => {
