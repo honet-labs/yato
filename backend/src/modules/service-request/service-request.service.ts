@@ -46,7 +46,10 @@ export class ServiceRequestService {
       },
     });
 
-    const frontendUrl = process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+    const platformUrlSetting = await this.prisma.systemSetting.findUnique({
+      where: { key: 'PLATFORM_URL' }
+    });
+    const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
     const ticketUrl = `${frontendUrl}/tickets?id=${request.id}&type=SERVICE`;
 
     // Notify requester
@@ -119,7 +122,10 @@ export class ServiceRequestService {
     try {
       const ticket = await this.prisma.serviceRequest.findUnique({ where: { id: ticketId } });
       if (ticket) {
-        const frontendUrl = process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+        const platformUrlSetting = await this.prisma.systemSetting.findUnique({
+          where: { key: 'PLATFORM_URL' }
+        });
+        const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
         const ticketUrl = `${frontendUrl}/tickets?id=${ticket.id}&type=SERVICE`;
         await this.notificationService.sendToUserQueue(
           userId,
@@ -194,7 +200,10 @@ export class ServiceRequestService {
     });
 
     // Notify requester
-    const frontendUrl = process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+    const platformUrlSetting = await this.prisma.systemSetting.findUnique({
+      where: { key: 'PLATFORM_URL' }
+    });
+    const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
     const ticketUrl = `${frontendUrl}/tickets?id=${id}&type=SERVICE`;
     try {
       await this.notificationService.sendToUserQueue(
@@ -235,7 +244,10 @@ export class ServiceRequestService {
     });
 
     // Notify requester
-    const frontendUrl = process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+    const platformUrlSetting = await this.prisma.systemSetting.findUnique({
+      where: { key: 'PLATFORM_URL' }
+    });
+    const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
     const ticketUrl = `${frontendUrl}/tickets?id=${id}&type=SERVICE`;
     try {
       await this.notificationService.sendToUserQueue(

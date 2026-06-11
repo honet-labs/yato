@@ -20,6 +20,13 @@ export class HrmSchedulerService {
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
       const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
 
+      // Load reminder config limit
+      const reminderConfigSetting = await this.prisma.systemSetting.findUnique({
+        where: { key: 'REMINDER_CONFIG' }
+      });
+      const reminderConfig = (reminderConfigSetting?.value as any) || { hrmMaxCount: 1 };
+      const hrmMaxCount = reminderConfig.hrmMaxCount ?? 1;
+
       // Get all work shifts for today
       const shiftsToday = await this.prisma.workShift.findMany({
         where: {
@@ -64,7 +71,7 @@ export class HrmSchedulerService {
 
         if (now >= reminderWindowStart && now < shiftStart && !hasClockedIn) {
           // Check if already sent today to avoid spamming
-          const alreadySent = await this.prisma.notification.findFirst({
+          const sentCount = await this.prisma.notification.count({
             where: {
               userId: user.id,
               type: 'HRM_REMINDER_IN',
@@ -72,10 +79,10 @@ export class HrmSchedulerService {
             },
           });
 
-          if (!alreadySent) {
+          if (sentCount < hrmMaxCount) {
             const title = '⏰ Pengingat Masuk Shift (Clock-in)';
             const message = `Halo ${user.fullName}, jangan lupa untuk melakukan Clock-in hari ini ya! Shift Anda <b>${category.name}</b> akan dimulai pada pukul <b>${category.startTime}</b>. Silakan masuk ke menu Attendance Control untuk Clock-in.`;
-            this.logger.log(`Sending Clock-in reminder to user ${user.fullName} (${user.id})`);
+            this.logger.log(`Sending Clock-in reminder to user ${user.fullName} (${user.id}) (reminder ${sentCount + 1}/${hrmMaxCount})`);
             
             // Log as specific notification type
             await this.prisma.notification.create({
@@ -100,7 +107,7 @@ export class HrmSchedulerService {
 
         if (now >= reminderOutWindowStart && isCurrentlyCheckedIn) {
           // Check if already sent today
-          const alreadySent = await this.prisma.notification.findFirst({
+          const sentCount = await this.prisma.notification.count({
             where: {
               userId: user.id,
               type: 'HRM_REMINDER_OUT',
@@ -108,10 +115,10 @@ export class HrmSchedulerService {
             },
           });
 
-          if (!alreadySent) {
+          if (sentCount < hrmMaxCount) {
             const title = '⏰ Pengingat Pulang Shift (Clock-out)';
             const message = `Halo ${user.fullName}, waktu shift Anda <b>${category.name}</b> telah selesai pada pukul <b>${category.endTime}</b>. Jangan lupa untuk melakukan Clock-out ya untuk merekam jam kerja Anda secara akurat hari ini!`;
-            this.logger.log(`Sending Clock-out reminder to user ${user.fullName} (${user.id})`);
+            this.logger.log(`Sending Clock-out reminder to user ${user.fullName} (${user.id}) (reminder ${sentCount + 1}/${hrmMaxCount})`);
 
             await this.prisma.notification.create({
               data: {

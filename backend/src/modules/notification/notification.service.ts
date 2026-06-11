@@ -282,7 +282,7 @@ export class NotificationService {
     await this.create(userId, title, message, extractedLink ? 'TICKET_UPDATE' : 'INFO', extractedLink);
   }
 
-  async sendToUserQueue(userId: string, title: string, message: string, link?: string) {
+  async sendToUserQueue(userId: string, title: string, message: string, link?: string, type?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       this.logger.error(`[sendToUserQueue] Failed to send notification: User with ID ${userId} not found.`);
@@ -354,7 +354,7 @@ export class NotificationService {
     }
 
     // 4. Always create internal notification immediately
-    await this.create(userId, title, message, finalLink ? 'TICKET_UPDATE' : 'INFO', finalLink);
+    await this.create(userId, title, message, type || (finalLink ? 'TICKET_UPDATE' : 'INFO'), finalLink);
   }
 
 

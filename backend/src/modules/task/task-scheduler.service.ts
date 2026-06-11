@@ -205,7 +205,10 @@ export class TaskSchedulerService {
 
           // Trigger immediate notification for the generated task
           try {
-            const frontendUrl = process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+            const platformUrlSetting = await this.prisma.systemSetting.findUnique({
+              where: { key: 'PLATFORM_URL' }
+            });
+            const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
             const taskUrl = `${frontendUrl}/tasks?taskId=${task.id}`;
             await this.notificationService.sendToUserQueue(
               template.createdById,
@@ -251,7 +254,17 @@ export class TaskSchedulerService {
 
       this.logger.log(`Found ${tasks.length} active tasks (NOT_STARTED/IN_PROGRESS) to process.`);
 
-      const frontendUrl = process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+      const platformUrlSetting = await this.prisma.systemSetting.findUnique({
+        where: { key: 'PLATFORM_URL' }
+      });
+      const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+
+      // Load reminder config limit
+      const reminderConfigSetting = await this.prisma.systemSetting.findUnique({
+        where: { key: 'REMINDER_CONFIG' }
+      });
+      const reminderConfig = (reminderConfigSetting?.value as any) || { taskMaxCount: 3 };
+      const maxCount = reminderConfig.taskMaxCount ?? 3;
 
       for (const task of tasks) {
         if (!task.assignees || task.assignees.length === 0) {
@@ -265,13 +278,31 @@ export class TaskSchedulerService {
           : 'Please start working on it or update its status in the task tracker.';
 
         for (const assignee of task.assignees) {
-          this.logger.log(`Sending task reminder for task "${task.title}" to assignee "${assignee.fullName || assignee.username}"`);
+          // Check how many reminders have already been sent for this task to this assignee
+          const sentCount = await this.prisma.notification.count({
+            where: {
+              userId: assignee.id,
+              type: 'TASK_REMINDER',
+              link: {
+                contains: task.id
+              }
+            }
+          });
+
+          if (sentCount >= maxCount) {
+            this.logger.log(`Reminder limit (${maxCount}) reached for task "${task.title}" (sent: ${sentCount}) to assignee "${assignee.fullName || assignee.username}". Skipping.`);
+            continue;
+          }
+
+          this.logger.log(`Sending task reminder for task "${task.title}" to assignee "${assignee.fullName || assignee.username}" (reminder ${sentCount + 1}/${maxCount})`);
           
           try {
             await this.notificationService.sendToUserQueue(
               assignee.id,
               `Task Reminder: ${task.title}`,
               `Hello ${assignee.fullName || assignee.username},\n\nThis is a reminder that the task <b>${task.title}</b> is currently <b>${statusLabel}</b>.\n\n${actionLabel}\n\nLink: ${taskUrl}`,
+              taskUrl,
+              'TASK_REMINDER'
             );
           } catch (err) {
             this.logger.error(`Failed to send reminder for task ${task.id} to user ${assignee.id}: ${err.message}`);

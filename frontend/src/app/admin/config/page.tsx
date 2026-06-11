@@ -52,6 +52,11 @@ export default function SystemConfigPage() {
   const [officeIpWhitelist, setOfficeIpWhitelist] = useState("127.0.0.1, 192.168.201.18" as string);
   const [detectedIp, setDetectedIp] = useState("" as string);
   const [sessionTimeout, setSessionTimeout] = useState("15" as string);
+  const [reminderConfig, setReminderConfig] = useState({
+    taskMaxCount: 3,
+    ticketMaxCount: 5,
+    hrmMaxCount: 1
+  });
 
 
   const [catalogs, setCatalogs] = useState([] as any[]);
@@ -287,6 +292,13 @@ export default function SystemConfigPage() {
       if (settings.WHATSAPP_CONFIG) setWhatsappConfig(settings.WHATSAPP_CONFIG);
       if (settings.TELEGRAM_CONFIG) setTelegramConfig(settings.TELEGRAM_CONFIG);
       if (settings.PLATFORM_URL) setPlatformUrl(settings.PLATFORM_URL);
+      if (settings.REMINDER_CONFIG) {
+        setReminderConfig({
+          taskMaxCount: settings.REMINDER_CONFIG.taskMaxCount ?? 3,
+          ticketMaxCount: settings.REMINDER_CONFIG.ticketMaxCount ?? 5,
+          hrmMaxCount: settings.REMINDER_CONFIG.hrmMaxCount ?? 1
+        });
+      }
       if (settings.DB_CONFIG) setDbConfig(settings.DB_CONFIG);
       if (settings.AUTOMATED_PROVISIONING_ENABLED) setAutoProvisioning(settings.AUTOMATED_PROVISIONING_ENABLED.enabled);
       if (settings.TIMEZONE_CONFIG) setTimezoneConfig(settings.TIMEZONE_CONFIG);
@@ -388,6 +400,7 @@ export default function SystemConfigPage() {
         WHATSAPP_CONFIG: whatsappConfig,
         TELEGRAM_CONFIG: telegramConfig,
         PLATFORM_URL: platformUrl,
+        REMINDER_CONFIG: reminderConfig,
         AUTOMATED_PROVISIONING_ENABLED: { enabled: autoProvisioning },
         TIMEZONE_CONFIG: timezoneConfig,
         BRANDING_CONFIG: brandingConfig,
@@ -1296,8 +1309,58 @@ export default function SystemConfigPage() {
                 </div>
               </motion.div>
             </div>
-          )}
-        </AnimatePresence>
+           )}
+         </AnimatePresence>
+        {/* Granular Reminder Settings */}
+        <section className="glass-card ring-1 ring-slate-200/60 shadow-xl shadow-slate-200/10 mt-8">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Granular Reminder Settings</h2>
+              <p className="text-[10px] text-slate-400 font-medium">Configure maximum notification reminder attempts per module to prevent user spam.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-bold">Task Tracker Reminders Limit</label>
+              <input 
+                type="number" 
+                min="1"
+                max="50"
+                className="input-field w-full font-semibold text-slate-800" 
+                value={reminderConfig.taskMaxCount}
+                onChange={e => setReminderConfig({...reminderConfig, taskMaxCount: parseInt(e.target.value) || 1})}
+              />
+              <p className="text-[9px] text-slate-400">Maximum daily/bootstrap reminder alerts sent to assignees for a single task.</p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-bold">Support Ticket Update Limit</label>
+              <input 
+                type="number" 
+                min="1"
+                max="50"
+                className="input-field w-full font-semibold text-slate-800" 
+                value={reminderConfig.ticketMaxCount}
+                onChange={e => setReminderConfig({...reminderConfig, ticketMaxCount: parseInt(e.target.value) || 1})}
+              />
+              <p className="text-[9px] text-slate-400">Maximum notification activities sent to followers/owners per ticket.</p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-bold">HRM Attendance Reminders Limit</label>
+              <input 
+                type="number" 
+                min="1"
+                max="50"
+                className="input-field w-full font-semibold text-slate-800" 
+                value={reminderConfig.hrmMaxCount}
+                onChange={e => setReminderConfig({...reminderConfig, hrmMaxCount: parseInt(e.target.value) || 1})}
+              />
+              <p className="text-[9px] text-slate-400">Maximum daily clock-in/clock-out reminders sent to an employee.</p>
+            </div>
+          </div>
+        </section>
           </>
         )}
 

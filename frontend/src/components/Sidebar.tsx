@@ -156,7 +156,9 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
 
   const userRoles = profile?.roles?.map((ur: any) => ur.role.name) || [];
   const userPermissions = profile?.roles?.flatMap((ur: any) => ur.role.permissions || []) || [];
-  const isAdmin = userRoles.includes("ADMIN");
+  const isAdmin = userRoles.some((role: string) => 
+    ["ADMIN", "SYSTEM ADMIN", "SYSTEM_ADMIN", "SUPERADMIN"].includes(role.toUpperCase())
+  );
 
   const hasPermission = (permission?: string) => {
     if (!permission) return true;

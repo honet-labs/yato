@@ -371,7 +371,10 @@ export class TaskService {
       // Safe catch
     }
 
-    const frontendUrl = process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+    const platformUrlSetting = await this.prisma.systemSetting.findUnique({
+      where: { key: 'PLATFORM_URL' }
+    });
+    const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
     const taskUrl = `${frontendUrl}/tasks?taskId=${task.id}`;
 
     // Notify assignees
@@ -530,7 +533,10 @@ export class TaskService {
       // Safe catch
     }
 
-    const frontendUrl = process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+    const platformUrlSetting = await this.prisma.systemSetting.findUnique({
+      where: { key: 'PLATFORM_URL' }
+    });
+    const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
     const taskUrl = `${frontendUrl}/tasks?taskId=${updatedTask.id}`;
 
     // Notify any new assignees
@@ -659,7 +665,10 @@ export class TaskService {
       });
 
       if (task) {
-        const frontendUrl = process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+        const platformUrlSetting = await this.prisma.systemSetting.findUnique({
+          where: { key: 'PLATFORM_URL' }
+        });
+        const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
         const taskUrl = `${frontendUrl}/tasks?taskId=${task.id}`;
 
         if (matches.length > 0) {
