@@ -300,7 +300,13 @@ export default function SystemConfigPage() {
         });
       }
       if (settings.DB_CONFIG) setDbConfig(settings.DB_CONFIG);
-      if (settings.AUTOMATED_PROVISIONING_ENABLED) setAutoProvisioning(settings.AUTOMATED_PROVISIONING_ENABLED.enabled);
+      if (settings.AUTOMATED_PROVISIONING_ENABLED) {
+        setAutoProvisioning(
+          typeof settings.AUTOMATED_PROVISIONING_ENABLED === 'object' && settings.AUTOMATED_PROVISIONING_ENABLED !== null
+            ? !!settings.AUTOMATED_PROVISIONING_ENABLED.enabled
+            : settings.AUTOMATED_PROVISIONING_ENABLED === 'true' || settings.AUTOMATED_PROVISIONING_ENABLED === true
+        );
+      }
       if (settings.TIMEZONE_CONFIG) setTimezoneConfig(settings.TIMEZONE_CONFIG);
       if (settings.SERVER_TIMEZONE) setServerTimezone(settings.SERVER_TIMEZONE);
       if (settings.office_ip_enabled !== undefined) {

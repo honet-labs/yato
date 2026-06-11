@@ -154,8 +154,8 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
     router.push("/login");
   };
 
-  const userRoles = profile?.roles?.map((ur: any) => ur.role.name) || [];
-  const userPermissions = profile?.roles?.flatMap((ur: any) => ur.role.permissions || []) || [];
+  const userRoles = profile?.roles?.map((ur: any) => ur.role?.name).filter(Boolean) || [];
+  const userPermissions = profile?.roles?.flatMap((ur: any) => ur.role?.permissions || []) || [];
   const isAdmin = userRoles.some((role: string) => 
     ["ADMIN", "SYSTEM ADMIN", "SYSTEM_ADMIN", "SUPERADMIN"].includes(role.toUpperCase())
   );
