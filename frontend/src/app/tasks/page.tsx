@@ -1,7 +1,7 @@
 "use client";
 import { PageHeader } from "@/components/PageHeader";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
@@ -56,7 +56,7 @@ const PRIORITIES = [
   { id: "HIGH", label: "High", color: "bg-rose-50 text-rose-600 border-rose-100" }
 ];
 
-export default function TasksPage() {
+function TasksPageContent() {
   const searchParams = useSearchParams();
   const taskIdParam = searchParams.get("taskId");
   const queryClient = useQueryClient();
@@ -2597,5 +2597,20 @@ export default function TasksPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function TasksPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center bg-slate-50 font-sans">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading task workspace...</p>
+        </div>
+      </div>
+    }>
+      <TasksPageContent />
+    </Suspense>
   );
 }
