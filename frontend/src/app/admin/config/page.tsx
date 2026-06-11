@@ -563,58 +563,56 @@ export default function SystemConfigPage() {
         </header>
 
         {/* Tab Navigation */}
-        <div className="w-full mb-8">
-          <div className="flex flex-wrap items-center gap-2 bg-white/50 p-1.5 rounded-2xl border border-slate-200/60 shadow-sm w-fit backdrop-blur-sm">
-            <button 
-              onClick={() => setActiveTab('notifications')}
-              className={cn("px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap", activeTab === 'notifications' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-900 hover:bg-white")}
-            >
-              <Bell className="w-4 h-4" />
-              Notifications
-            </button>
-            <button 
-              onClick={() => setActiveTab('identity')}
-              className={cn("px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap", activeTab === 'identity' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-900 hover:bg-white")}
-            >
-              <Globe className="w-4 h-4" />
-              Platform Identity
-            </button>
-            <button 
-              onClick={() => setActiveTab('database')}
-              className={cn("px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap", activeTab === 'database' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-900 hover:bg-white")}
-            >
-              <Database className="w-4 h-4" />
-              Primary Database
-            </button>
-            <button 
-              onClick={() => setActiveTab('catalogs')}
-              className={cn("px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap", activeTab === 'catalogs' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-900 hover:bg-white")}
-            >
-              <List className="w-4 h-4" />
-              Resource Catalogs
-            </button>
-            <button 
-              onClick={() => setActiveTab('api-portal')}
-              className={cn("px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap", activeTab === 'api-portal' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-900 hover:bg-white")}
-            >
-              <Key className="w-4 h-4" />
-              API Access & Devs
-            </button>
-            <button 
-              onClick={() => setActiveTab('tuning')}
-              className={cn("px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap", activeTab === 'tuning' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-900 hover:bg-white")}
-            >
-              <Cpu className="w-4 h-4" />
-              Performance & Tuning
-            </button>
-            <button 
-              onClick={() => setActiveTab('hrm-security')}
-              className={cn("px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap", activeTab === 'hrm-security' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-900 hover:bg-white")}
-            >
-              <ShieldCheck className="w-4 h-4" />
-              HRM & Security Whitelisting
-            </button>
-          </div>
+        <div className="flex flex-wrap items-center gap-2 mb-8 bg-white/50 p-1.5 rounded-2xl border border-slate-200/60 shadow-sm w-fit backdrop-blur-sm">
+          <button 
+            onClick={() => setActiveTab('notifications')}
+            className={cn("px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2", activeTab === 'notifications' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-900 hover:bg-white")}
+          >
+            <Bell className="w-4 h-4" />
+            Notifications
+          </button>
+          <button 
+            onClick={() => setActiveTab('identity')}
+            className={cn("px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2", activeTab === 'identity' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-900 hover:bg-white")}
+          >
+            <Globe className="w-4 h-4" />
+            Platform Identity
+          </button>
+          <button 
+            onClick={() => setActiveTab('database')}
+            className={cn("px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2", activeTab === 'database' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-900 hover:bg-white")}
+          >
+            <Database className="w-4 h-4" />
+            Primary Database
+          </button>
+          <button 
+            onClick={() => setActiveTab('catalogs')}
+            className={cn("px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2", activeTab === 'catalogs' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-900 hover:bg-white")}
+          >
+            <List className="w-4 h-4" />
+            Resource Catalogs
+          </button>
+          <button 
+            onClick={() => setActiveTab('api-portal')}
+            className={cn("px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2", activeTab === 'api-portal' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-900 hover:bg-white")}
+          >
+            <Key className="w-4 h-4" />
+            API Access & Devs
+          </button>
+          <button 
+            onClick={() => setActiveTab('tuning')}
+            className={cn("px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2", activeTab === 'tuning' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-900 hover:bg-white")}
+          >
+            <Cpu className="w-4 h-4" />
+            Performance & Tuning
+          </button>
+          <button 
+            onClick={() => setActiveTab('hrm-security')}
+            className={cn("px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2", activeTab === 'hrm-security' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-900 hover:bg-white")}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            HRM & Security Whitelisting
+          </button>
         </div>
 
         {activeTab === 'notifications' && (
