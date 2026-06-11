@@ -563,8 +563,8 @@ export default function SystemConfigPage() {
         </header>
 
         {/* Tab Navigation */}
-        <div className="w-full overflow-x-auto no-scrollbar mb-8 -mx-6 px-6 lg:mx-0 lg:px-0">
-          <div className="flex items-center gap-2 bg-white/50 p-1.5 rounded-2xl border border-slate-200/60 shadow-sm w-max backdrop-blur-sm">
+        <div className="w-full mb-8">
+          <div className="flex flex-wrap items-center gap-2 bg-white/50 p-1.5 rounded-2xl border border-slate-200/60 shadow-sm w-fit backdrop-blur-sm">
             <button 
               onClick={() => setActiveTab('notifications')}
               className={cn("px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap", activeTab === 'notifications' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:text-slate-900 hover:bg-white")}
