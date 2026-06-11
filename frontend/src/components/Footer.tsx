@@ -19,7 +19,7 @@ export function Footer() {
   if (!mounted) return null;
 
   const footerContent = (
-    <footer className="w-full py-4 text-center text-[10px] text-slate-400 font-extrabold tracking-wide border-t border-slate-100 flex items-center justify-center shrink-0 mt-auto">
+    <footer className="w-full py-4 text-center text-[10px] text-slate-400 font-extrabold tracking-wide border-t border-slate-100 flex items-center justify-center shrink-0 mt-auto order-last">
       {appFooter || "© 2026 YATO. All rights reserved."}
     </footer>
   );
