@@ -1,7 +1,7 @@
 "use client";
 import { PageHeader } from "@/components/PageHeader";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { Sidebar } from "@/components/Sidebar";
@@ -77,6 +77,17 @@ export default function AdminUsersPage() {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailMessage, setEmailMessage] = useState("");
   const [isBroadcasting, setIsBroadcasting] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("broadcast") === "true") {
+        setIsBroadcastOpen(true);
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, "", newUrl);
+      }
+    }
+  }, []);
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["admin-users"],
