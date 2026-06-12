@@ -53,4 +53,12 @@ export class NotificationController {
   testTelegram(@Body() config: any) {
     return this.notificationService.sendTelegram(config.chatId, '<b>YATO Test Telegram</b>\n\nThis is a test message from your infrastructure portal.', config);
   }
+
+  @Post('broadcast')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Broadcast message to selected/all users' })
+  broadcast(@Body() payload: any) {
+    return this.notificationService.broadcast(payload);
+  }
 }

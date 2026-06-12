@@ -68,6 +68,16 @@ export default function AdminUsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 30;
 
+  // Broadcast Message states
+  const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
+  const [broadcastTarget, setBroadcastTarget] = useState("all" as "all" | "selected");
+  const [selectedUserIds, setSelectedUserIds] = useState([] as string[]);
+  const [broadcastChannels, setBroadcastChannels] = useState([] as string[]);
+  const [chatMessage, setChatMessage] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
+
   const { data: users, isLoading } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
@@ -211,6 +221,15 @@ export default function AdminUsersPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
+            <button 
+              onClick={() => {
+                setIsBroadcastOpen(true);
+              }}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2.5 text-sm font-semibold shadow-lg shadow-indigo-600/20 flex items-center gap-2.5 transition-all"
+            >
+              <Send className="w-4 h-4" />
+              <span>Broadcast</span>
+            </button>
             <button 
               onClick={() => {
                 setEditingUser(null);
@@ -575,6 +594,306 @@ export default function AdminUsersPage() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isBroadcastOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]"
+            >
+              <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50 flex-shrink-0">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-xl shadow-indigo-600/20">
+                    <Send className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 tracking-tight">Broadcast Message</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Send a message to multiple users simultaneously</p>
+                  </div>
+                </div>
+                <button onClick={() => setIsBroadcastOpen(false)} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm">
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              <div className="p-8 overflow-y-auto space-y-6 flex-1 custom-scrollbar">
+                {/* Channel Selector */}
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Select Channels</label>
+                  <div className="grid grid-cols-3 gap-4">
+                    {/* WhatsApp */}
+                    <label className={cn(
+                      "flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-100/50 hover:border-slate-200 transition-all",
+                      broadcastChannels.includes("WHATSAPP") && "border-emerald-200 bg-emerald-50/10 hover:bg-emerald-50/20"
+                    )}>
+                      <input 
+                        type="checkbox"
+                        className="w-4 h-4 text-emerald-600 border-slate-200 rounded focus:ring-emerald-500 cursor-pointer"
+                        checked={broadcastChannels.includes("WHATSAPP")}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setBroadcastChannels([...broadcastChannels, "WHATSAPP"]);
+                          } else {
+                            setBroadcastChannels(broadcastChannels.filter(c => c !== "WHATSAPP"));
+                          }
+                        }}
+                      />
+                      <div>
+                        <p className="text-[11px] font-bold text-slate-900 uppercase tracking-wide">WhatsApp</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-tighter">Via Bot Number</p>
+                      </div>
+                    </label>
+
+                    {/* Telegram */}
+                    <label className={cn(
+                      "flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-100/50 hover:border-slate-200 transition-all",
+                      broadcastChannels.includes("TELEGRAM") && "border-blue-200 bg-blue-50/10 hover:bg-blue-50/20"
+                    )}>
+                      <input 
+                        type="checkbox"
+                        className="w-4 h-4 text-blue-600 border-slate-200 rounded focus:ring-blue-500 cursor-pointer"
+                        checked={broadcastChannels.includes("TELEGRAM")}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setBroadcastChannels([...broadcastChannels, "TELEGRAM"]);
+                          } else {
+                            setBroadcastChannels(broadcastChannels.filter(c => c !== "TELEGRAM"));
+                          }
+                        }}
+                      />
+                      <div>
+                        <p className="text-[11px] font-bold text-slate-900 uppercase tracking-wide">Telegram</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-tighter">Via Bot Account</p>
+                      </div>
+                    </label>
+
+                    {/* Email */}
+                    <label className={cn(
+                      "flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-100/50 hover:border-slate-200 transition-all",
+                      broadcastChannels.includes("EMAIL") && "border-indigo-200 bg-indigo-50/10 hover:bg-indigo-50/20"
+                    )}>
+                      <input 
+                        type="checkbox"
+                        className="w-4 h-4 text-indigo-600 border-slate-200 rounded focus:ring-indigo-500 cursor-pointer"
+                        checked={broadcastChannels.includes("EMAIL")}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setBroadcastChannels([...broadcastChannels, "EMAIL"]);
+                          } else {
+                            setBroadcastChannels(broadcastChannels.filter(c => c !== "EMAIL"));
+                          }
+                        }}
+                      />
+                      <div>
+                        <p className="text-[11px] font-bold text-slate-900 uppercase tracking-wide">Email</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-tighter">Via SMTP</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Target Audience */}
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Target Audience</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="broadcastTarget" 
+                        value="all"
+                        checked={broadcastTarget === "all"} 
+                        onChange={() => setBroadcastTarget("all")}
+                        className="text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
+                      />
+                      <span>All Users</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="broadcastTarget" 
+                        value="selected"
+                        checked={broadcastTarget === "selected"} 
+                        onChange={() => setBroadcastTarget("selected")}
+                        className="text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
+                      />
+                      <span>Select Users</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Selected Users Checklist */}
+                {broadcastTarget === "selected" && (
+                  <div className="space-y-2 border border-slate-100 rounded-2xl p-4 bg-slate-50/30">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Select Users ({selectedUserIds.length} selected)</span>
+                      <div className="flex gap-2">
+                        <button 
+                          type="button" 
+                          onClick={() => setSelectedUserIds(users?.map((u: any) => u.id) || [])}
+                          className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 uppercase tracking-wider"
+                        >
+                          Select All
+                        </button>
+                        <span className="text-slate-300">|</span>
+                        <button 
+                          type="button" 
+                          onClick={() => setSelectedUserIds([])}
+                          className="text-[10px] font-bold text-slate-600 hover:text-slate-700 uppercase tracking-wider"
+                        >
+                          Deselect All
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="max-h-48 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-xl bg-white custom-scrollbar">
+                      {users?.map((u: any) => {
+                        const isUserChecked = selectedUserIds.includes(u.id);
+                        return (
+                          <div key={u.id} className="flex items-start gap-3 p-3 hover:bg-slate-50 transition-colors">
+                            <input 
+                              type="checkbox"
+                              checked={isUserChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedUserIds([...selectedUserIds, u.id]);
+                                } else {
+                                  setSelectedUserIds(selectedUserIds.filter(id => id !== u.id));
+                                }
+                              }}
+                              className="mt-1 w-4 h-4 text-indigo-600 border-slate-200 rounded focus:ring-indigo-500 cursor-pointer"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-slate-900 leading-none">{u.fullName}</p>
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-[10px] font-bold uppercase tracking-tight">
+                                <span className={cn(
+                                  "flex items-center gap-1",
+                                  u.email ? "text-slate-600" : "text-rose-500 font-extrabold"
+                                )}>
+                                  <Mail className="w-3 h-3" /> {u.email || "(no available)"}
+                                </span>
+                                <span className={cn(
+                                  "flex items-center gap-1",
+                                  u.phoneNumber ? "text-slate-600" : "text-rose-500 font-extrabold"
+                                )}>
+                                  <Phone className="w-3 h-3" /> {u.phoneNumber || "(no available)"}
+                                </span>
+                                <span className={cn(
+                                  "flex items-center gap-1",
+                                  u.telegramId ? "text-slate-600" : "text-rose-500 font-extrabold"
+                                )}>
+                                  <Send className="w-3 h-3" /> {u.telegramId || "(no available)"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Chat Message Input */}
+                {(broadcastChannels.includes("WHATSAPP") || broadcastChannels.includes("TELEGRAM")) && (
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Chat Message (WhatsApp / Telegram)</label>
+                    <textarea 
+                      required
+                      value={chatMessage}
+                      onChange={e => setChatMessage(e.target.value)}
+                      rows={4}
+                      className="input-field w-full py-3 px-4 resize-none min-h-[100px]"
+                      placeholder="Type the message to send via chat bots..."
+                    />
+                  </div>
+                )}
+
+                {/* Email Fields */}
+                {broadcastChannels.includes("EMAIL") && (
+                  <div className="space-y-4 border-t border-slate-100 pt-6">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Email Subject</label>
+                      <input 
+                        type="text"
+                        required
+                        value={emailSubject}
+                        onChange={e => setEmailSubject(e.target.value)}
+                        className="input-field w-full py-3.5 px-4"
+                        placeholder="e.g. System Updates & Maintenance"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Email Body</label>
+                      <textarea 
+                        required
+                        value={emailMessage}
+                        onChange={e => setEmailMessage(e.target.value)}
+                        rows={6}
+                        className="input-field w-full py-3 px-4 resize-none min-h-[150px]"
+                        placeholder="Type the detailed email message content..."
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-8 border-t border-slate-50 flex-shrink-0">
+                <button 
+                  onClick={async () => {
+                    if (broadcastChannels.length === 0) {
+                      showToast("Please select at least one channel.", "error");
+                      return;
+                    }
+                    if (broadcastTarget === "selected" && selectedUserIds.length === 0) {
+                      showToast("Please select at least one user.", "error");
+                      return;
+                    }
+                    if ((broadcastChannels.includes("WHATSAPP") || broadcastChannels.includes("TELEGRAM")) && !chatMessage.trim()) {
+                      showToast("Please fill in the Chat Message.", "error");
+                      return;
+                    }
+                    if (broadcastChannels.includes("EMAIL") && (!emailSubject.trim() || !emailMessage.trim())) {
+                      showToast("Please fill in both Email Subject and Body.", "error");
+                      return;
+                    }
+
+                    setIsBroadcasting(true);
+                    try {
+                      await api.post("/notifications/broadcast", {
+                        userIds: broadcastTarget === "all" ? [] : selectedUserIds,
+                        sendAll: broadcastTarget === "all",
+                        channels: broadcastChannels,
+                        chatMessage,
+                        emailSubject,
+                        emailMessage
+                      });
+                      showToast("Broadcast message sent successfully.", "success");
+                      setIsBroadcastOpen(false);
+                      // Reset state
+                      setChatMessage("");
+                      setEmailSubject("");
+                      setEmailMessage("");
+                      setSelectedUserIds([]);
+                      setBroadcastChannels([]);
+                    } catch (err: any) {
+                      showToast(err.response?.data?.message || "Failed to send broadcast.", "error");
+                    } finally {
+                      setIsBroadcasting(false);
+                    }
+                  }}
+                  disabled={isBroadcasting}
+                  className="btn-primary w-full py-4 flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-700"
+                >
+                  {isBroadcasting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                  <span>{isBroadcasting ? 'Sending Broadcast...' : 'Send Broadcast'}</span>
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

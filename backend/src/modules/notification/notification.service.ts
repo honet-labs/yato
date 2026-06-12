@@ -481,6 +481,88 @@ export class NotificationService {
     return targetUsers;
   }
 
+  async broadcast(payload: {
+    userIds: string[];
+    sendAll: boolean;
+    channels: string[];
+    chatMessage: string;
+    emailSubject?: string;
+    emailMessage?: string;
+  }) {
+    const { userIds, sendAll, channels, chatMessage, emailSubject, emailMessage } = payload;
+    
+    const users = await this.prisma.user.findMany({
+      where: sendAll ? {} : { id: { in: userIds } },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        telegramId: true
+      }
+    });
+
+    const results = [];
+
+    for (const user of users) {
+      const userResult = {
+        userId: user.id,
+        fullName: user.fullName,
+        channels: {} as Record<string, { success: boolean; message: string }>
+      };
+
+      // 1. WhatsApp
+      if (channels.includes('WHATSAPP')) {
+        if (user.phoneNumber) {
+          const res = await this.sendWhatsApp(user.phoneNumber, chatMessage);
+          userResult.channels['WHATSAPP'] = res;
+        } else {
+          userResult.channels['WHATSAPP'] = { success: false, message: 'No phone number configured' };
+        }
+      }
+
+      // 2. Telegram
+      if (channels.includes('TELEGRAM')) {
+        if (user.telegramId) {
+          const res = await this.sendTelegram(user.telegramId, chatMessage);
+          userResult.channels['TELEGRAM'] = res;
+        } else {
+          userResult.channels['TELEGRAM'] = { success: false, message: 'No Telegram Chat ID configured' };
+        }
+      }
+
+      // 3. Email
+      if (channels.includes('EMAIL')) {
+        if (user.email) {
+          const res = await this.sendEmail(user.email, emailSubject || 'YATO Broadcast', emailMessage || chatMessage);
+          userResult.channels['EMAIL'] = res;
+        } else {
+          userResult.channels['EMAIL'] = { success: false, message: 'No email configured' };
+        }
+      }
+
+      // 4. Internal Notification logs
+      try {
+        await this.create(
+          user.id,
+          emailSubject || 'Broadcast Message',
+          chatMessage,
+          'INFO'
+        );
+      } catch (err) {
+        this.logger.error(`Failed to create internal broadcast log for user ${user.id}: ${err.message}`);
+      }
+
+      results.push(userResult);
+    }
+
+    return {
+      success: true,
+      processed: results.length,
+      details: results
+    };
+  }
+
   async getSetting(key: string) {
     const setting = await this.prisma.systemSetting.findUnique({ where: { key } });
     return setting?.value;
