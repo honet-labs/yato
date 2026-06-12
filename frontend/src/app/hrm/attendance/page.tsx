@@ -767,13 +767,42 @@ export default function AttendancePage() {
                       </div>
 
                       <div className="space-y-1 mt-3">
-                        {ts?.totalHours > 0 && (
-                          <div className="text-[11px] font-mono font-bold text-slate-700">
-                            {ts.totalHours} hrs
-                          </div>
-                        )}
+                        {(() => {
+                          if (!ts) return null;
+                          const hasCheckedIn = ts.logs?.some((log: any) => log.type === "CHECK_IN");
+                          const hasCheckedOut = ts.logs?.some((log: any) => log.type === "CHECK_OUT");
+                          const isToday = getFormattedDate(new Date(ts.date)) === getFormattedDate(new Date());
+                          
+                          if (hasCheckedIn && !hasCheckedOut) {
+                            if (isToday) {
+                              return (
+                                <div className="flex items-center gap-1.5 text-[9px] font-extrabold text-emerald-600 uppercase tracking-wider">
+                                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                                  Active
+                                </div>
+                              );
+                            } else {
+                              return (
+                                <div className="flex items-center gap-1 text-[9px] font-extrabold text-rose-500 uppercase tracking-wider">
+                                  <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                                  No Check-out
+                                </div>
+                              );
+                            }
+                          }
+                          
+                          if (ts.totalHours > 0) {
+                            return (
+                              <div className="text-[11px] font-mono font-bold text-slate-700">
+                                {ts.totalHours} hrs
+                              </div>
+                            );
+                          }
+                          
+                          return null;
+                        })()}
                         {ts?.notes && (
-                          <div className="text-[9px] text-slate-450 font-medium truncate max-w-[110px]" title={ts.notes}>
+                          <div className="text-[9px] text-slate-455 font-medium truncate max-w-[110px]" title={ts.notes}>
                             {ts.notes}
                           </div>
                         )}
@@ -1071,6 +1100,31 @@ export default function AttendancePage() {
                         )}
                       </div>
                     );
+                  })()}
+
+                  {/* Missing Check-Out Warning in Modal */}
+                  {(() => {
+                    const checkInLog = selectedDayTimesheet.logs?.find((l: any) => l.type === "CHECK_IN");
+                    const checkOutLog = selectedDayTimesheet.logs?.find((l: any) => l.type === "CHECK_OUT");
+                    if (checkInLog && !checkOutLog) {
+                      const isToday = getFormattedDate(new Date(selectedDayTimesheet.date)) === getFormattedDate(new Date());
+                      if (isToday) {
+                        return (
+                          <div className="bg-emerald-50/20 border border-emerald-100 p-5 rounded-2xl flex items-center gap-3 text-emerald-800 text-xs font-bold">
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                            <span>Currently Active / On Shift</span>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div className="bg-rose-50/50 border border-rose-100 p-5 rounded-2xl flex items-center gap-3 text-rose-800 text-xs font-bold">
+                            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
+                            <span>Did not checkout (Forgot Checkout)</span>
+                          </div>
+                        );
+                      }
+                    }
+                    return null;
                   })()}
 
                   {!selectedDayTimesheet.logs?.length && (
