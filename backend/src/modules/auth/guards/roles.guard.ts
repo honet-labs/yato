@@ -29,7 +29,17 @@ export class RolesGuard implements CanActivate {
 
     if (!userWithRoles) return false;
 
-    const userRoles = userWithRoles.roles.map((ur) => ur.role.name);
-    return requiredRoles.some((role) => userRoles.includes(role));
+    const userRoles = userWithRoles.roles.map((ur) => ur.role.name.toUpperCase());
+    
+    // Expand required roles to support equivalent admin names case-insensitively
+    const expandedRequiredRoles = requiredRoles.flatMap((role) => {
+      const upperRole = role.toUpperCase();
+      if (upperRole === 'ADMIN') {
+        return ['ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'];
+      }
+      return [upperRole];
+    });
+
+    return expandedRequiredRoles.some((role) => userRoles.includes(role));
   }
 }
