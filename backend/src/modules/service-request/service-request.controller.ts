@@ -16,10 +16,12 @@ import { CreateServiceRequestDto, ApproveServiceRequestDto } from './dto/service
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 
 @ApiTags('service-requests')
 @Controller('service/request')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class ServiceRequestController {
   constructor(private readonly serviceRequestService: ServiceRequestService) {}
@@ -55,14 +57,14 @@ export class ServiceRequestController {
   }
 
   @Put(':id/approve')
-  @Roles('ADMIN')
+  @Permissions('APPROVE_REQUESTS')
   @ApiOperation({ summary: 'Approve a service request' })
   approve(@Param('id') id: string, @Req() req: any, @Body() dto: ApproveServiceRequestDto) {
     return this.serviceRequestService.approve(id, req.user.id, dto);
   }
 
   @Put(':id/reject')
-  @Roles('ADMIN')
+  @Permissions('APPROVE_REQUESTS')
   @ApiOperation({ summary: 'Reject a service request' })
   reject(@Param('id') id: string, @Req() req: any, @Body('reason') reason: string) {
     return this.serviceRequestService.reject(id, req.user.id, reason);

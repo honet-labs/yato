@@ -15,10 +15,12 @@ import { CreateVmRequestDto, ApproveVmRequestDto } from './dto/vm-request.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 
 @ApiTags('vm-requests')
 @Controller('vm/request')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class VmRequestController {
   constructor(private readonly vmRequestService: VmRequestService) {}
@@ -54,14 +56,14 @@ export class VmRequestController {
   }
 
   @Put(':id/approve')
-  @Roles('ADMIN')
+  @Permissions('APPROVE_REQUESTS')
   @ApiOperation({ summary: 'Approve a VM request' })
   approve(@Param('id') id: string, @Req() req: any, @Body() dto: ApproveVmRequestDto) {
     return this.vmRequestService.approve(id, req.user.id, dto);
   }
 
   @Put(':id/reject')
-  @Roles('ADMIN')
+  @Permissions('APPROVE_REQUESTS')
   @ApiOperation({ summary: 'Reject a VM request' })
   reject(@Param('id') id: string, @Req() req: any, @Body('reason') reason: string) {
     return this.vmRequestService.reject(id, req.user.id, reason);

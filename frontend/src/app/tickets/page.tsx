@@ -93,7 +93,8 @@ function TicketsContent() {
   });
 
   // User Profile for Role Checks
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin, permissions } = useIsAdmin();
+  const canApprove = isAdmin || permissions.includes("APPROVE_REQUESTS");
   
   // Modals State
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -756,7 +757,7 @@ function TicketsContent() {
                           </td>
                           <td className="px-6 py-6 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              {ticket.status === 'PENDING' && isAdmin && (
+                              {ticket.status === 'PENDING' && canApprove && (
                                 <>
                                   <button 
                                     onClick={(e) => handleAction(e, ticket, 'approve')}
@@ -822,7 +823,7 @@ function TicketsContent() {
           isOpen={!!selectedTicketForDetail}
           onClose={() => setSelectedTicketForDetail(null)}
           ticket={selectedTicketForDetail}
-          isAdmin={isAdmin}
+          isAdmin={canApprove}
           onApprove={(ticket) => handleAction(null, ticket, 'approve')}
           onReject={(ticket) => handleAction(null, ticket, 'reject')}
         />

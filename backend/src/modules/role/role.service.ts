@@ -39,6 +39,7 @@ export class RoleService {
       "VIEW_DASHBOARD",
       "VIEW_SUPPORT_TICKETS",
       "MANAGE_SUPPORT_TICKETS",
+      "APPROVE_REQUESTS",
       "VIEW_VM_INVENTORY",
       "PROVISION_VM",
       "MANAGE_VM_INVENTORY",
