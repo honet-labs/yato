@@ -75,9 +75,12 @@ interface TicketDetailModalProps {
     notes?: string;
     description?: string;
   };
+  isAdmin?: boolean;
+  onApprove?: (ticket: any) => void;
+  onReject?: (ticket: any) => void;
 }
 
-export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModalProps) {
+export function TicketDetailModal({ isOpen, onClose, ticket, isAdmin = false, onApprove, onReject }: TicketDetailModalProps) {
   const queryClient = useQueryClient();
   const [commentText, setCommentText] = useState("");
   const [attachment, setAttachment] = useState(null as string | null);
@@ -333,7 +336,7 @@ export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModal
         payload.notes = data.description;
         payload.environment = data.environment;
       }
-      return api.patch(`/${basePath}/${ticket.id}`, payload);
+      return api.put(`/${basePath}/${ticket.id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ticket-detail", ticket.id] });
@@ -584,13 +587,37 @@ export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModal
                     </button>
                   </>
                 ) : (
-                  <button 
-                    onClick={() => setIsEditing(true)}
-                    className="p-3 bg-white text-slate-600 hover:text-indigo-600 rounded-2xl transition-all shadow-sm flex items-center gap-2 font-bold text-[11px] uppercase tracking-wider border border-transparent hover:border-indigo-100"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    Edit Ticket
-                  </button>
+                  <>
+                    {isAdmin && displayTicket.status === 'PENDING' && (
+                      <>
+                        {onApprove && (
+                          <button 
+                            onClick={() => onApprove(displayTicket)}
+                            className="px-4 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl transition-all shadow-md shadow-emerald-500/20 flex items-center gap-2 font-bold text-[11px] uppercase tracking-wider"
+                          >
+                            <Check className="w-4 h-4" />
+                            Approve
+                          </button>
+                        )}
+                        {onReject && (
+                          <button 
+                            onClick={() => onReject(displayTicket)}
+                            className="px-4 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl transition-all shadow-md shadow-rose-500/20 flex items-center gap-2 font-bold text-[11px] uppercase tracking-wider"
+                          >
+                            <X className="w-4 h-4" />
+                            Reject
+                          </button>
+                        )}
+                      </>
+                    )}
+                    <button 
+                      onClick={() => setIsEditing(true)}
+                      className="p-3 bg-white text-slate-600 hover:text-indigo-600 rounded-2xl transition-all shadow-sm flex items-center gap-2 font-bold text-[11px] uppercase tracking-wider border border-transparent hover:border-indigo-100"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      Edit Ticket
+                    </button>
+                  </>
                 )}
                 <button 
                   onClick={handleShare}
@@ -703,7 +730,8 @@ export function TicketDetailModal({ isOpen, onClose, ticket }: TicketDetailModal
                         </p>
                         {isEditing ? (
                           <select 
-                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-[13px] font-bold text-slate-700 outline-none focus:border-indigo-400 uppercase"
+                            disabled={!isAdmin}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-[13px] font-bold text-slate-700 outline-none focus:border-indigo-400 uppercase disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
                             value={editData.status}
                             onChange={(e) => setEditData({ ...editData, status: e.target.value })}
                           >

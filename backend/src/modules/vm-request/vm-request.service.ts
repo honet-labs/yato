@@ -175,7 +175,15 @@ export class VmRequestService {
     });
 
     // Check if automated provisioning is enabled
-    const isAutoEnabled = false;
+    const autoProv = await this.prisma.systemSetting.findUnique({ 
+      where: { key: 'AUTOMATED_PROVISIONING_ENABLED' } 
+    });
+    
+    const isAutoEnabled = autoProv 
+      ? (typeof autoProv.value === 'object' && autoProv.value !== null && 'enabled' in (autoProv.value as any))
+        ? (autoProv.value as any).enabled
+        : !!autoProv.value
+      : true;
 
     // Create Inventory Entry
     await this.prisma.vMInventory.create({
@@ -270,6 +278,13 @@ export class VmRequestService {
   async update(id: string, dto: any, userId: string) {
     const request = await this.prisma.vMRequest.findUnique({ where: { id } });
     if (!request) throw new NotFoundException('Request not found');
+
+    if (dto.status === 'APPROVED' && request.status === 'PENDING') {
+      return this.approve(id, userId, dto);
+    }
+    if (dto.status === 'REJECTED' && request.status === 'PENDING') {
+      return this.reject(id, userId, dto.rejectionReason || 'Status updated to REJECTED via edit');
+    }
 
     const updated = await this.prisma.vMRequest.update({
       where: { id },

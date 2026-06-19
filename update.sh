@@ -41,6 +41,14 @@ else
   echo "   • Not a git repository, skipping pull."
 fi
 
+# Step 1.2: Automation Check / Build Validation
+echo -e "${YELLOW}⚙️  Running automation checking (validating code build)...${NC}"
+if ! $DOCKER_COMPOSE build yato-backend yato-frontend; then
+  echo -e "${RED}❌ Automation Check FAILED: Build errors detected. Update aborted to prevent downtime.${NC}" >&2
+  exit 1
+fi
+echo -e "${GREEN}✅ Automation Check PASSED: 100% build-passed.${NC}"
+
 # Step 1.5: Inject Copyright Headers
 if command -v node &> /dev/null; then
   echo -e "${YELLOW}⚖️  Injecting Apache 2.0 Copyright Headers...${NC}"

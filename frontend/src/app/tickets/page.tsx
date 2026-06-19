@@ -296,8 +296,8 @@ function TicketsContent() {
     }
   };
 
-  const handleAction = async (e: React.MouseEvent, ticket: UnifiedTicket, action: 'approve' | 'reject') => {
-    e.stopPropagation();
+  const handleAction = async (e: React.MouseEvent | null, ticket: UnifiedTicket, action: 'approve' | 'reject') => {
+    if (e) e.stopPropagation();
     setSelectedTicketForAction(ticket);
 
     if (action === 'reject') {
@@ -830,6 +830,9 @@ function TicketsContent() {
           isOpen={!!selectedTicketForDetail}
           onClose={() => setSelectedTicketForDetail(null)}
           ticket={selectedTicketForDetail}
+          isAdmin={isAdmin}
+          onApprove={(ticket) => handleAction(null, ticket, 'approve')}
+          onReject={(ticket) => handleAction(null, ticket, 'reject')}
         />
       )}
 
