@@ -30,6 +30,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/language-context";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+
 
 const getFormattedDate = (date: any) => {
   if (!date) return "";
@@ -142,17 +144,7 @@ export default function AttendancePage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch logged-in user profile to check if they are ADMIN or HR
-  const { data: profile } = useQuery({
-    queryKey: ["user-profile"],
-    queryFn: async () => {
-      const response = await api.get("/auth/profile");
-      return response.data;
-    },
-  });
-
-  const userRoles = profile?.roles?.map((ur: any) => ur.role.name) || [];
-  const isAdmin = userRoles.includes("ADMIN") || userRoles.includes("HR");
+  const { isAdmin, profile } = useIsAdmin(["HR"]);
 
   const startRosterDate = getFormattedDate(new Date(new Date().setDate(new Date().getDate() - 15)));
   const endRosterDate = getFormattedDate(new Date(new Date().setDate(new Date().getDate() + 15)));

@@ -41,6 +41,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useBranding } from "@/context/branding-context";
 import { useLanguage } from "@/context/language-context";
 import { Footer } from "./Footer";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+
 
 
 const formatNotificationTime = (dateStr: string) => {
@@ -94,13 +96,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
     }));
   };
 
-  const { data: profile } = useQuery({
-    queryKey: ["user-profile"],
-    queryFn: async () => {
-      const response = await api.get("/auth/profile");
-      return response.data;
-    },
-  });
+
 
   const { data: notifications, isLoading: isLoadingNotifications } = useQuery({
     queryKey: ["notifications"],
@@ -155,11 +151,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
     router.push("/login");
   };
 
-  const userRoles = profile?.roles?.map((ur: any) => ur.role?.name).filter(Boolean) || [];
-  const userPermissions = profile?.roles?.flatMap((ur: any) => ur.role?.permissions || []) || [];
-  const isAdmin = userRoles.some((role: string) => 
-    ["ADMIN", "SYSTEM ADMIN", "SYSTEM_ADMIN", "SUPERADMIN"].includes(role.toUpperCase())
-  );
+  const { isAdmin, profile, roles: userRoles, permissions: userPermissions } = useIsAdmin();
 
   const hasPermission = (permission?: string) => {
     if (!permission) return true;
@@ -455,7 +447,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
               <p className="text-[12px] font-bold text-slate-900 truncate tracking-tight">{profile?.fullName || t('Administrator')}</p>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">
                 {profile?.roles && profile.roles.length > 0 
-                  ? profile.roles.map((ur: any) => ur.role.name).join(', ') 
+                  ? profile.roles.map((ur: any) => ur.role?.name).filter(Boolean).join(', ') 
                   : t('NO ROLES')}
               </p>
             </div>

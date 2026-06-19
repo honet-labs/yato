@@ -440,7 +440,7 @@ export function TicketDetailModal({ isOpen, onClose, ticket, isAdmin = false, on
                 </div>
                 {comment.author.fullName}
               </span>
-              {comment.author.roles?.some(r => r.role.name === 'ADMIN') && (
+              {comment.author.roles?.some(r => r.role?.name && ["ADMIN", "SYSTEM ADMIN", "SYSTEM_ADMIN", "SUPERADMIN", "PRODUCTION"].includes(r.role.name.toUpperCase())) && (
                 <span className="text-[8px] font-black bg-blue-600 text-white px-1.5 py-0.5 rounded tracking-tighter uppercase">Admin</span>
               )}
             </div>

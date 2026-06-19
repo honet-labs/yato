@@ -33,6 +33,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useBranding } from "@/context/branding-context";
 import { useLanguage } from "@/context/language-context";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+
 
 const getFormattedDate = (date: any) => {
   if (!date) return "";
@@ -81,19 +83,9 @@ function ManagementAdminPanelContent() {
   const [adjustForm, setAdjustForm] = useState({ allocated: 12, used: 0 });
   const [newLeaveType, setNewLeaveType] = useState("");
 
-  // 1. Fetch Logged-in User Profile to verify Admin/HR privileges
-  const { data: profile } = useQuery({
-    queryKey: ["auth", "profile"],
-    queryFn: async () => {
-      const res = await api.get("/auth/profile");
-      return res.data;
-    },
-  });
-
-  const userRoles = profile?.roles?.map((ur: any) => ur.role.name) || [];
-  const userPermissions = profile?.roles?.flatMap((ur: any) => ur.role.permissions || []) || [];
+  const { isAdmin, profile, permissions: userPermissions } = useIsAdmin(["HR"]);
   
-  const hasFullAdmin = userRoles.includes("ADMIN") || userRoles.includes("HR") || userPermissions.includes("MANAGE_HRM");
+  const hasFullAdmin = isAdmin || userPermissions.includes("MANAGE_HRM");
   const hasAttendancePerm = hasFullAdmin || userPermissions.includes("MANAGE_HRM_ATTENDANCE");
   const hasLeavesPerm = hasFullAdmin || userPermissions.includes("MANAGE_HRM_LEAVES");
   const hasAnyAccess = hasAttendancePerm || hasLeavesPerm;

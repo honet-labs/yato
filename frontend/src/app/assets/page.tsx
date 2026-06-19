@@ -37,6 +37,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+
 
 interface Asset {
   id: string;
@@ -95,13 +97,6 @@ export default function AssetsPage() {
     type: "VM_TO_HYPERVISOR",
   });
 
-  const { data: userProfile } = useQuery({
-    queryKey: ["user-profile"],
-    queryFn: async () => {
-      const response = await api.get("/auth/profile");
-      return response.data;
-    },
-  });
 
   const { data: assetTypes } = useQuery({
     queryKey: ["catalog", "PHYSICAL_ASSET_TYPE"],
@@ -111,8 +106,7 @@ export default function AssetsPage() {
     },
   });
 
-  const isAdmin = userProfile?.roles?.some((r: any) => r.role.name === 'ADMIN' || r.role.name === 'SUPERADMIN');
-  const userPermissions = userProfile?.roles?.flatMap((ur: any) => ur.role.permissions || []) || [];
+  const { isAdmin, permissions: userPermissions } = useIsAdmin();
   const canManageAssets = isAdmin || userPermissions.includes("MANAGE_ASSETS");
 
   const { data: assets, isLoading } = useQuery({

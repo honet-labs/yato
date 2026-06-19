@@ -43,6 +43,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useBranding } from "@/context/branding-context";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+
 
 interface UnifiedTicket {
   id: string;
@@ -91,17 +93,7 @@ function TicketsContent() {
   });
 
   // User Profile for Role Checks
-  const { data: profile } = useQuery({
-    queryKey: ["user-profile"],
-    queryFn: async () => {
-      const res = await api.get("/auth/profile");
-      return res.data;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-  
-  const userRoles = profile?.roles?.map((ur: any) => ur.role.name) || [];
-  const isAdmin = userRoles.includes("ADMIN");
+  const { isAdmin } = useIsAdmin();
   
   // Modals State
   const [showRejectModal, setShowRejectModal] = useState(false);

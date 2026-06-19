@@ -6,6 +6,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 import api from "@/lib/api";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -47,18 +49,7 @@ const NOTE_CATEGORIES = [
 export default function PmoCalendarPage() {
   const queryClient = useQueryClient();
 
-  // Fetch Logged-in User Profile to check permissions
-  const { data: profile, isLoading: isProfileLoading } = useQuery({
-    queryKey: ["user-profile"],
-    queryFn: async () => {
-      const res = await api.get("/auth/profile");
-      return res.data;
-    },
-  });
-
-  const userRoles = profile?.roles?.map((ur: any) => ur.role.name) || [];
-  const userPermissions = profile?.roles?.flatMap((ur: any) => ur.role.permissions || []) || [];
-  const isAdmin = userRoles.includes("ADMIN");
+  const { isAdmin, profile, permissions: userPermissions, isLoading: isProfileLoading } = useIsAdmin();
   const canViewPmo = isAdmin || userPermissions.includes("VIEW_PMO_CALENDAR");
   const canManagePmo = isAdmin || userPermissions.includes("MANAGE_PMO_CALENDAR");
 

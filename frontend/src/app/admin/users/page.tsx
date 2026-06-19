@@ -32,6 +32,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useBranding } from "@/context/branding-context";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-context";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+
 
 interface UserData {
   id: string;
@@ -50,6 +52,7 @@ export default function AdminUsersPage() {
   const { formatDate } = useBranding();
   const queryClient = useQueryClient();
   const { showToast, t } = useLanguage();
+  const { isAdmin, isLoading: isProfileLoading } = useIsAdmin();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null as UserData | null);
   const [showPassword, setShowPassword] = useState(false);
@@ -105,10 +108,10 @@ export default function AdminUsersPage() {
     },
   });
 
-  const filteredUsers = users?.filter(user => 
-    user.fullName.toLowerCase().includes(search.toLowerCase()) ||
-    user.email.toLowerCase().includes(search.toLowerCase()) ||
-    user.username?.toLowerCase().includes(search.toLowerCase())
+  const filteredUsers = users?.filter((user: any) => 
+    (user.fullName || "").toLowerCase().includes(search.toLowerCase()) ||
+    (user.email || "").toLowerCase().includes(search.toLowerCase()) ||
+    (user.username || "").toLowerCase().includes(search.toLowerCase())
   ) || [];
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -196,7 +199,7 @@ export default function AdminUsersPage() {
       phoneNumber: user.phoneNumber || "",
       personalEmail: user.personalEmail || "",
       telegramId: user.telegramId || "",
-      roleIds: user.roles?.map((r: any) => r.role.id) || [],
+      roleIds: user.roles?.map((r: any) => r.role?.id).filter(Boolean) || [],
       isMfaEnabled: user.isMfaEnabled,
     });
     setIsModalOpen(true);
@@ -210,6 +213,31 @@ export default function AdminUsersPage() {
     if (/[0-9]/.test(pass)) s += 30;
     return s;
   };
+
+  if (isProfileLoading || isLoading) {
+    return (
+      <div className="flex min-h-screen bg-slate-950 text-white items-center justify-center p-6">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto" />
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Loading User Profiles...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-screen bg-slate-950 text-white items-center justify-center p-6">
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="w-20 h-20 bg-rose-500/10 rounded-full border border-rose-500/30 flex items-center justify-center mx-auto mb-6 text-rose-500">
+            <Lock className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
+          <p className="text-sm text-slate-400">You must hold administrative privileges to access User Management.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-background font-sans text-[13px]">
@@ -283,12 +311,12 @@ export default function AdminUsersPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-600 border border-slate-200 text-sm">
-                            {user.fullName ? user.fullName.charAt(0) : user.email.charAt(0).toUpperCase()}
+                            {user.fullName ? user.fullName.charAt(0) : (user.email ? user.email.charAt(0).toUpperCase() : "?")}
                           </div>
                           <div>
                             <p className="text-sm font-bold text-slate-900 tracking-tight">{user.fullName || "User Identity"}</p>
                             <p className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5 mt-0.5 uppercase tracking-tighter">
-                              <Mail className="w-3.5 h-3.5" /> {user.email} • @{user.username || user.email.split('@')[0]}
+                              <Mail className="w-3.5 h-3.5" /> {user.email || "No Email"} • @{user.username || (user.email ? user.email.split('@')[0] : "user")}
                             </p>
                           </div>
                         </div>
@@ -305,7 +333,7 @@ export default function AdminUsersPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1">
-                          {user.roles?.map((ur: any) => (
+                          {user.roles?.map((ur: any) => ur.role && (
                             <span key={ur.role.id} className="badge bg-indigo-50 text-indigo-600 border-indigo-100 uppercase tracking-wider text-[9px] font-bold">
                               {ur.role.name}
                             </span>

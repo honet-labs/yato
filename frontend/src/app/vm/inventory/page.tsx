@@ -35,6 +35,8 @@ import { exportToCSV } from "@/lib/csvHelper";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+
 import { cn } from "@/lib/utils";
 
 interface VM {
@@ -73,17 +75,7 @@ export default function VmInventoryPage() {
   });
 
 
-  
-  const { data: userProfile } = useQuery({
-    queryKey: ["user-profile"],
-    queryFn: async () => {
-      const response = await api.get("/auth/profile");
-      return response.data;
-    },
-  });
-
-  const isAdmin = userProfile?.roles?.some((r: any) => r.role.name === 'ADMIN' || r.role.name === 'SUPERADMIN');
-
+  const { isAdmin } = useIsAdmin();
   const { data: inventory, isLoading } = useQuery({
     queryKey: ["vm-inventory"],
     queryFn: async () => {

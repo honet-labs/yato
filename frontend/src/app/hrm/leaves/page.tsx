@@ -28,6 +28,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useBranding } from "@/context/branding-context";
 import { useRouter } from "next/navigation";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+
 
 
 export default function LeaveHubPage() {
@@ -52,18 +54,7 @@ export default function LeaveHubPage() {
     }, 200);
   };
 
-  // 1. Fetch Logged-in User Profile to check Admin/HR permissions
-  const { data: profile } = useQuery({
-    queryKey: ["auth", "profile"],
-    queryFn: async () => {
-      const res = await api.get("/auth/profile");
-      return res.data;
-    },
-  });
-
-  const userRoles = profile?.roles?.map((ur: any) => ur.role.name) || [];
-  const userPermissions = profile?.roles?.flatMap((ur: any) => ur.role.permissions || []) || [];
-  const isAdmin = userRoles.includes("ADMIN") || userRoles.includes("HR");
+  const { isAdmin, profile, permissions: userPermissions } = useIsAdmin(["HR"]);
   const canAccessAdmin = isAdmin || userPermissions.includes("VIEW_HRM_ADMIN_PANEL") || userPermissions.includes("MANAGE_HRM") || userPermissions.includes("MANAGE_HRM_LEAVES");
 
   // 2. Load and save customizable leave types (saved in localStorage for tenant flexibility)

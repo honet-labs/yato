@@ -24,6 +24,9 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { useState, Fragment } from "react";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { Lock } from "lucide-react";
+
 
 // Status types: simplified to only Active, Busy, and Down
 type ServiceStatus = 'ACTIVE' | 'BUSY' | 'DOWN';
@@ -43,6 +46,7 @@ interface EngineGroup {
 }
 
 export default function SystemStatusPage() {
+  const { isAdmin, isLoading: isProfileLoading } = useIsAdmin();
   const [activeTab, setActiveTab] = useState('cores' as 'cores' | 'docker' | 'systemd' | 'logs');
 
   const { data: statusData, isLoading, refetch, isRefetching } = useQuery({
@@ -219,6 +223,31 @@ export default function SystemStatusPage() {
         );
     }
   };
+
+  if (isProfileLoading || isLoading) {
+    return (
+      <div className="flex min-h-screen bg-slate-950 text-white items-center justify-center p-6">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto" />
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Loading System Health Logs...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-screen bg-slate-950 text-white items-center justify-center p-6">
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="w-20 h-20 bg-rose-500/10 rounded-full border border-rose-500/30 flex items-center justify-center mx-auto mb-6 text-rose-500">
+            <Lock className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
+          <p className="text-sm text-slate-400">You must hold administrative privileges to access System Status.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800">

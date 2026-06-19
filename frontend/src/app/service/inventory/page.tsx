@@ -33,6 +33,8 @@ import { exportToCSV } from "@/lib/csvHelper";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+
 
 interface ServiceInventory {
   id: string;
@@ -64,16 +66,7 @@ export default function ServiceInventoryPage() {
     status: ""
   });
 
-  const { data: userProfile } = useQuery({
-    queryKey: ["user-profile"],
-    queryFn: async () => {
-      const response = await api.get("/auth/profile");
-      return response.data;
-    },
-  });
-
-  const isAdmin = userProfile?.roles?.some((r: any) => r.role.name === 'ADMIN' || r.role.name === 'SUPERADMIN');
-
+  const { isAdmin } = useIsAdmin();
   const { data: items, isLoading } = useQuery({
     queryKey: ["service-inventory"],
     queryFn: async () => {

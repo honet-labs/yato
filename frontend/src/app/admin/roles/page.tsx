@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+
 
 interface Role {
   id: string;
@@ -35,6 +37,7 @@ interface Role {
 
 export default function RolesManagementPage() {
   const queryClient = useQueryClient();
+  const { isAdmin, isLoading: isProfileLoading } = useIsAdmin();
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -133,9 +136,34 @@ export default function RolesManagementPage() {
   };
 
   const filteredRoles = roles?.filter(r => 
-    r.name.toLowerCase().includes(search.toLowerCase()) ||
-    r.description?.toLowerCase().includes(search.toLowerCase())
+    (r.name || "").toLowerCase().includes(search.toLowerCase()) ||
+    (r.description || "").toLowerCase().includes(search.toLowerCase())
   );
+
+  if (isProfileLoading || isLoading) {
+    return (
+      <div className="flex min-h-screen bg-slate-950 text-white items-center justify-center p-6">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto" />
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Loading Access Policies...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-screen bg-slate-950 text-white items-center justify-center p-6">
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="w-20 h-20 bg-rose-500/10 rounded-full border border-rose-500/30 flex items-center justify-center mx-auto mb-6 text-rose-500">
+            <Lock className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
+          <p className="text-sm text-slate-400">You must hold administrative privileges to access Access Control.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
