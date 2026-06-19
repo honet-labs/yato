@@ -41,13 +41,34 @@ else
   echo "   • Not a git repository, skipping pull."
 fi
 
-# Step 1.2: Automation Check / Build Validation
-echo -e "${YELLOW}⚙️  Running automation checking (validating code build)...${NC}"
-if ! $DOCKER_COMPOSE build yato-backend yato-frontend; then
-  echo -e "${RED}❌ Automation Check FAILED: Build errors detected. Update aborted to prevent downtime.${NC}" >&2
+# Step 1.2: Automation Check (CI/CD & Build Validation)
+echo -e "${YELLOW}⚙️  Running automation checking (CI/CD & build validation)...${NC}"
+
+echo -e "   • ${YELLOW}Validating Backend (Compiling & Type Checking)...${NC}"
+if ! docker build --target builder -t yato-backend-check ./backend; then
+  echo -e "${RED}❌ Automation Check FAILED: Backend compilation or type checking failed.${NC}" >&2
   exit 1
 fi
-echo -e "${GREEN}✅ Automation Check PASSED: 100% build-passed.${NC}"
+
+echo -e "   • ${YELLOW}Validating Frontend (Compiling & Type Checking)...${NC}"
+if ! docker build --target builder -t yato-frontend-check ./frontend; then
+  echo -e "${RED}❌ Automation Check FAILED: Frontend compilation or type checking failed.${NC}" >&2
+  exit 1
+fi
+
+echo -e "   • ${YELLOW}Running Backend Linter...${NC}"
+if ! docker run --rm yato-backend-check npm run lint; then
+  echo -e "${RED}❌ Automation Check FAILED: Backend linting check failed.${NC}" >&2
+  exit 1
+fi
+
+echo -e "   • ${YELLOW}Running Frontend Linter...${NC}"
+if ! docker run --rm yato-frontend-check npm run lint; then
+  echo -e "${RED}❌ Automation Check FAILED: Frontend linting check failed.${NC}" >&2
+  exit 1
+fi
+
+echo -e "${GREEN}✅ Automation Check PASSED: 100% passed (Build & Lint verification clean).${NC}"
 
 # Step 1.5: Inject Copyright Headers
 if command -v node &> /dev/null; then
