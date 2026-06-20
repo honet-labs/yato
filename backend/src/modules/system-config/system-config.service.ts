@@ -311,6 +311,22 @@ export class SystemConfigService {
       engineStatus = 'OFFLINE';
     }
 
+    // 5. Vaultwarden Secret Vault Check
+    let vaultwardenStatus = 'HEALTHY';
+    let vaultwardenLatency = 0;
+    try {
+      const start = Date.now();
+      const vaultwardenUrl = 'http://vaultwarden:80';
+      await axios.get(vaultwardenUrl + '/health', { timeout: 1000 });
+      vaultwardenLatency = Date.now() - start;
+    } catch (e: any) {
+      if (e.response) {
+        vaultwardenLatency = Date.now() - start;
+      } else {
+        vaultwardenStatus = 'OFFLINE';
+      }
+    }
+
     const cores = [
       {
         id: 'engine',
@@ -319,6 +335,15 @@ export class SystemConfigService {
         status: engineStatus,
         latency: `${engineLatency}ms`,
         uptime: '99.99%',
+        lastCheck: new Date().toLocaleTimeString()
+      },
+      {
+        id: 'vaultwarden',
+        name: 'VAULTWARDEN SECRET VAULT',
+        description: 'Centralized passwords and secrets storage server',
+        status: vaultwardenStatus,
+        latency: `${vaultwardenLatency}ms`,
+        uptime: '100%',
         lastCheck: new Date().toLocaleTimeString()
       },
       {
@@ -358,18 +383,19 @@ export class SystemConfigService {
         { name: 'YATO-BACKEND', port: 3000, serviceName: 'yato-backend', type: 'TCP' },
         { name: 'YATO-POSTGRES', port: 5432, serviceName: 'postgres', type: 'TCP' },
         { name: 'YATO-REDIS', port: 6379, serviceName: 'redis', type: 'TCP' },
-        { name: 'YATO-NGINX', port: 9090, serviceName: 'nginx', type: 'HTTP' }
+        { name: 'YATO-NGINX', port: 9090, serviceName: 'nginx', type: 'HTTP' },
+        { name: 'YATO-VAULTWARDEN', port: 80, serviceName: 'vaultwarden', type: 'TCP' }
       ];
 
       dockerContainers = await Promise.all(
         fallbackContainers.map(async (c) => {
           // Check inside docker network by service host name
           const isUp = c.type === 'HTTP' 
-            ? await isUrlHealthy(`http://${c.serviceName}:3000`) // internal port
-            : await isPortOpen(c.serviceName, c.port === 5432 ? 5432 : c.port === 6379 ? 6379 : 3000);
+            ? await isUrlHealthy(`http://${c.serviceName}:${c.port === 9090 ? 80 : 3000}`) // internal port
+            : await isPortOpen(c.serviceName, c.port);
           return {
             name: c.name,
-            image: `yato/${c.serviceName.toLowerCase()}:latest`,
+            image: c.serviceName === 'vaultwarden' ? 'vaultwarden/server:latest' : `yato/${c.serviceName.toLowerCase()}:latest`,
             state: isUp ? 'RUNNING' : 'EXITED',
             status: isUp ? 'Up less than a minute' : 'Exited (1) 5 minutes ago',
             healthy: isUp

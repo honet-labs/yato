@@ -114,6 +114,20 @@ services:
       yato-backend:
         condition: service_healthy
 
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: YATO-VAULTWARDEN
+    restart: always
+    environment:
+      WEBSOCKET_ENABLED: "true"
+      SIGNUPS_ALLOWED: "false"
+      TZ: ${TZ:-UTC}
+    volumes:
+      - vaultwarden_data:/data
+    ports:
+      - "127.0.0.1:${HOST_VAULTWARDEN_PORT:-8080}:80"
+
 volumes:
   postgres_data:
+  vaultwarden_data:
 
