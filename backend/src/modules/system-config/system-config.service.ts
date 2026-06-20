@@ -314,14 +314,14 @@ export class SystemConfigService {
     // 5. Vaultwarden Secret Vault Check
     let vaultwardenStatus = 'HEALTHY';
     let vaultwardenLatency = 0;
+    const vaultwardenStart = Date.now();
     try {
-      const start = Date.now();
       const vaultwardenUrl = 'http://vaultwarden:80';
       await axios.get(vaultwardenUrl + '/health', { timeout: 1000 });
-      vaultwardenLatency = Date.now() - start;
+      vaultwardenLatency = Date.now() - vaultwardenStart;
     } catch (e: any) {
       if (e.response) {
-        vaultwardenLatency = Date.now() - start;
+        vaultwardenLatency = Date.now() - vaultwardenStart;
       } else {
         vaultwardenStatus = 'OFFLINE';
       }
