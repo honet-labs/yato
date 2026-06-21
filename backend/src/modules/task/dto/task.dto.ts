@@ -64,6 +64,10 @@ export class CreateTaskDto {
   @IsString({ each: true })
   @IsOptional()
   dependencyIds?: string[];
+
+  @IsString()
+  @IsOptional()
+  parentId?: string;
 }
 
 export class UpdateTaskDto {
@@ -129,6 +133,10 @@ export class UpdateTaskDto {
   @IsString({ each: true })
   @IsOptional()
   dependencyIds?: string[];
+
+  @IsString()
+  @IsOptional()
+  parentId?: string;
 }
 
 export class CommentAttachmentDto {

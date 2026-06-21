@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { 
   LayoutDashboard, 
   Ticket,
@@ -129,6 +129,28 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
     },
     refetchInterval: 15000,
   });
+
+  const { data: sidebarProjects } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      try {
+        const response = await api.get("/pmo/projects");
+        return response.data;
+      } catch (err) {
+        return [];
+      }
+    },
+    refetchInterval: 30000,
+  });
+
+  const [pathnameQueryProjectId, setPathnameQueryProjectId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      setPathnameQueryProjectId(params.get("projectId"));
+    }
+  }, [pathname]);
 
   const notStartedTasksCount = (sidebarTasks || []).filter((t: any) => t.status === "NOT_STARTED").length || 0;
 
@@ -286,32 +308,68 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                     transition={{ duration: 0.2, ease: "easeInOut" }}
                     className="space-y-1 overflow-hidden"
                   >
-                    {section.items.map((item: any) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => onNavItemClick?.()}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group cursor-pointer",
-                          pathname === item.href 
-                            ? "bg-blue-50 text-blue-600 shadow-sm" 
-                            : "text-slate-500 hover:bg-slate-50/80 hover:text-slate-900"
-                        )}
-                      >
-                        <item.icon className={cn("w-4 h-4", pathname === item.href ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600")} />
-                        <span className="font-semibold text-[13px] tracking-tight">{t(item.label)}</span>
-                        {item.href === "/tickets" && ticketUnreadCount > 0 && (
-                          <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
-                            {ticketUnreadCount}
-                          </span>
-                        )}
-                        {item.href === "/tasks" && notStartedTasksCount > 0 && (
-                          <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
-                            {notStartedTasksCount}
-                          </span>
-                        )}
-                      </Link>
-                    ))}
+                    {section.items.map((item: any) => {
+                      const isTaskTrackerRoot = item.href === "/tasks";
+                      const isItemActive = isTaskTrackerRoot
+                        ? (pathname === "/tasks" && !pathnameQueryProjectId)
+                        : (pathname === item.href);
+
+                      return (
+                        <div key={item.href} className="flex flex-col">
+                          <Link
+                            href={item.href}
+                            onClick={() => onNavItemClick?.()}
+                            className={cn(
+                              "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group cursor-pointer",
+                              isItemActive 
+                                ? "bg-blue-50 text-blue-600 shadow-sm" 
+                                : "text-slate-500 hover:bg-slate-50/80 hover:text-slate-900"
+                            )}
+                          >
+                            <item.icon className={cn("w-4 h-4", isItemActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600")} />
+                            <span className="font-semibold text-[13px] tracking-tight">{t(item.label)}</span>
+                            {item.href === "/tickets" && ticketUnreadCount > 0 && (
+                              <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
+                                {ticketUnreadCount}
+                              </span>
+                            )}
+                            {item.href === "/tasks" && notStartedTasksCount > 0 && (
+                              <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
+                                {notStartedTasksCount}
+                              </span>
+                            )}
+                          </Link>
+                          
+                          {isTaskTrackerRoot && sidebarProjects && sidebarProjects.length > 0 && (
+                            <div className="pl-6 mt-1.5 mb-1.5 space-y-1 border-l border-slate-100 ml-5">
+                              {sidebarProjects.map((project: any) => {
+                                const isProjectActive = pathname === "/tasks" && pathnameQueryProjectId === project.id;
+                                return (
+                                  <Link
+                                    key={project.id}
+                                    href={`/tasks?projectId=${project.id}`}
+                                    onClick={() => onNavItemClick?.()}
+                                    className={cn(
+                                      "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all cursor-pointer truncate",
+                                      isProjectActive
+                                        ? "text-blue-600 font-bold bg-blue-50/40"
+                                        : "text-slate-500 hover:bg-slate-50/50 hover:text-slate-900"
+                                    )}
+                                    title={project.name}
+                                  >
+                                    <span 
+                                      className="w-1.5 h-1.5 rounded-full shrink-0" 
+                                      style={{ backgroundColor: project.colorCode || "#4F46E5" }}
+                                    />
+                                    <span className="truncate">{project.name}</span>
+                                  </Link>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </motion.div>
                 )}
               </AnimatePresence>

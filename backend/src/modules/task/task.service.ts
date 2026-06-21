@@ -276,9 +276,10 @@ export class TaskService {
       taskType: dto.taskType || 'TASK',
       createdById: creatorId,
       checklist: dto.checklist || [],
-      templateId: dto.templateId || null,
+          templateId: dto.templateId || null,
       tags: dto.tags || [],
       projectId: dto.projectId || null,
+      parentId: dto.parentId || null,
     };
 
     if (dto.dueDate) {
@@ -428,6 +429,7 @@ export class TaskService {
     if (dto.templateId !== undefined) data.templateId = dto.templateId;
     if (dto.tags !== undefined) data.tags = dto.tags;
     if (dto.projectId !== undefined) data.projectId = dto.projectId || null;
+    if (dto.parentId !== undefined) data.parentId = dto.parentId || null;
     
     if (dto.dueDate !== undefined) {
       data.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
@@ -525,6 +527,14 @@ export class TaskService {
       },
     });
 
+    if (dto.status !== undefined) {
+      try {
+        await this.syncSubtasksStatus(id, dto.status);
+      } catch (err) {
+        // Safe catch
+      }
+    }
+
     try {
       await this.auditService.log(updaterId, 'UPDATE_TASK', 'Task', updatedTask.id, {
         dto,
@@ -591,6 +601,20 @@ export class TaskService {
       }
     }
     return deletedTask;
+  }
+
+  private async syncSubtasksStatus(taskId: string, status: string) {
+    const subtasks = await this.prisma.task.findMany({
+      where: { parentId: taskId },
+      select: { id: true },
+    });
+    for (const subtask of subtasks) {
+      await this.prisma.task.update({
+        where: { id: subtask.id },
+        data: { status },
+      });
+      await this.syncSubtasksStatus(subtask.id, status);
+    }
   }
 
   async createComment(taskId: string, dto: CreateTaskCommentDto, authorId: string) {
