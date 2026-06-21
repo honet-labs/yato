@@ -7,7 +7,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
 import api from "@/lib/api";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { 
   Plus, 
   Search, 
@@ -58,13 +58,111 @@ const PRIORITIES = [
 
 function TasksPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const taskIdParam = searchParams.get("taskId");
+  const projectIdParam = searchParams.get("projectId");
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("board" as "board" | "list");
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("ALL");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [tagFilter, setTagFilter] = useState("ALL");
+
+  // Project / Sub-tracker States & Mutations
+  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectDesc, setNewProjectDesc] = useState("");
+  const [newProjectColor, setNewProjectColor] = useState("#4F46E5");
+
+  const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState(null as string | null);
+  const [editProjectName, setEditProjectName] = useState("");
+  const [editProjectDesc, setEditProjectDesc] = useState("");
+  const [editProjectColor, setEditProjectColor] = useState("#4F46E5");
+
+  const { data: projects, isLoading: isLoadingProjects } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      const res = await api.get("/pmo/projects");
+      return res.data;
+    }
+  });
+
+  const activeProject = projects?.find((p: any) => p.id === projectIdParam) || null;
+
+  const createProjectMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await api.post("/pmo/projects", payload);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      setIsCreateProjectOpen(false);
+      setNewProjectName("");
+      setNewProjectDesc("");
+      setNewProjectColor("#4F46E5");
+      // Open the new project tracker immediately
+      router.push(`/tasks?projectId=${data.id}`);
+    }
+  });
+
+  const updateProjectMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: any }) => {
+      const res = await api.patch(`/pmo/projects/${id}`, payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      setIsEditProjectOpen(false);
+      setEditingProjectId(null);
+    }
+  });
+
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/pmo/projects/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      if (projectIdParam) {
+        router.push("/tasks");
+      }
+    }
+  });
+
+  const handleCreateProjectSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProjectName.trim()) return;
+    createProjectMutation.mutate({
+      name: newProjectName,
+      description: newProjectDesc,
+      startDate: new Date().toISOString().split("T")[0],
+      endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      status: "ACTIVE",
+      colorCode: newProjectColor
+    });
+  };
+
+  const handleUpdateProjectSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProjectId || !editProjectName.trim()) return;
+    updateProjectMutation.mutate({
+      id: editingProjectId,
+      payload: {
+        name: editProjectName,
+        description: editProjectDesc,
+        colorCode: editProjectColor
+      }
+    });
+  };
+
+  const handleDeleteProject = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this tracker? Tasks associated with this tracker will no longer have a tracker assigned.")) {
+      deleteProjectMutation.mutate(id);
+    }
+  };
   
   // Fetch dynamic task types from settings catalog
   const { data: catalogTaskTypes } = useQuery({
@@ -108,6 +206,7 @@ function TasksPageContent() {
   const [newTaskTags, setNewTaskTags] = useState([] as string[]);
   const [newTagInput, setNewTagInput] = useState("");
   const [templateTagInput, setTemplateTagInput] = useState("");
+  const [newTaskParentId, setNewTaskParentId] = useState("");
 
   // State for Task Detail Side-Drawer
   const [selectedTask, setSelectedTask] = useState(null as any | null);
@@ -118,6 +217,7 @@ function TasksPageContent() {
   const [detailType, setDetailType] = useState("");
   const [detailDueDate, setDetailDueDate] = useState("");
   const [detailAssignee, setDetailAssignee] = useState("");
+  const [detailParentId, setDetailParentId] = useState("");
   const [newCommentText, setNewCommentText] = useState("");
 
   // New Features States
@@ -135,6 +235,7 @@ function TasksPageContent() {
   const [previewImage, setPreviewImage] = useState(null as string | null);
   const [loadedTaskId, setLoadedTaskId] = useState(null as string | null);
   const [detailChecklist, setDetailChecklist] = useState([] as any[]);
+  const [expandedTaskIds, setExpandedTaskIds] = useState<Record<string, boolean>>({});
 
   const isImageFile = (filename: string, mimeType?: string) => {
     if (mimeType && mimeType.toLowerCase().startsWith('image/')) return true;
@@ -285,6 +386,7 @@ function TasksPageContent() {
         checklist: template.checklist || [],
         templateId: template.id,
         tags: template.tags || [],
+        projectId: projectIdParam || undefined
       };
       const res = await api.post("/tasks", payload);
       return res.data;
@@ -355,9 +457,11 @@ function TasksPageContent() {
       setDetailType(taskDetail.taskType);
       setDetailDueDate(taskDetail.dueDate ? taskDetail.dueDate.split("T")[0] : "");
       setDetailAssignee(taskDetail.assigneeId || "");
+      setDetailParentId(taskDetail.parentId || "");
       setLoadedTaskId(taskDetail.id);
     } else {
       setLoadedTaskId(null);
+      setDetailParentId("");
       setDetailChecklist([]);
     }
   }, [taskDetail, loadedTaskId]);
@@ -378,6 +482,7 @@ function TasksPageContent() {
       setNewTaskAssignees([]);
       setNewTaskTags([]);
       setNewTagInput("");
+      setNewTaskParentId("");
       setIsCreateOpen(false);
     }
   });
@@ -512,7 +617,9 @@ function TasksPageContent() {
       taskType: newTaskType,
       dueDate: newTaskDueDate || undefined,
       assigneeIds: newTaskAssignees,
-      tags: newTaskTags
+      tags: newTaskTags,
+      projectId: projectIdParam || undefined,
+      parentId: newTaskParentId || undefined
     });
   };
 
@@ -660,6 +767,9 @@ function TasksPageContent() {
 
   // Filtering tasks locally
   const filteredTasks = tasks?.filter((task: any) => {
+    if (projectIdParam && task.projectId !== projectIdParam) {
+      return false;
+    }
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesPriority = priorityFilter === "ALL" || task.priority === priorityFilter;
@@ -668,6 +778,132 @@ function TasksPageContent() {
     return matchesSearch && matchesPriority && matchesType && matchesTag;
   }) || [];
 
+  // Helper to find immediate subtasks of a task
+  const getSubtasksOf = (taskId: string) => {
+    return tasks?.filter((t: any) => t.parentId === taskId) || [];
+  };
+
+  // Helper to check recursively if a task or any of its descendants matches the filter
+  const taskOrDescendantMatches = (task: any): boolean => {
+    const matchesThis = filteredTasks.some((ft: any) => ft.id === task.id);
+    if (matchesThis) return true;
+    const children = getSubtasksOf(task.id);
+    return children.some((child: any) => taskOrDescendantMatches(child));
+  };
+
+  const renderTaskTreeRow = (task: any, depth = 0) => {
+    const statusObj = STATUSES.find(s => s.id === task.status);
+    const priorityObj = PRIORITIES.find(p => p.id === task.priority);
+    const subtasks = getSubtasksOf(task.id);
+    const hasChildren = subtasks.length > 0;
+    const isExpanded = !!expandedTaskIds[task.id];
+
+    // If the task itself matches the filters, show it normally. 
+    // If it doesn't match the filters itself, but a descendant matches, we render it in a semi-transparent/dimmed style so the user can navigate to the matching descendant!
+    const matchesFilters = filteredTasks.some((ft: any) => ft.id === task.id);
+    
+    return (
+      <div key={task.id} className="w-full">
+        {/* Task Row */}
+        <div 
+          onClick={() => setSelectedTask(task)}
+          className={cn(
+            "px-6 py-4 flex items-center justify-between hover:bg-slate-50/50 cursor-pointer transition-all gap-4 border-b border-slate-100/60",
+            !matchesFilters && "opacity-60 bg-slate-50/20"
+          )}
+          style={{ paddingLeft: `${depth * 24 + 24}px` }}
+        >
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            {/* Expand / Collapse Toggle if has subtasks */}
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpandedTaskIds(prev => ({ ...prev, [task.id]: !prev[task.id] }));
+                }}
+                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 transition-all shrink-0"
+              >
+                <ChevronRight className={cn("w-4.5 h-4.5 transition-transform duration-205", isExpanded && "rotate-90")} />
+              </button>
+            ) : (
+              <div className="w-6.5 h-6.5 shrink-0 flex items-center justify-center">
+                {depth > 0 && <CornerDownRight className="w-3.5 h-3.5 text-slate-300" />}
+              </div>
+            )}
+
+            <button
+              onClick={(e) => handleCheckboxToggle(task, e)}
+              className="shrink-0 transition-transform active:scale-95"
+            >
+              {task.status === "DONE" ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 fill-emerald-50" />
+              ) : (
+                <CheckSquare className="w-5 h-5 text-slate-200 hover:text-blue-500" />
+              )}
+            </button>
+
+            <div className="min-w-0">
+              <h4 className={cn("text-[12px] font-bold text-slate-800 truncate max-w-lg mb-0", task.status === "DONE" && "line-through text-slate-400")}>
+                {task.title}
+              </h4>
+              {task.description && (
+                <p className="text-[10px] text-slate-400 font-medium truncate max-w-lg mt-0.5">
+                  {task.description}
+                </p>
+              )}
+              {task.tags && task.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {task.tags.map((tag: string) => (
+                    <span key={tag} className="bg-slate-50 text-slate-500 border border-slate-200/50 px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 shrink-0">
+            {/* Task Type */}
+            <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tight">
+              {task.taskType}
+            </span>
+
+            {/* Priority */}
+            {priorityObj && (
+              <span className={cn("px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tight border", priorityObj.color)}>
+                {priorityObj.label}
+              </span>
+            )}
+
+            {/* Status */}
+            {statusObj && (
+              <span className={cn("px-2.5 py-1 rounded-lg text-[8px] font-extrabold uppercase border tracking-widest flex items-center gap-1", statusObj.color)}>
+                <span className={cn("w-1 h-1 rounded-full", statusObj.dot)} /> {statusObj.label}
+              </span>
+            )}
+
+            {/* Due Date */}
+            {task.dueDate && (
+              <div className="flex items-center gap-1 text-slate-400 text-[10px] font-bold">
+                <Calendar className="w-3.5 h-3.5" />
+                <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Render child tasks if expanded */}
+        {hasChildren && isExpanded && (
+          <div className="w-full">
+            {subtasks.filter(taskOrDescendantMatches).map(child => renderTaskTreeRow(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
       <Sidebar />
@@ -675,456 +911,551 @@ function TasksPageContent() {
         <MobileNav />
         <main className="page-container overflow-y-auto custom-scrollbar">
           <div className="w-full">
-          {/* Header Ribbon */}
-          <header className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <PageHeader title="Tasks Tracker" subtitle="Notion-Style Kanban Board" />
-            </div>
-
-            {/* View Tabs */}
-            <div className="bg-slate-100 p-0.5 rounded-xl border border-slate-200/40 flex items-center gap-0.5 self-start md:self-auto">
-              <button 
-                onClick={() => setActiveTab("board")}
-                className={cn(
-                  "px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all duration-200 active:scale-95",
-                  activeTab === "board" ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-800"
-                )}
-              >
-                <Grid className="w-3.5 h-3.5" /> By Status
-              </button>
-              <button 
-                onClick={() => setActiveTab("list")}
-                className={cn(
-                  "px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all duration-200 active:scale-95",
-                  activeTab === "list" ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-800"
-                )}
-              >
-                <List className="w-3.5 h-3.5" /> All Tasks
-              </button>
-            </div>
-          </header>
-
-          {/* Toolbar */}
-          <section className="mb-6 flex flex-wrap gap-4 items-center justify-between">
-            <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-              {/* Live Search */}
-              <div className="relative group flex-1 max-w-xs">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                <input 
-                  type="text"
-                  placeholder="Search tasks..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="input-field pl-10 w-full bg-white !py-2"
-                />
-              </div>
-
-              {/* Filter Priority */}
-              <div className="relative">
-                <select
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="input-field pr-10 w-44 appearance-none bg-white !py-2 cursor-pointer"
+          {!projectIdParam ? (
+            <div className="space-y-8">
+              <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <PageHeader title="Tasks Tracker Workspaces" subtitle="Manage multiple tracker boards to organize your tasks" />
+                </div>
+                <button
+                  onClick={() => setIsCreateProjectOpen(true)}
+                  className="btn-primary flex items-center gap-1.5 py-2 px-4 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 self-start md:self-auto"
                 >
-                  <option value="ALL">All Priorities</option>
-                  <option value="HIGH">High Priority</option>
-                  <option value="MEDIUM">Medium Priority</option>
-                  <option value="LOW">Low Priority</option>
-                </select>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-              </div>
-
-              {/* Filter Task Type */}
-              <div className="relative">
-                <select
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                  className="input-field pr-10 w-40 appearance-none bg-white !py-2 cursor-pointer"
-                >
-                  <option value="ALL">All Types</option>
-                  {TASK_TYPES.map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-              </div>
-
-              {/* Filter Tags */}
-              <div className="relative">
-                <select
-                  value={tagFilter}
-                  onChange={(e) => setTagFilter(e.target.value)}
-                  className="input-field pr-10 w-40 appearance-none bg-white !py-2 cursor-pointer"
-                >
-                  <option value="ALL">All Tags</option>
-                  {uniqueTags.map(tag => (
-                    <option key={tag} value={tag}>#{tag}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-              </div>
-            </div>
-
-            <div className="flex items-center">
-              <button 
-                onClick={() => {
-                  setPreselectedStatus("NOT_STARTED");
-                  setIsCreateOpen(true);
-                }}
-                className="btn-primary rounded-r-none border-r border-blue-600/30 flex items-center h-10"
-              >
-                <Plus className="w-4 h-4 mr-1.5" /> New Task
-              </button>
-              
-              <div className="relative group/template-dd flex h-10">
-                <button 
-                  type="button"
-                  className="btn-primary rounded-l-none px-2.5 flex items-center justify-center h-10 cursor-pointer"
-                >
-                  <ChevronDown className="w-4 h-4" />
+                  <Plus className="w-4 h-4" /> New Tracker Workspace
                 </button>
-                
-                {/* Templates Dropdown Menu */}
-                <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-slate-200/80 rounded-2xl shadow-2xl p-2.5 z-[100] opacity-0 pointer-events-none group-focus-within/template-dd:opacity-100 group-focus-within/template-dd:pointer-events-auto transition-all space-y-1.5">
-                  <div className="px-3 py-1.5 border-b border-slate-100/60 flex items-center justify-between">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Templates</span>
-                    <button 
-                      type="button"
-                      onClick={() => handleCreateTemplateStart()}
-                      className="text-[9px] font-extrabold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/50 px-2.5 py-1 rounded-lg uppercase transition-all duration-200 active:scale-95 cursor-pointer"
-                    >
-                      + New Template
-                    </button>
+              </header>
+
+              {/* Workspaces Grid */}
+              {isLoadingProjects ? (
+                <div className="flex flex-col items-center justify-center py-32 gap-3">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading workspaces...</span>
+                </div>
+              ) : !projects || projects.length === 0 ? (
+                <div className="glass-card flex flex-col items-center justify-center py-24 text-center border-dashed border-2 border-slate-200/80">
+                  <div className="w-16 h-16 rounded-2xl bg-blue-50/50 flex items-center justify-center mb-4 text-blue-600">
+                    <CheckSquare className="w-8 h-8" />
                   </div>
-                  
-                  <div className="max-h-48 overflow-y-auto custom-scrollbar py-1 space-y-1">
-                    {!templates || templates.length === 0 ? (
-                      <div className="text-center py-5 text-slate-400 text-[10px] font-semibold uppercase tracking-wider">
-                        No templates found
-                      </div>
-                    ) : (
-                      templates.map((t: any) => (
-                        <div key={t.id} className="flex items-center justify-between hover:bg-slate-50/70 rounded-xl px-2.5 py-1.5 group/item transition-all duration-150">
-                          <button
-                            type="button"
-                            onClick={() => handleUseTemplate(t)}
-                            className="flex-1 text-left text-[11px] font-bold text-slate-700 hover:text-blue-600 transition-colors truncate pr-2 cursor-pointer"
-                          >
-                            <span className="bg-amber-100/60 text-amber-800 text-[8px] font-black uppercase tracking-tight px-1.5 py-0.5 rounded mr-2 border border-amber-200/40">
-                              Blueprint
-                            </span>
-                            {t.templateName}
-                          </button>
-                          
-                          <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                            <button
-                              type="button"
-                              onClick={() => handleEditTemplateStart(t)}
-                              className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-                              title="Edit Template Blueprint"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteTemplate(t.id)}
-                              className="p-1 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
-                              title="Delete Template Blueprint"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                  <h3 className="text-sm font-bold text-slate-800 mb-1">Create Your First Tracker Workspace</h3>
+                  <p className="text-xs text-slate-400 max-w-sm mb-6 leading-relaxed">
+                    Trackers let you organize separate todo lists or boards for different projects or activities, like Notion.
+                  </p>
+                  <button
+                    onClick={() => setIsCreateProjectOpen(true)}
+                    className="btn-primary flex items-center gap-1.5 py-2 px-4 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95"
+                  >
+                    <Plus className="w-4 h-4" /> Create Tracker
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {projects.map((project: any) => {
+                    const totalTasks = project.tasks?.length || 0;
+                    const completedTasks = project.tasks?.filter((t: any) => t.status === "DONE").length || 0;
+                    const percentComplete = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+                    return (
+                      <div
+                        key={project.id}
+                        onClick={() => router.push(`/tasks?projectId=${project.id}`)}
+                        className="group relative flex flex-col justify-between bg-white border border-slate-100 hover:border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 min-h-[160px]"
+                      >
+                        {/* Top Indicator Line */}
+                        <div 
+                          className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl" 
+                          style={{ backgroundColor: project.colorCode || "#4F46E5" }}
+                        />
+
+                        <div className="pl-2.5 flex-1 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <h3 className="text-sm font-bold text-slate-800 mb-0 group-hover:text-blue-600 transition-colors truncate">
+                                {project.name}
+                              </h3>
+                              
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingProjectId(project.id);
+                                    setEditProjectName(project.name);
+                                    setEditProjectDesc(project.description || "");
+                                    setEditProjectColor(project.colorCode || "#4F46E5");
+                                    setIsEditProjectOpen(true);
+                                  }}
+                                  className="p-1 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-slate-700 transition-colors"
+                                  title="Rename Workspace"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => handleDeleteProject(project.id, e)}
+                                  className="p-1 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
+                                  title="Delete Workspace"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4">
+                              {project.description || "No description provided."}
+                            </p>
+                          </div>
+
+                          <div className="space-y-2 mt-auto">
+                            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              <span>Tasks: {completedTasks}/{totalTasks}</span>
+                              <span>{percentComplete}%</span>
+                            </div>
+                            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                              <div 
+                                className="h-full bg-blue-600 rounded-full transition-all duration-300"
+                                style={{ 
+                                  width: `${percentComplete}%`,
+                                  backgroundColor: project.colorCode || "#4F46E5"
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
-                      ))
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="w-full">
+              {/* Header Ribbon */}
+              <header className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <button onClick={() => router.push("/tasks")} className="hover:text-blue-600 transition-colors">
+                      Workspaces
+                    </button>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                    <span style={{ color: activeProject?.colorCode || "#4F46E5" }}>
+                      {activeProject?.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-xl font-bold text-slate-900 tracking-tight mb-0">
+                      {activeProject?.name}
+                    </h1>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => {
+                          if (activeProject) {
+                            setEditingProjectId(activeProject.id);
+                            setEditProjectName(activeProject.name);
+                            setEditProjectDesc(activeProject.description || "");
+                            setEditProjectColor(activeProject.colorCode || "#4F46E5");
+                            setIsEditProjectOpen(true);
+                          }
+                        }}
+                        className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors"
+                        title="Rename Tracker"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => activeProject && handleDeleteProject(activeProject.id, e)}
+                        className="p-1 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
+                        title="Delete Tracker"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium">{activeProject?.description || "No description provided."}</p>
+                </div>
+
+                {/* View Tabs */}
+                <div className="bg-slate-100 p-0.5 rounded-xl border border-slate-200/40 flex items-center gap-0.5 self-start md:self-auto">
+                  <button 
+                    onClick={() => setActiveTab("board")}
+                    className={cn(
+                      "px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all duration-200 active:scale-95",
+                      activeTab === "board" ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-800"
                     )}
+                  >
+                    <Grid className="w-3.5 h-3.5" /> By Status
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab("list")}
+                    className={cn(
+                      "px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all duration-200 active:scale-95",
+                      activeTab === "list" ? "bg-white text-slate-800 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-slate-800"
+                    )}
+                  >
+                    <List className="w-3.5 h-3.5" /> All Tasks
+                  </button>
+                </div>
+              </header>
+
+              {/* Toolbar */}
+              <section className="mb-6 flex flex-wrap gap-4 items-center justify-between">
+                <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+                  {/* Live Search */}
+                  <div className="relative group flex-1 max-w-xs">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                    <input 
+                      type="text" 
+                      placeholder="Search tasks..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="input-field pl-10 w-full bg-white !py-2"
+                    />
+                  </div>
+
+                  {/* Filter Priority */}
+                  <div className="relative">
+                    <select
+                      value={priorityFilter}
+                      onChange={(e) => setPriorityFilter(e.target.value)}
+                      className="input-field pr-10 w-44 appearance-none bg-white !py-2 cursor-pointer"
+                    >
+                      <option value="ALL">All Priorities</option>
+                      <option value="HIGH">High Priority</option>
+                      <option value="MEDIUM">Medium Priority</option>
+                      <option value="LOW">Low Priority</option>
+                    </select>
+                    <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                  </div>
+
+                  {/* Filter Task Type */}
+                  <div className="relative">
+                    <select
+                      value={typeFilter}
+                      onChange={(e) => setTypeFilter(e.target.value)}
+                      className="input-field pr-10 w-40 appearance-none bg-white !py-2 cursor-pointer"
+                    >
+                      <option value="ALL">All Types</option>
+                      {TASK_TYPES.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                  </div>
+
+                  {/* Filter Tags */}
+                  <div className="relative">
+                    <select
+                      value={tagFilter}
+                      onChange={(e) => setTagFilter(e.target.value)}
+                      className="input-field pr-10 w-40 appearance-none bg-white !py-2 cursor-pointer"
+                    >
+                      <option value="ALL">All Tags</option>
+                      {uniqueTags.map(tag => (
+                        <option key={tag} value={tag}>#{tag}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                   </div>
                 </div>
-              </div>
-            </div>
-          </section>
 
-          {/* Content Area */}
-          <div className="w-full">
-            {isLoadingTasks ? (
-              <div className="flex flex-col items-center justify-center py-32 gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading tasks vault...</span>
-              </div>
-            ) : activeTab === "board" ? (
-              /* ==================== KANBAN BOARD VIEW ==================== */
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
-                {STATUSES.map((col) => {
-                  const columnTasks = filteredTasks.filter(t => t.status === col.id);
-                  return (
-                    <div key={col.id} className="flex flex-col max-h-[75vh]">
-                      {/* Column Header */}
-                      <div className="flex items-center justify-between mb-4 px-2">
-                        <div className="flex items-center gap-2">
-                          <span className={cn("px-2.5 py-1 rounded-lg text-[9px] font-extrabold uppercase border tracking-widest flex items-center gap-1.5", col.color)}>
-                            <span className={cn("w-1.5 h-1.5 rounded-full", col.dot)} /> {col.label}
-                          </span>
-                          <span className="text-[10px] font-extrabold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">{columnTasks.length}</span>
-                        </div>
+                <div className="flex items-center">
+                  <button 
+                    onClick={() => {
+                      setPreselectedStatus("NOT_STARTED");
+                      setIsCreateOpen(true);
+                    }}
+                    className="btn-primary rounded-r-none border-r border-blue-600/30 flex items-center h-10"
+                  >
+                    <Plus className="w-4 h-4 mr-1.5" /> New Task
+                  </button>
+                  
+                  <div className="relative group/template-dd flex h-10">
+                    <button 
+                      type="button"
+                      className="btn-primary rounded-l-none px-2.5 flex items-center justify-center h-10 cursor-pointer"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                    
+                    {/* Templates Dropdown Menu */}
+                    <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-slate-200/80 rounded-2xl shadow-2xl p-2.5 z-[100] opacity-0 pointer-events-none group-focus-within/template-dd:opacity-100 group-focus-within/template-dd:pointer-events-auto transition-all space-y-1.5">
+                      <div className="px-3 py-1.5 border-b border-slate-100/60 flex items-center justify-between">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Templates</span>
                         <button 
-                          onClick={() => {
-                            setPreselectedStatus(col.id);
-                            setIsCreateOpen(true);
-                          }}
-                          className="p-1 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+                          type="button"
+                          onClick={() => handleCreateTemplateStart()}
+                          className="text-[9px] font-extrabold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/50 px-2.5 py-1 rounded-lg uppercase transition-all duration-200 active:scale-95 cursor-pointer"
                         >
-                          <Plus className="w-4 h-4" />
+                          + New Template
                         </button>
                       </div>
-
-                      {/* Cards Container */}
-                      <div 
-                        onDragOver={(e) => handleDragOver(e, col.id)}
-                        onDragLeave={handleDragLeave}
-                        onDrop={(e) => handleDrop(e, col.id)}
-                        className={cn(
-                          "space-y-4 overflow-y-auto custom-scrollbar flex-1 pb-10 min-h-[150px] transition-all duration-200 rounded-2xl px-1",
-                          draggedOverColumn === col.id ? "bg-blue-50/40 ring-2 ring-dashed ring-blue-300 shadow-inner scale-[0.99]" : "bg-transparent"
-                        )}
-                      >
-                        {columnTasks.length === 0 ? (
-                          <div className="border border-dashed border-slate-200 rounded-2xl p-6 text-center bg-white/20">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">No tasks</span>
+                      
+                      <div className="max-h-48 overflow-y-auto custom-scrollbar py-1 space-y-1">
+                        {!templates || templates.length === 0 ? (
+                          <div className="text-center py-5 text-slate-400 text-[10px] font-semibold uppercase tracking-wider">
+                            No templates found
                           </div>
                         ) : (
-                          columnTasks.map((task) => {
-                            const priorityObj = PRIORITIES.find(p => p.id === task.priority);
-                            return (
-                                <motion.div
-                                  layoutId={task.id}
-                                  key={task.id}
-                                  draggable={true}
-                                  onDragStart={(e: any) => handleDragStart(e, task.id)}
-                                  onDragEnd={handleDragEnd as any}
-                                  onClick={() => setSelectedTask(task)}
-                                className={cn(
-                                  "p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md hover:border-slate-200 cursor-pointer transition-all relative group flex flex-col gap-3",
-                                  activeDragId === task.id ? "opacity-30 border-dashed border-blue-300 shadow-none scale-[0.98]" : "opacity-100"
-                                )}
-                                whileHover={{ y: -2 }}
+                          templates.map((t: any) => (
+                            <div key={t.id} className="flex items-center justify-between hover:bg-slate-50/70 rounded-xl px-2.5 py-1.5 group/item transition-all duration-150">
+                              <button
+                                type="button"
+                                onClick={() => handleUseTemplate(t)}
+                                className="flex-1 text-left text-[11px] font-bold text-slate-700 hover:text-blue-600 transition-colors truncate pr-2 cursor-pointer"
                               >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="flex items-start gap-2.5 min-w-0">
-                                    <button
-                                      onClick={(e) => handleCheckboxToggle(task, e)}
-                                      className="mt-0.5 shrink-0 transition-transform active:scale-95 text-slate-300 hover:text-blue-500"
-                                    >
-                                      {task.status === "DONE" ? (
-                                        <CheckCircle2 className="w-4.5 h-4.5 text-emerald-500 fill-emerald-50" />
-                                      ) : (
-                                        <CheckSquare className="w-4.5 h-4.5 text-slate-200 hover:border-blue-400" />
-                                      )}
-                                    </button>
-                                    <h3 className={cn("text-[11px] font-bold text-slate-800 leading-snug break-words mb-0", task.status === "DONE" && "line-through text-slate-400")}>
-                                      {task.title}
-                                    </h3>
-                                  </div>
-                                </div>
+                                <span className="bg-amber-100/60 text-amber-800 text-[8px] font-black uppercase tracking-tight px-1.5 py-0.5 rounded mr-2 border border-amber-200/40">
+                                  Blueprint
+                                </span>
+                                {t.templateName}
+                              </button>
+                              
+                              <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditTemplateStart(t)}
+                                  className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                                  title="Edit Template Blueprint"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTemplate(t.id)}
+                                  className="p-1 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+                                  title="Delete Template Blueprint"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
 
-                                {task.description && (
-                                  <p className="text-[10px] font-medium text-slate-400 line-clamp-2 leading-relaxed">
-                                    {task.description}
-                                  </p>
-                                )}
+              {/* Content Area */}
+              <div className="w-full">
+                {isLoadingTasks ? (
+                  <div className="flex flex-col items-center justify-center py-32 gap-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading tasks vault...</span>
+                  </div>
+                ) : activeTab === "board" ? (
+                  /* ==================== KANBAN BOARD VIEW ==================== */
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+                    {STATUSES.map((col) => {
+                      const columnTasks = filteredTasks.filter(t => t.status === col.id && (!t.parentId || !tasks?.some((pt: any) => pt.id === t.parentId)));
+                      return (
+                        <div key={col.id} className="flex flex-col max-h-[75vh]">
+                          {/* Column Header */}
+                          <div className="flex items-center justify-between mb-4 px-2">
+                            <div className="flex items-center gap-2">
+                              <span className={cn("px-2.5 py-1 rounded-lg text-[9px] font-extrabold uppercase border tracking-widest flex items-center gap-1.5", col.color)}>
+                                <span className={cn("w-1.5 h-1.5 rounded-full", col.dot)} /> {col.label}
+                              </span>
+                              <span className="text-[10px] font-extrabold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">{columnTasks.length}</span>
+                            </div>
+                            <button 
+                              onClick={() => {
+                                setPreselectedStatus(col.id);
+                                setIsCreateOpen(true);
+                              }}
+                              className="p-1 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
 
-                                {task.tags && task.tags.length > 0 && (
-                                  <div className="flex flex-wrap gap-1">
-                                    {task.tags.map((tag: string) => (
-                                      <span key={tag} className="bg-slate-50 text-slate-500 border border-slate-200/50 px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide">
-                                        #{tag}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
+                          {/* Cards Container */}
+                          <div 
+                            onDragOver={(e) => handleDragOver(e, col.id)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => handleDrop(e, col.id)}
+                            className={cn(
+                              "space-y-4 overflow-y-auto custom-scrollbar flex-1 pb-10 min-h-[150px] transition-all duration-200 rounded-2xl px-1",
+                              draggedOverColumn === col.id ? "bg-blue-50/40 ring-2 ring-dashed ring-blue-300 shadow-inner scale-[0.99]" : "bg-transparent"
+                            )}
+                          >
+                            {columnTasks.length === 0 ? (
+                              <div className="border border-dashed border-slate-200 rounded-2xl p-6 text-center bg-white/20">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">No tasks</span>
+                              </div>
+                            ) : (
+                              columnTasks.map((task) => {
+                                const priorityObj = PRIORITIES.find(p => p.id === task.priority);
+                                return (
+                                    <motion.div
+                                      layoutId={task.id}
+                                      key={task.id}
+                                      draggable={true}
+                                      onDragStart={(e: any) => handleDragStart(e, task.id)}
+                                      onDragEnd={handleDragEnd as any}
+                                      onClick={() => setSelectedTask(task)}
+                                    className={cn(
+                                      "p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md hover:border-slate-200 cursor-pointer transition-all relative group flex flex-col gap-3",
+                                      activeDragId === task.id ? "opacity-30 border-dashed border-blue-300 shadow-none scale-[0.98]" : "opacity-100"
+                                    )}
+                                    whileHover={{ y: -2 }}
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="flex items-start gap-2.5 min-w-0">
+                                        <button
+                                          onClick={(e) => handleCheckboxToggle(task, e)}
+                                          className="mt-0.5 shrink-0 transition-transform active:scale-95 text-slate-300 hover:text-blue-500"
+                                        >
+                                          {task.status === "DONE" ? (
+                                            <CheckCircle2 className="w-4.5 h-4.5 text-emerald-500 fill-emerald-50" />
+                                          ) : (
+                                            <CheckSquare className="w-4.5 h-4.5 text-slate-200 hover:border-blue-400" />
+                                          )}
+                                        </button>
+                                        <h3 className={cn("text-[11px] font-bold text-slate-800 leading-snug break-words mb-0", task.status === "DONE" && "line-through text-slate-400")}>
+                                          {task.title}
+                                        </h3>
+                                      </div>
+                                    </div>
 
-                                {/* Footer details */}
-                                <div className="flex items-center justify-between border-t border-slate-50 pt-3 mt-1 gap-2">
-                                  <div className="flex flex-wrap items-center gap-1.5">
-                                    {priorityObj && (
-                                      <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tight border", priorityObj.color)}>
-                                        {priorityObj.label}
-                                      </span>
+                                    {task.description && (
+                                      <p className="text-[10px] font-medium text-slate-400 line-clamp-2 leading-relaxed">
+                                        {task.description}
+                                      </p>
                                     )}
 
-                                    <span className="bg-blue-50/50 text-blue-600 border border-blue-100/30 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tight">
-                                      {task.taskType}
-                                    </span>
-                                  </div>
+                                    {/* Subtasks progress & list indicator */}
+                                    {(() => {
+                                      const children = getSubtasksOf(task.id);
+                                      if (children.length === 0) return null;
+                                      const completedChildren = children.filter(c => c.status === "DONE").length;
+                                      const percent = Math.round((completedChildren / children.length) * 100);
+                                      return (
+                                        <div className="space-y-1.5 pt-1">
+                                          <div className="flex items-center justify-between text-[9px] font-bold text-slate-400">
+                                            <span className="flex items-center gap-1"><CornerDownRight className="w-3 h-3 text-slate-350" /> Sub-tasks ({completedChildren}/{children.length})</span>
+                                            <span>{percent}%</span>
+                                          </div>
+                                          <div className="w-full bg-slate-100 rounded-full h-1">
+                                            <div className="bg-blue-600 h-1 rounded-full" style={{ width: `${percent}%` }} />
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
 
-                                  <div className="flex items-center gap-3 shrink-0">
-                                    {task._count?.comments > 0 && (
-                                      <div className="flex items-center gap-1 text-slate-400">
-                                        <MessageSquare className="w-3.5 h-3.5" />
-                                        <span className="text-[9px] font-black">{task._count.comments}</span>
+                                    {task.tags && task.tags.length > 0 && (
+                                      <div className="flex flex-wrap gap-1">
+                                        {task.tags.map((tag: string) => (
+                                          <span key={tag} className="bg-slate-50 text-slate-500 border border-slate-200/50 px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide">
+                                            #{tag}
+                                          </span>
+                                        ))}
                                       </div>
                                     )}
 
-                                    {task.assignees && task.assignees.length > 0 ? (
-                                      <div className="flex items-center -space-x-1.5 overflow-hidden">
-                                        {task.assignees.slice(0, 3).map((a: any) => (
-                                          <div 
-                                            key={a.id}
-                                            className="w-5.5 h-5.5 rounded-full bg-blue-100 flex items-center justify-center text-[9px] font-black text-blue-600 border border-white shadow-sm ring-1 ring-blue-200"
-                                            title={`Assigned to ${a.fullName}`}
-                                          >
-                                            {a.fullName.charAt(0).toUpperCase()}
+                                    {/* Footer details */}
+                                    <div className="flex items-center justify-between border-t border-slate-50 pt-3 mt-1 gap-2">
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        {priorityObj && (
+                                          <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tight border", priorityObj.color)}>
+                                            {priorityObj.label}
+                                          </span>
+                                        )}
+
+                                        <span className="bg-blue-50/50 text-blue-600 border border-blue-100/30 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tight">
+                                          {task.taskType}
+                                        </span>
+                                      </div>
+
+                                      <div className="flex items-center gap-3 shrink-0">
+                                        {task._count?.comments > 0 && (
+                                          <div className="flex items-center gap-1 text-slate-400">
+                                            <MessageSquare className="w-3.5 h-3.5" />
+                                            <span className="text-[9px] font-black">{task._count.comments}</span>
                                           </div>
-                                        ))}
-                                        {task.assignees.length > 3 && (
-                                          <div className="w-5.5 h-5.5 rounded-full bg-slate-200 border border-white flex items-center justify-center text-[8px] font-bold text-slate-600 shadow-sm">
-                                            +{task.assignees.length - 3}
+                                        )}
+
+                                        {task.assignees && task.assignees.length > 0 ? (
+                                          <div className="flex items-center -space-x-1.5 overflow-hidden">
+                                            {task.assignees.slice(0, 3).map((a: any) => (
+                                              <div 
+                                                key={a.id}
+                                                className="w-5.5 h-5.5 rounded-full bg-blue-100 flex items-center justify-center text-[9px] font-black text-blue-600 border border-white shadow-sm ring-1 ring-blue-200"
+                                                title={`Assigned to ${a.fullName}`}
+                                              >
+                                                {a.fullName.charAt(0).toUpperCase()}
+                                              </div>
+                                            ))}
+                                            {task.assignees.length > 3 && (
+                                              <div className="w-5.5 h-5.5 rounded-full bg-slate-200 border border-white flex items-center justify-center text-[8px] font-bold text-slate-600 shadow-sm">
+                                                +{task.assignees.length - 3}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <div className="w-5.5 h-5.5 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400">
+                                            <User className="w-2.5 h-2.5" />
                                           </div>
                                         )}
                                       </div>
-                                    ) : (
-                                      <div className="w-5.5 h-5.5 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400">
-                                        <User className="w-2.5 h-2.5" />
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </motion.div>
-                            );
-                          })
-                        )}
+                                    </div>
+                                  </motion.div>
+                                );
+                              })
+                            )}
 
-                        <button 
-                          onClick={() => {
-                            setPreselectedStatus(col.id);
-                            setIsCreateOpen(true);
-                          }}
-                          className="w-full py-2.5 border border-dashed border-slate-200 hover:border-blue-300 rounded-xl flex items-center justify-center gap-1.5 text-[9px] font-extrabold text-slate-400 uppercase tracking-widest hover:text-blue-600 hover:bg-blue-50/10 transition-all duration-200"
-                        >
-                          <Plus className="w-3.5 h-3.5" /> Add card
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              /* ==================== LIST / CHECKLIST VIEW ==================== */
-              <div className="glass-card !p-0 overflow-hidden ring-1 ring-slate-200/60 shadow-xl shadow-slate-200/10">
-                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Task Ledger</span>
-                  <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200/60 px-3 py-1 rounded-full">{filteredTasks.length} total tasks</span>
-                </div>
-                <div className="divide-y divide-slate-100">
-                  {filteredTasks.length === 0 ? (
-                    <div className="p-12 text-center text-slate-400">
-                      <CheckSquare className="w-8 h-8 mx-auto mb-3 text-slate-200" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">No tasks matching search filters</span>
-                    </div>
-                  ) : (
-                    filteredTasks.map((task) => {
-                      const statusObj = STATUSES.find(s => s.id === task.status);
-                      const priorityObj = PRIORITIES.find(p => p.id === task.priority);
-                      return (
-                        <div 
-                          key={task.id}
-                          onClick={() => setSelectedTask(task)}
-                          className="px-6 py-4 flex items-center justify-between hover:bg-slate-50/50 cursor-pointer transition-all gap-4"
-                        >
-                          <div className="flex items-center gap-4 min-w-0 flex-1">
-                            <button
-                              onClick={(e) => handleCheckboxToggle(task, e)}
-                              className="shrink-0 transition-transform active:scale-95"
+                            <button 
+                              onClick={() => {
+                                setPreselectedStatus(col.id);
+                                setIsCreateOpen(true);
+                              }}
+                              className="w-full py-2.5 border border-dashed border-slate-200 hover:border-blue-300 rounded-xl flex items-center justify-center gap-1.5 text-[9px] font-extrabold text-slate-400 uppercase tracking-widest hover:text-blue-600 hover:bg-blue-50/10 transition-all duration-200"
                             >
-                              {task.status === "DONE" ? (
-                                <CheckCircle2 className="w-5 h-5 text-emerald-500 fill-emerald-50" />
-                              ) : (
-                                <CheckSquare className="w-5 h-5 text-slate-200 hover:text-blue-500" />
-                              )}
+                              <Plus className="w-3.5 h-3.5" /> Add card
                             </button>
-
-                            <div className="min-w-0">
-                              <h4 className={cn("text-[12px] font-bold text-slate-800 truncate max-w-lg mb-0", task.status === "DONE" && "line-through text-slate-400")}>
-                                {task.title}
-                              </h4>
-                              {task.description && (
-                                <p className="text-[10px] text-slate-400 font-medium truncate max-w-lg mt-0.5">
-                                  {task.description}
-                                </p>
-                              )}
-                              {task.tags && task.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {task.tags.map((tag: string) => (
-                                    <span key={tag} className="bg-slate-50 text-slate-500 border border-slate-200/50 px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide">
-                                      #{tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-4 shrink-0">
-                            {/* Task Type */}
-                            <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tight">
-                              {task.taskType}
-                            </span>
-
-                            {/* Priority */}
-                            {priorityObj && (
-                              <span className={cn("px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tight border", priorityObj.color)}>
-                                {priorityObj.label}
-                              </span>
-                            )}
-
-                            {/* Status */}
-                            {statusObj && (
-                              <span className={cn("px-2.5 py-1 rounded-lg text-[8px] font-extrabold uppercase border tracking-widest flex items-center gap-1", statusObj.color)}>
-                                <span className={cn("w-1 h-1 rounded-full", statusObj.dot)} /> {statusObj.label}
-                              </span>
-                            )}
-
-                            {/* Due Date */}
-                            {task.dueDate && (
-                              <div className="flex items-center gap-1 text-slate-400 text-[10px] font-bold">
-                                <Calendar className="w-3.5 h-3.5" />
-                                <span>{new Date(task.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
-                              </div>
-                            )}
-
-                            {/* Assignee Avatar */}
-                            {task.assignees && task.assignees.length > 0 ? (
-                              <div className="flex items-center -space-x-1.5 overflow-hidden">
-                                {task.assignees.slice(0, 3).map((a: any) => (
-                                  <div 
-                                    key={a.id}
-                                    className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-black text-blue-600 border border-white shadow-sm ring-1 ring-blue-200"
-                                    title={`Assigned to ${a.fullName}`}
-                                  >
-                                    {a.fullName.charAt(0).toUpperCase()}
-                                  </div>
-                                ))}
-                                {task.assignees.length > 3 && (
-                                  <div className="w-6 h-6 rounded-full bg-slate-200 border border-white flex items-center justify-center text-[9px] font-bold text-slate-600 shadow-sm">
-                                    +{task.assignees.length - 3}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="w-6 h-6 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400">
-                                <User className="w-3 h-3" />
-                              </div>
-                            )}
-
-                            <ChevronRight className="w-4 h-4 text-slate-300" />
                           </div>
                         </div>
                       );
-                    })
-                  )}
-                </div>
+                    })}
+                  </div>
+                ) : (
+                  /* ==================== LIST / CHECKLIST VIEW ==================== */
+                  <div className="glass-card !p-0 overflow-hidden ring-1 ring-slate-200/60 shadow-xl shadow-slate-200/10">
+                    <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Task Ledger</span>
+                      <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200/60 px-3 py-1 rounded-full">{filteredTasks.length} total tasks</span>
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                      {filteredTasks.length === 0 ? (
+                        <div className="p-12 text-center text-slate-400">
+                          <CheckSquare className="w-8 h-8 mx-auto mb-3 text-slate-200" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest">No tasks matching search filters</span>
+                        </div>
+                      ) : (
+                        (() => {
+                          const rootTasks = tasks?.filter((t: any) => {
+                            if (projectIdParam && t.projectId !== projectIdParam) return false;
+                            if (!t.parentId) return true;
+                            return !tasks.some((pt: any) => pt.id === t.parentId);
+                          }) || [];
+
+                          const visibleRoots = rootTasks.filter(taskOrDescendantMatches);
+
+                          if (visibleRoots.length === 0) {
+                            return (
+                              <div className="p-12 text-center text-slate-400">
+                                <CheckSquare className="w-8 h-8 mx-auto mb-3 text-slate-200" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest">No matching tasks found in hierarchy</span>
+                              </div>
+                            );
+                          }
+
+                          return visibleRoots.map(rootTask => renderTaskTreeRow(rootTask, 0));
+                        })()
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          )}
 
         {/* ==================== CREATE TASK MODAL ==================== */}
         <AnimatePresence>
@@ -1257,6 +1588,24 @@ function TasksPageContent() {
                           })}
                         </div>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Parent Task Selector */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Parent Task</label>
+                    <div className="relative">
+                      <select 
+                        value={newTaskParentId}
+                        onChange={(e) => setNewTaskParentId(e.target.value)}
+                        className="input-field pr-10 w-full bg-white cursor-pointer appearance-none"
+                      >
+                        <option value="">None (Root Task)</option>
+                        {tasks?.filter((t: any) => !t.parentId && (!projectIdParam || t.projectId === projectIdParam)).map((t: any) => (
+                          <option key={t.id} value={t.id}>{t.title}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                     </div>
                   </div>
 
@@ -1666,11 +2015,27 @@ function TasksPageContent() {
                   drawerWidth === "normal" ? "w-full max-w-2xl" : drawerWidth === "wide" ? "w-full max-w-5xl" : "w-full max-w-full"
                 )}
               >
-                {/* Drawer Header */}
-                <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-extrabold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100/50 uppercase tracking-widest">Task Details</span>
-                  </div>
+                 {/* Drawer Header */}
+                 <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+                   <div className="flex items-center gap-2">
+                     <span className="text-[10px] font-extrabold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100/50 uppercase tracking-widest">Task Details</span>
+                     {taskDetail?.parentId && (() => {
+                       const parentTask = tasks?.find((t: any) => t.id === taskDetail.parentId);
+                       if (!parentTask) return null;
+                       return (
+                         <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400">
+                           <span>/</span>
+                           <button 
+                             onClick={() => setSelectedTask(parentTask)}
+                             className="hover:text-blue-600 hover:underline truncate max-w-[150px]"
+                             title={`Go to parent: ${parentTask.title}`}
+                           >
+                             {parentTask.title}
+                           </button>
+                         </div>
+                       );
+                     })()}
+                   </div>
                   <div className="flex items-center gap-3">
                     {/* Copy Share Link */}
                     <button 
@@ -1993,6 +2358,27 @@ function TasksPageContent() {
                       </div>
                     </div>
 
+                    {/* Parent Task Input */}
+                    <div className="grid grid-cols-3 items-center gap-4">
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><CornerDownRight className="w-3.5 h-3.5" /> Parent Task</span>
+                      <div className="col-span-2 relative">
+                        <select 
+                          value={detailParentId}
+                          onChange={(e) => {
+                            setDetailParentId(e.target.value);
+                            handleFieldUpdate("parentId", e.target.value || null);
+                          }}
+                          className="input-field pr-10 w-full bg-white cursor-pointer appearance-none !py-2"
+                        >
+                          <option value="">None (Root Task)</option>
+                          {tasks?.filter((t: any) => t.id !== taskDetail.id && !t.parentId && (!projectIdParam || t.projectId === projectIdParam)).map((t: any) => (
+                            <option key={t.id} value={t.id}>{t.title}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                      </div>
+                    </div>
+
                     {/* Template Blueprint (If exists) */}
                     {taskDetail?.templateId && (
                       <div className="grid grid-cols-3 items-center gap-4 border-t border-slate-100/60 pt-3">
@@ -2113,6 +2499,99 @@ function TasksPageContent() {
                       >
                         <Plus className="w-3.5 h-3.5" /> Add checklist item
                       </button>
+                    </div>
+                  </div>
+
+                  {/* Sub-tasks Hierarchy */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                      <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Sub-tasks Hierarchy</label>
+                      {tasks && taskDetail && (
+                        <span className="text-[9px] font-extrabold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          {tasks.filter((t: any) => t.parentId === taskDetail.id).length} Sub-tasks
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      {tasks?.filter((t: any) => t.parentId === taskDetail.id).map((subtask: any) => {
+                        const statusObj = STATUSES.find(s => s.id === subtask.status);
+                        const priorityObj = PRIORITIES.find(p => p.id === subtask.priority);
+                        return (
+                          <div 
+                            key={subtask.id} 
+                            onClick={() => setSelectedTask(subtask)}
+                            className="flex items-center justify-between gap-3 bg-slate-50/50 hover:bg-slate-100 border border-slate-100/50 p-2.5 rounded-xl transition-all cursor-pointer group/sub"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <CornerDownRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className={cn("text-[11px] font-bold text-slate-800 truncate", subtask.status === "DONE" && "line-through text-slate-400")}>
+                                {subtask.title}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 shrink-0">
+                              {statusObj && (
+                                <span className={cn("px-1.5 py-0.5 rounded-md text-[8px] font-extrabold uppercase border tracking-tight", statusObj.color)}>
+                                  {statusObj.label}
+                                </span>
+                              )}
+                              {priorityObj && (
+                                <span className={cn("px-1.5 py-0.5 rounded-md text-[8px] font-extrabold uppercase border tracking-tight", priorityObj.color)}>
+                                  {priorityObj.label}
+                                </span>
+                              )}
+                              
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm("Are you sure you want to delete this sub-task?")) {
+                                    deleteTaskMutation.mutate(subtask.id);
+                                  }
+                                }}
+                                className="opacity-0 group-hover/sub:opacity-100 p-1 hover:bg-red-50 hover:text-red-500 rounded-lg text-slate-350 transition-all"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Quick inline subtask creator */}
+                      {taskDetail && (
+                        <form 
+                          onSubmit={(e: any) => {
+                            e.preventDefault();
+                            const val = e.target.elements.subtaskTitle.value.trim();
+                            if (!val) return;
+                            createTaskMutation.mutate({
+                              title: val,
+                              status: "NOT_STARTED",
+                              priority: "MEDIUM",
+                              taskType: "TASK",
+                              projectId: taskDetail.projectId || undefined,
+                              parentId: taskDetail.id
+                            });
+                            e.target.reset();
+                          }}
+                          className="flex gap-2"
+                        >
+                          <input
+                            type="text"
+                            name="subtaskTitle"
+                            placeholder="Add a new sub-task..."
+                            className="input-field flex-1 text-[11px] font-medium !py-2 bg-slate-50/30 focus:bg-white"
+                          />
+                          <button
+                            type="submit"
+                            className="btn-primary py-2 px-4 rounded-xl text-[10px] font-bold transition-all shrink-0"
+                          >
+                            Add
+                          </button>
+                        </form>
+                      )}
                     </div>
                   </div>
 
@@ -2589,6 +3068,178 @@ function TasksPageContent() {
                     <Download className="w-4 h-4" /> Download Original
                   </a>
                 </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* ==================== CREATE PROJECT MODAL ==================== */}
+        <AnimatePresence>
+          {isCreateProjectOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-sm">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-2xl w-full max-w-md border border-slate-100 shadow-2xl overflow-hidden animate-none"
+              >
+                <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-blue-600 animate-none" />
+                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Create New Tracker Workspace</span>
+                  </div>
+                  <button 
+                    onClick={() => setIsCreateProjectOpen(false)}
+                    className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-900 transition-all cursor-pointer animate-none"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateProjectSubmit} className="p-6 space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Workspace Name</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="e.g. Task Activity" 
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                      className="input-field w-full"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Description</label>
+                    <textarea 
+                      placeholder="e.g. Activities and milestones for task management" 
+                      value={newProjectDesc}
+                      onChange={(e) => setNewProjectDesc(e.target.value)}
+                      className="input-field w-full min-h-[80px] resize-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Theme Color</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      {["#4F46E5", "#06B6D4", "#10B981", "#F59E0B", "#EF4444", "#EC4899", "#8B5CF6", "#64748B"].map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setNewProjectColor(c)}
+                          className={cn(
+                            "w-7 h-7 rounded-full transition-transform active:scale-90 border-2 animate-none",
+                            newProjectColor === c ? "border-slate-800 scale-110 shadow-sm" : "border-transparent"
+                          )}
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                    <button 
+                      type="button" 
+                      onClick={() => setIsCreateProjectOpen(false)}
+                      className="px-4 py-2 border border-slate-200 text-slate-500 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all animate-none"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit" 
+                      disabled={createProjectMutation.isPending}
+                      className="btn-primary flex items-center gap-1.5 py-2 px-4 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 animate-none"
+                    >
+                      {createProjectMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : "Create Workspace"}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* ==================== EDIT PROJECT MODAL ==================== */}
+        <AnimatePresence>
+          {isEditProjectOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-sm">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-2xl w-full max-w-md border border-slate-100 shadow-2xl overflow-hidden animate-none"
+              >
+                <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-blue-600 animate-none" />
+                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Edit Tracker Workspace</span>
+                  </div>
+                  <button 
+                    onClick={() => setIsEditProjectOpen(false)}
+                    className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-900 transition-all cursor-pointer animate-none"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleUpdateProjectSubmit} className="p-6 space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Workspace Name</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="e.g. Task Activity" 
+                      value={editProjectName}
+                      onChange={(e) => setEditProjectName(e.target.value)}
+                      className="input-field w-full"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Description</label>
+                    <textarea 
+                      placeholder="e.g. Activities and milestones for task management" 
+                      value={editProjectDesc}
+                      onChange={(e) => setEditProjectDesc(e.target.value)}
+                      className="input-field w-full min-h-[80px] resize-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Theme Color</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      {["#4F46E5", "#06B6D4", "#10B981", "#F59E0B", "#EF4444", "#EC4899", "#8B5CF6", "#64748B"].map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setEditProjectColor(c)}
+                          className={cn(
+                            "w-7 h-7 rounded-full transition-transform active:scale-90 border-2 animate-none",
+                            editProjectColor === c ? "border-slate-800 scale-110 shadow-sm" : "border-transparent"
+                          )}
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                    <button 
+                      type="button" 
+                      onClick={() => setIsEditProjectOpen(false)}
+                      className="px-4 py-2 border border-slate-200 text-slate-500 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all animate-none"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit" 
+                      disabled={updateProjectMutation.isPending}
+                      className="btn-primary flex items-center gap-1.5 py-2 px-4 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 animate-none"
+                    >
+                      {updateProjectMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : "Save Changes"}
+                    </button>
+                  </div>
+                </form>
               </motion.div>
             </div>
           )}
