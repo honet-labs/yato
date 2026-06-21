@@ -828,7 +828,7 @@ function TasksPageContent() {
               </button>
             ) : (
               <div className="w-6.5 h-6.5 shrink-0 flex items-center justify-center">
-                {depth > 0 && <CornerDownRight className="w-3.5 h-3.5 text-slate-300" />}
+                {depth > 0 ? <CornerDownRight className="w-3.5 h-3.5 text-slate-300" /> : null}
               </div>
             )}
 
