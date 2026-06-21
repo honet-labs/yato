@@ -56,6 +56,155 @@ const PRIORITIES = [
   { id: "HIGH", label: "High", color: "bg-rose-50 text-rose-600 border-rose-100" }
 ];
 
+const TaskTreeRow = ({
+  task,
+  depth = 0,
+  STATUSES,
+  PRIORITIES,
+  expandedTaskIds,
+  setExpandedTaskIds,
+  filteredTasks,
+  setSelectedTask,
+  handleCheckboxToggle,
+  getSubtasksOf,
+  taskOrDescendantMatches
+}: {
+  task: any;
+  depth?: number;
+  STATUSES: any[];
+  PRIORITIES: any[];
+  expandedTaskIds: Record<string, boolean>;
+  setExpandedTaskIds: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  filteredTasks: any[];
+  setSelectedTask: (task: any) => void;
+  handleCheckboxToggle: (task: any, e: any) => void;
+  getSubtasksOf: (taskId: string) => any[];
+  taskOrDescendantMatches: (task: any) => boolean;
+}) => {
+  const statusObj = STATUSES.find(s => s.id === task.status);
+  const priorityObj = PRIORITIES.find(p => p.id === task.priority);
+  const subtasks = getSubtasksOf(task.id);
+  const hasChildren = subtasks.length > 0;
+  const isExpanded = !!expandedTaskIds[task.id];
+  const matchesFilters = filteredTasks.some((ft: any) => ft.id === task.id);
+
+  return (
+    <div key={task.id} className="w-full">
+      {/* Task Row */}
+      <div 
+        onClick={() => setSelectedTask(task)}
+        className={cn(
+          "px-6 py-4 flex items-center justify-between hover:bg-slate-50/50 cursor-pointer transition-all gap-4 border-b border-slate-100/60",
+          !matchesFilters && "opacity-60 bg-slate-50/20"
+        )}
+        style={{ paddingLeft: `${depth * 24 + 24}px` }}
+      >
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {/* Expand / Collapse Toggle if has subtasks */}
+          {hasChildren ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpandedTaskIds(prev => ({ ...prev, [task.id]: !prev[task.id] }));
+              }}
+              className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 transition-all shrink-0"
+            >
+              <ChevronRight className={cn("w-4.5 h-4.5 transition-transform duration-205", isExpanded && "rotate-90")} />
+            </button>
+          ) : (
+            <div className="w-6.5 h-6.5 shrink-0 flex items-center justify-center">
+              {depth > 0 ? <CornerDownRight className="w-3.5 h-3.5 text-slate-350" /> : null}
+            </div>
+          )}
+
+          <button
+            onClick={(e) => handleCheckboxToggle(task, e)}
+            className="shrink-0 transition-transform active:scale-95"
+          >
+            {task.status === "DONE" ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-500 fill-emerald-50" />
+            ) : (
+              <CheckSquare className="w-5 h-5 text-slate-200 hover:text-blue-500" />
+            )}
+          </button>
+
+          <div className="min-w-0">
+            <h4 className={cn("text-[12px] font-bold text-slate-800 truncate max-w-lg mb-0", task.status === "DONE" && "line-through text-slate-400")}>
+              {task.title}
+            </h4>
+            {task.description && (
+              <p className="text-[10px] text-slate-400 font-medium truncate max-w-lg mt-0.5">
+                {task.description}
+              </p>
+            )}
+            {task.tags && task.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {task.tags.map((tag: string) => (
+                  <span key={tag} className="bg-slate-50 text-slate-500 border border-slate-200/50 px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 shrink-0">
+          {/* Task Type */}
+          <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tight">
+            {task.taskType}
+          </span>
+
+          {/* Priority */}
+          {priorityObj && (
+            <span className={cn("px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tight border", priorityObj.color)}>
+              {priorityObj.label}
+            </span>
+          )}
+
+          {/* Status */}
+          {statusObj && (
+            <span className={cn("px-2.5 py-1 rounded-lg text-[8px] font-extrabold uppercase border tracking-widest flex items-center gap-1", statusObj.color)}>
+              <span className={cn("w-1 h-1 rounded-full", statusObj.dot)} /> {statusObj.label}
+            </span>
+          )}
+
+          {/* Due Date */}
+          {task.dueDate && (
+            <div className="flex items-center gap-1 text-slate-400 text-[10px] font-bold">
+              <Calendar className="w-3.5 h-3.5" />
+              <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Render child tasks if expanded */}
+      {hasChildren && isExpanded && (
+        <div className="w-full">
+          {subtasks.filter(taskOrDescendantMatches).map(child => (
+            <TaskTreeRow
+              key={child.id}
+              task={child}
+              depth={depth + 1}
+              STATUSES={STATUSES}
+              PRIORITIES={PRIORITIES}
+              expandedTaskIds={expandedTaskIds}
+              setExpandedTaskIds={setExpandedTaskIds}
+              filteredTasks={filteredTasks}
+              setSelectedTask={setSelectedTask}
+              handleCheckboxToggle={handleCheckboxToggle}
+              getSubtasksOf={getSubtasksOf}
+              taskOrDescendantMatches={taskOrDescendantMatches}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 function TasksPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -791,118 +940,7 @@ function TasksPageContent() {
     return children.some((child: any) => taskOrDescendantMatches(child));
   };
 
-  const renderTaskTreeRow = (task: any, depth = 0) => {
-    const statusObj = STATUSES.find(s => s.id === task.status);
-    const priorityObj = PRIORITIES.find(p => p.id === task.priority);
-    const subtasks = getSubtasksOf(task.id);
-    const hasChildren = subtasks.length > 0;
-    const isExpanded = !!expandedTaskIds[task.id];
 
-    // If the task itself matches the filters, show it normally. 
-    // If it doesn't match the filters itself, but a descendant matches, we render it in a semi-transparent/dimmed style so the user can navigate to the matching descendant!
-    const matchesFilters = filteredTasks.some((ft: any) => ft.id === task.id);
-    
-    return (
-      <div key={task.id} className="w-full">
-        {/* Task Row */}
-        <div 
-          onClick={() => setSelectedTask(task)}
-          className={cn(
-            "px-6 py-4 flex items-center justify-between hover:bg-slate-50/50 cursor-pointer transition-all gap-4 border-b border-slate-100/60",
-            !matchesFilters && "opacity-60 bg-slate-50/20"
-          )}
-          style={{ paddingLeft: `${depth * 24 + 24}px` }}
-        >
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            {/* Expand / Collapse Toggle if has subtasks */}
-            {hasChildren ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setExpandedTaskIds(prev => ({ ...prev, [task.id]: !prev[task.id] }));
-                }}
-                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 transition-all shrink-0"
-              >
-                <ChevronRight className={cn("w-4.5 h-4.5 transition-transform duration-205", isExpanded && "rotate-90")} />
-              </button>
-            ) : (
-              <div className="w-6.5 h-6.5 shrink-0 flex items-center justify-center">
-                {depth > 0 ? <CornerDownRight className="w-3.5 h-3.5 text-slate-300" /> : null}
-              </div>
-            )}
-
-            <button
-              onClick={(e) => handleCheckboxToggle(task, e)}
-              className="shrink-0 transition-transform active:scale-95"
-            >
-              {task.status === "DONE" ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-500 fill-emerald-50" />
-              ) : (
-                <CheckSquare className="w-5 h-5 text-slate-200 hover:text-blue-500" />
-              )}
-            </button>
-
-            <div className="min-w-0">
-              <h4 className={cn("text-[12px] font-bold text-slate-800 truncate max-w-lg mb-0", task.status === "DONE" && "line-through text-slate-400")}>
-                {task.title}
-              </h4>
-              {task.description && (
-                <p className="text-[10px] text-slate-400 font-medium truncate max-w-lg mt-0.5">
-                  {task.description}
-                </p>
-              )}
-              {task.tags && task.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {task.tags.map((tag: string) => (
-                    <span key={tag} className="bg-slate-50 text-slate-500 border border-slate-200/50 px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide">
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 shrink-0">
-            {/* Task Type */}
-            <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tight">
-              {task.taskType}
-            </span>
-
-            {/* Priority */}
-            {priorityObj && (
-              <span className={cn("px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tight border", priorityObj.color)}>
-                {priorityObj.label}
-              </span>
-            )}
-
-            {/* Status */}
-            {statusObj && (
-              <span className={cn("px-2.5 py-1 rounded-lg text-[8px] font-extrabold uppercase border tracking-widest flex items-center gap-1", statusObj.color)}>
-                <span className={cn("w-1 h-1 rounded-full", statusObj.dot)} /> {statusObj.label}
-              </span>
-            )}
-
-            {/* Due Date */}
-            {task.dueDate && (
-              <div className="flex items-center gap-1 text-slate-400 text-[10px] font-bold">
-                <Calendar className="w-3.5 h-3.5" />
-                <span>{new Date(task.dueDate).toLocaleDateString()}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Render child tasks if expanded */}
-        {hasChildren && isExpanded && (
-          <div className="w-full">
-            {subtasks.filter(taskOrDescendantMatches).map(child => renderTaskTreeRow(child, depth + 1))}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
@@ -1447,7 +1485,22 @@ function TasksPageContent() {
                             );
                           }
 
-                          return visibleRoots.map(rootTask => renderTaskTreeRow(rootTask, 0));
+                          return visibleRoots.map(rootTask => (
+                            <TaskTreeRow
+                              key={rootTask.id}
+                              task={rootTask}
+                              depth={0}
+                              STATUSES={STATUSES}
+                              PRIORITIES={PRIORITIES}
+                              expandedTaskIds={expandedTaskIds}
+                              setExpandedTaskIds={setExpandedTaskIds}
+                              filteredTasks={filteredTasks}
+                              setSelectedTask={setSelectedTask}
+                              handleCheckboxToggle={handleCheckboxToggle}
+                              getSubtasksOf={getSubtasksOf}
+                              taskOrDescendantMatches={taskOrDescendantMatches}
+                            />
+                          ));
                         })()
                       )}
                     </div>
