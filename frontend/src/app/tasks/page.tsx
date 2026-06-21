@@ -73,8 +73,8 @@ const TaskTreeRow = ({
   depth?: number;
   STATUSES: any[];
   PRIORITIES: any[];
-  expandedTaskIds: Record<string, boolean>;
-  setExpandedTaskIds: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  expandedTaskIds: any;
+  setExpandedTaskIds: any;
   filteredTasks: any[];
   setSelectedTask: (task: any) => void;
   handleCheckboxToggle: (task: any, e: any) => void;
@@ -384,7 +384,7 @@ function TasksPageContent() {
   const [previewImage, setPreviewImage] = useState(null as string | null);
   const [loadedTaskId, setLoadedTaskId] = useState(null as string | null);
   const [detailChecklist, setDetailChecklist] = useState([] as any[]);
-  const [expandedTaskIds, setExpandedTaskIds] = useState<Record<string, boolean>>({});
+  const [expandedTaskIds, setExpandedTaskIds] = useState({} as Record<string, boolean>);
 
   const isImageFile = (filename: string, mimeType?: string) => {
     if (mimeType && mimeType.toLowerCase().startsWith('image/')) return true;
@@ -400,7 +400,7 @@ function TasksPageContent() {
   };
 
   // Premium Mentions States
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = useRef(null as HTMLTextAreaElement | null);
   const [mentionSearch, setMentionSearch] = useState("");
   const [showMentionDropdown, setShowMentionDropdown] = useState(false);
   const [mentionStartIndex, setMentionStartIndex] = useState(-1);
@@ -2665,7 +2665,7 @@ function TasksPageContent() {
                           try {
                             const files = Array.from(e.target.files);
                             const uploadPromises = files.map((file) => {
-                              return new Promise<void>((resolve, reject) => {
+                              return new Promise((resolve, reject) => {
                                 const reader = new FileReader();
                                 reader.onloadend = async () => {
                                   try {
