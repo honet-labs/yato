@@ -93,7 +93,7 @@ function TicketsContent() {
   });
 
   // User Profile for Role Checks
-  const { isAdmin, permissions } = useIsAdmin();
+  const { isAdmin, permissions, profile } = useIsAdmin();
   const canApprove = isAdmin || permissions.includes("APPROVE_REQUESTS");
   
   // Modals State
