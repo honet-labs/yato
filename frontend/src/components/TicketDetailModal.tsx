@@ -86,7 +86,7 @@ interface TicketDetailModalProps {
 export function TicketDetailModal({ isOpen, onClose, ticket, isAdmin = false, onApprove, onReject }: TicketDetailModalProps) {
   const queryClient = useQueryClient();
   const { profile } = useIsAdmin();
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState(null as string | null);
   const [editingCommentText, setEditingCommentText] = useState("");
   const [commentText, setCommentText] = useState("");
   const [attachment, setAttachment] = useState(null as string | null);

@@ -213,7 +213,7 @@ function TasksPageContent() {
   const projectIdParam = searchParams.get("projectId");
   const queryClient = useQueryClient();
   const { profile } = useIsAdmin();
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState(null as string | null);
   const [editingCommentText, setEditingCommentText] = useState("");
   const [activeTab, setActiveTab] = useState("board" as "board" | "list");
   const [searchQuery, setSearchQuery] = useState("");
