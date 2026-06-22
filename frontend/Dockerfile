@@ -7,6 +7,7 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
+RUN npx tsc --noEmit
 RUN npm run build
 
 # Production stage
