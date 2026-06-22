@@ -566,7 +566,7 @@ export function TicketDetailModal({ isOpen, onClose, ticket, isAdmin = false, on
       {comment.replies && comment.replies.length > 0 && (
         <div className="relative">
           {/* Main vertical line for connecting multiple replies to this parent */}
-          {depth < 2 && <div className="absolute left-3 top-0 bottom-6 w-0 border-l-2 border-slate-200" />}
+          {(depth < 2) && <div className="absolute left-3 top-0 bottom-6 w-0 border-l-2 border-slate-200" />}
           <div className="pt-2">
             {comment.replies.map(reply => renderComment(reply, depth + 1))}
           </div>
