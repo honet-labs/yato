@@ -3204,6 +3204,9 @@ function TasksPageContent() {
             </div>
           )}
         </AnimatePresence>
+      </div>
+    )}
+  </div>
 
         {/* Image Preview Lightbox */}
         <AnimatePresence>
