@@ -57,7 +57,7 @@ const PRIORITIES = [
   { id: "HIGH", label: "High", color: "bg-rose-50 text-rose-600 border-rose-100" }
 ];
 
-const TaskTreeRow = ({
+function TaskTreeRow({
   task,
   depth = 0,
   STATUSES,
@@ -81,7 +81,7 @@ const TaskTreeRow = ({
   handleCheckboxToggle: (task: any, e: any) => void;
   getSubtasksOf: (taskId: string) => any[];
   taskOrDescendantMatches: (task: any) => boolean;
-}) => {
+}) {
   const statusObj = STATUSES.find(s => s.id === task.status);
   const priorityObj = PRIORITIES.find(p => p.id === task.priority);
   const subtasks = getSubtasksOf(task.id);
@@ -204,7 +204,7 @@ const TaskTreeRow = ({
       )}
     </div>
   );
-};
+}
 
 function TasksPageContent() {
   const searchParams = useSearchParams();
@@ -388,7 +388,7 @@ function TasksPageContent() {
   const [previewImage, setPreviewImage] = useState(null as string | null);
   const [loadedTaskId, setLoadedTaskId] = useState(null as string | null);
   const [detailChecklist, setDetailChecklist] = useState([] as any[]);
-  const [expandedTaskIds, setExpandedTaskIds] = useState({} as Record<string, boolean>);
+  const [expandedTaskIds, setExpandedTaskIds] = useState({} as {[key: string]: boolean});
 
   const isImageFile = (filename: string, mimeType?: string) => {
     if (mimeType && mimeType.toLowerCase().startsWith('image/')) return true;
@@ -453,7 +453,7 @@ function TasksPageContent() {
     }, 10);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: any) => {
     if (!showMentionDropdown || filteredMentionUsers.length === 0) return;
 
     if (e.key === "ArrowDown") {
