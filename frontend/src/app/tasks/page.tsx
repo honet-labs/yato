@@ -1,5 +1,6 @@
 "use client";
 import { PageHeader } from "@/components/PageHeader";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -211,6 +212,9 @@ function TasksPageContent() {
   const taskIdParam = searchParams.get("taskId");
   const projectIdParam = searchParams.get("projectId");
   const queryClient = useQueryClient();
+  const { profile } = useIsAdmin();
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState("");
   const [activeTab, setActiveTab] = useState("board" as "board" | "list");
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("ALL");
@@ -671,6 +675,19 @@ function TasksPageContent() {
       setReplyToId(null);
       setReplyToUser(null);
       setCommentAttachments([]);
+    }
+  });
+
+  // Edit Comment Mutation
+  const editCommentMutation = useMutation({
+    mutationFn: async ({ commentId, content }: { commentId: string; content: string }) => {
+      const res = await api.patch(`/tasks/comments/${commentId}`, { content });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["task-detail", selectedTask?.id] });
+      setEditingCommentId(null);
+      setEditingCommentText("");
     }
   });
 
@@ -2780,7 +2797,38 @@ function TasksPageContent() {
                               {new Date(comment.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-600 leading-relaxed pl-7 font-medium mb-0">{comment.content}</p>
+                          {editingCommentId === comment.id ? (
+                            <div className="pl-7 space-y-2 mt-1">
+                              <textarea
+                                className="w-full bg-white border border-blue-200 focus:border-blue-400 rounded-xl p-2.5 text-[11px] text-slate-700 font-medium outline-none resize-none"
+                                value={editingCommentText}
+                                onChange={(e) => setEditingCommentText(e.target.value)}
+                                rows={3}
+                              />
+                              <div className="flex gap-2 justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingCommentId(null);
+                                    setEditingCommentText("");
+                                  }}
+                                  className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!editingCommentText.trim() || editCommentMutation.isPending}
+                                  onClick={() => editCommentMutation.mutate({ commentId: comment.id, content: editingCommentText })}
+                                  className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                                >
+                                  {editCommentMutation.isPending ? "Saving..." : "Save"}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-slate-600 leading-relaxed pl-7 font-medium mb-0">{comment.content}</p>
+                          )}
                           
                            {/* Comment Attachments */}
                           {comment.attachments && comment.attachments.length > 0 && (
@@ -2818,15 +2866,27 @@ function TasksPageContent() {
                           )}
 
                           {/* Thread Reply trigger */}
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 pl-7 mt-1">
+                            {profile?.id === comment.authorId && !editingCommentId && (
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  setEditingCommentId(comment.id);
+                                  setEditingCommentText(comment.content);
+                                }}
+                                className="text-[9px] font-extrabold text-slate-400 hover:text-blue-600 uppercase flex items-center gap-1 transition-colors"
+                              >
+                                <Edit className="w-3.5 h-3.5" /> Edit
+                              </button>
+                            )}
                             <button 
                               type="button"
                               onClick={() => {
-                                setReplyToId(comment.id);
-                                setReplyToUser(comment.author.fullName);
-                                setNewCommentText(`@${comment.author.username || comment.author.fullName.replace(/\s+/g, '')} `);
+                                  setReplyToId(comment.id);
+                                  setReplyToUser(comment.author.fullName);
+                                  setNewCommentText(`@${comment.author.username || comment.author.fullName.replace(/\s+/g, '')} `);
                               }}
-                              className="text-[9px] font-extrabold text-slate-400 hover:text-blue-600 uppercase flex items-center gap-1 mt-1 pl-7 transition-colors"
+                              className="text-[9px] font-extrabold text-slate-400 hover:text-blue-600 uppercase flex items-center gap-1 transition-colors"
                             >
                               <CornerDownRight className="w-3.5 h-3.5" /> Reply
                             </button>
@@ -2846,7 +2906,38 @@ function TasksPageContent() {
                                   {new Date(reply.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
-                              <p className="text-[11px] text-slate-600 leading-relaxed pl-6 font-medium mb-0">{reply.content}</p>
+                              {editingCommentId === reply.id ? (
+                                <div className="pl-6 space-y-2 mt-1">
+                                  <textarea
+                                    className="w-full bg-white border border-blue-200 focus:border-blue-400 rounded-xl p-2.5 text-[11px] text-slate-700 font-medium outline-none resize-none"
+                                    value={editingCommentText}
+                                    onChange={(e) => setEditingCommentText(e.target.value)}
+                                    rows={2}
+                                  />
+                                  <div className="flex gap-2 justify-end">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingCommentId(null);
+                                        setEditingCommentText("");
+                                      }}
+                                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={!editingCommentText.trim() || editCommentMutation.isPending}
+                                      onClick={() => editCommentMutation.mutate({ commentId: reply.id, content: editingCommentText })}
+                                      className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                                    >
+                                      {editCommentMutation.isPending ? "Saving..." : "Save"}
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-[11px] text-slate-600 leading-relaxed pl-6 font-medium mb-0">{reply.content}</p>
+                              )}
                               
                               {/* Reply Attachments */}
                               {reply.attachments && reply.attachments.length > 0 && (
@@ -2884,7 +2975,19 @@ function TasksPageContent() {
                               )}
 
                               {/* Sub-Reply trigger */}
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-3 pl-6 mt-1">
+                                {profile?.id === reply.authorId && !editingCommentId && (
+                                  <button 
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingCommentId(reply.id);
+                                      setEditingCommentText(reply.content);
+                                    }}
+                                    className="text-[9px] font-extrabold text-slate-400 hover:text-blue-600 uppercase flex items-center gap-1 transition-colors"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" /> Edit
+                                  </button>
+                                )}
                                 <button 
                                   type="button"
                                   onClick={() => {
@@ -2892,7 +2995,7 @@ function TasksPageContent() {
                                     setReplyToUser(reply.author.fullName);
                                     setNewCommentText(`@${reply.author.username || reply.author.fullName.replace(/\s+/g, '')} `);
                                   }}
-                                  className="text-[9px] font-extrabold text-slate-400 hover:text-blue-600 uppercase flex items-center gap-1 mt-1 pl-6 transition-colors"
+                                  className="text-[9px] font-extrabold text-slate-400 hover:text-blue-600 uppercase flex items-center gap-1 transition-colors"
                                 >
                                   <CornerDownRight className="w-3.5 h-3.5" /> Reply
                                 </button>

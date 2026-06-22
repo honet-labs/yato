@@ -161,4 +161,42 @@ export class TicketCommentService {
 
     return tree;
   }
+
+  async update(commentId: string, data: { content: string; attachment?: string }, userId: string) {
+    const comment = await this.prisma.ticketComment.findUnique({
+      where: { id: commentId },
+    });
+    if (!comment) {
+      throw new Error('Comment not found');
+    }
+    if (comment.authorId !== userId) {
+      throw new Error('Unauthorized to edit this comment');
+    }
+
+    let processedAttachment = data.attachment;
+    if (data.attachment && data.attachment.startsWith('data:')) {
+      const entityId = comment.supportTicketId || comment.vmRequestId || comment.serviceRequestId || undefined;
+      const files = await this.storageService.processAttachments(
+        [data.attachment],
+        userId,
+        entityId,
+        'COMMENT'
+      );
+      if (files.length > 0) {
+        processedAttachment = files[0];
+      }
+    }
+
+    return this.prisma.ticketComment.update({
+      where: { id: commentId },
+      data: {
+        content: data.content,
+        attachment: processedAttachment,
+      },
+      include: {
+        author: { select: { fullName: true, username: true, roles: { include: { role: true } } } }
+      }
+    });
+  }
 }
+

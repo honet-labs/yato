@@ -39,11 +39,13 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 interface Comment {
   id: string;
   content: string;
   attachment?: string;
+  authorId: string;
   author: { 
     fullName: string; 
     username?: string;
@@ -53,6 +55,7 @@ interface Comment {
   parentId?: string;
   replies?: Comment[];
 }
+
 
 interface TicketDetailModalProps {
   isOpen: boolean;
@@ -82,6 +85,9 @@ interface TicketDetailModalProps {
 
 export function TicketDetailModal({ isOpen, onClose, ticket, isAdmin = false, onApprove, onReject }: TicketDetailModalProps) {
   const queryClient = useQueryClient();
+  const { profile } = useIsAdmin();
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState("");
   const [commentText, setCommentText] = useState("");
   const [attachment, setAttachment] = useState(null as string | null);
 
@@ -281,6 +287,20 @@ export function TicketDetailModal({ isOpen, onClose, ticket, isAdmin = false, on
       setTimeout(() => {
         commentScrollRef.current?.scrollTo({ top: commentScrollRef.current.scrollHeight, behavior: 'smooth' });
       }, 100);
+    }
+  });
+
+  const editCommentMutation = useMutation({
+    mutationFn: async (data: { commentId: string; content: string }) => {
+      const response = await api.patch(`/ticket-comments/${data.commentId}`, {
+        content: data.content,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      setEditingCommentId(null);
+      setEditingCommentText("");
+      queryClient.invalidateQueries({ queryKey: ["ticket-comments", ticket.id] });
     }
   });
 
@@ -487,8 +507,50 @@ export function TicketDetailModal({ isOpen, onClose, ticket, isAdmin = false, on
             )}
           </div>
         )}
-        <p className="text-[13px] text-slate-600 leading-relaxed font-medium">{comment.content}</p>
-        <div className="flex justify-end pt-2 border-t border-slate-50">
+        {editingCommentId === comment.id ? (
+          <div className="space-y-3">
+            <textarea
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[13px] text-slate-600 outline-none focus:border-indigo-400 resize-none font-medium"
+              value={editingCommentText}
+              onChange={(e) => setEditingCommentText(e.target.value)}
+              rows={3}
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingCommentId(null);
+                  setEditingCommentText("");
+                }}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!editingCommentText.trim() || editCommentMutation.isPending}
+                onClick={() => editCommentMutation.mutate({ commentId: comment.id, content: editingCommentText })}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+              >
+                {editCommentMutation.isPending ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-[13px] text-slate-600 leading-relaxed font-medium">{comment.content}</p>
+        )}
+        <div className="flex justify-end items-center gap-3 pt-2 border-t border-slate-50">
+          {profile?.id === comment.authorId && !editingCommentId && (
+            <button 
+              onClick={() => {
+                setEditingCommentId(comment.id);
+                setEditingCommentText(comment.content);
+              }}
+              className="text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase tracking-widest flex items-center gap-1.5"
+            >
+              <Edit2 className="w-3 h-3" /> Edit
+            </button>
+          )}
           <button 
             onClick={() => {
               setReplyTo(comment);

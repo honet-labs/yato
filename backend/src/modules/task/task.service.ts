@@ -743,6 +743,53 @@ export class TaskService {
     };
   }
 
+  async updateComment(commentId: string, content: string, userId: string) {
+    const comment = await this.prisma.taskComment.findUnique({
+      where: { id: commentId },
+    });
+    if (!comment) {
+      throw new Error('Comment not found');
+    }
+    if (comment.authorId !== userId) {
+      throw new Error('Unauthorized to edit this comment');
+    }
+
+    const updatedComment = await this.prisma.taskComment.update({
+      where: { id: commentId },
+      data: { content },
+      include: {
+        author: {
+          select: {
+            id: true,
+            fullName: true,
+            username: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    const attachments = await this.prisma.storageFile.findMany({
+      where: {
+        entityId: commentId,
+        entityType: 'COMMENT',
+      },
+      select: {
+        id: true,
+        filename: true,
+        size: true,
+        mimeType: true,
+        driver: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      ...updatedComment,
+      attachments,
+    };
+  }
+
   async addAttachment(taskId: string, base64Data: string, filename: string, uploaderId: string) {
     // Embed the filename in the base64 URL so uploadFile extracts it!
     let base64WithFilename = base64Data;

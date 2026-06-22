@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Query, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, Query, Request } from '@nestjs/common';
 import { TicketCommentService } from './ticket-comment.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -19,9 +19,16 @@ export class TicketCommentController {
     });
   }
 
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update/edit a ticket comment' })
+  async update(@Param('id') id: string, @Request() req, @Body() body: { content: string; attachment?: string }) {
+    return this.commentService.update(id, body, req.user.id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get all comments for a specific ticket' })
   async findByTicket(@Param('id') id: string, @Query('type') type: 'VM' | 'SERVICE' | 'SUPPORT') {
     return this.commentService.findByTicket(id, type);
   }
 }
+

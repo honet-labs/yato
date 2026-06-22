@@ -252,3 +252,10 @@ export class UpdateTaskTemplateDto {
   @IsOptional()
   repeatDayOfMonth?: number;
 }
+
+export class UpdateTaskCommentDto {
+  @IsString()
+  @IsNotEmpty()
+  content: string;
+}
+

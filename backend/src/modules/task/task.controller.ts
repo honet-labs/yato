@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, UseGuards, Request, Param } from '@nestjs/common';
 import { TaskService } from './task.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CreateTaskDto, UpdateTaskDto, CreateTaskCommentDto, CreateTaskTemplateDto, UpdateTaskTemplateDto } from './dto/task.dto';
+import { CreateTaskDto, UpdateTaskDto, CreateTaskCommentDto, UpdateTaskCommentDto, CreateTaskTemplateDto, UpdateTaskTemplateDto } from './dto/task.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('tasks')
@@ -79,6 +79,16 @@ export class TaskController {
     @Request() req: any,
   ) {
     return this.taskService.createComment(id, dto, req.user.id);
+  }
+
+  @Patch('comments/:commentId')
+  @ApiOperation({ summary: 'Update/edit a task comment' })
+  async updateComment(
+    @Param('commentId') commentId: string,
+    @Body() dto: UpdateTaskCommentDto,
+    @Request() req: any,
+  ) {
+    return this.taskService.updateComment(commentId, dto.content, req.user.id);
   }
 
   @Post(':id/attachments')
