@@ -573,13 +573,13 @@ export default function PmoCalendarPage() {
 
   if (profile && !canViewPmo) {
     return (
-      <div className="flex min-h-screen bg-slate-900 text-white items-center justify-center p-6">
+      <div className="flex min-h-screen bg-slate-50 items-center justify-center p-6">
         <div className="text-center space-y-4 max-w-sm">
-          <div className="w-20 h-20 bg-rose-500/10 rounded-full border border-rose-500/30 flex items-center justify-center mx-auto mb-6 text-rose-500">
+          <div className="w-20 h-20 bg-rose-50 rounded-full border border-rose-200 flex items-center justify-center mx-auto mb-6 text-rose-500">
             <Lock className="w-10 h-10" />
           </div>
-          <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
-          <p className="text-sm text-slate-400">You must hold appropriate permissions to access the PMO Calendar & Timeline.</p>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-800">Access Denied</h2>
+          <p className="text-sm text-slate-500">You must hold appropriate permissions to access the PMO Calendar & Timeline.</p>
         </div>
       </div>
     );

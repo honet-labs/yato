@@ -24,9 +24,13 @@
     @apply border-slate-100;
   }
   
+  html {
+    @apply bg-slate-50;
+  }
+
   body {
     font-family: 'Inter', sans-serif;
-    @apply text-slate-600 bg-white antialiased text-[13px] selection:bg-blue-100 selection:text-blue-900 leading-normal;
+    @apply text-slate-600 bg-slate-50 antialiased text-[13px] selection:bg-blue-100 selection:text-blue-900 leading-normal;
   }
 
   h1, h2, h3, h4, h5, h6 {

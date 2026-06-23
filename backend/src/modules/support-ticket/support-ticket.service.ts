@@ -161,6 +161,10 @@ export class SupportTicketService {
     });
 
     if (!isAdmin && !isCreator && !isFollower && !isTagged) {
+      await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'SupportTicket', id, {
+        reason: 'User is not Creator, Follower, Admin or Tagged',
+        user: { id: user.id, username: user.username, email: user.email }
+      });
       throw new NotFoundException('Ticket not found');
     }
 

@@ -35,6 +35,70 @@ interface Role {
   };
 }
 
+const staticPermissionGroups = [
+  { 
+    group: "Main & Dashboard", 
+    perms: ["VIEW_DASHBOARD"] 
+  },
+  { 
+    group: "Support Ticketing", 
+    perms: ["VIEW_SUPPORT_TICKETS", "MANAGE_SUPPORT_TICKETS", "APPROVE_REQUESTS"] 
+  },
+  { 
+    group: "Infrastructure (VM)", 
+    perms: ["VIEW_VM_INVENTORY", "PROVISION_VM", "MANAGE_VM_INVENTORY"] 
+  },
+  { 
+    group: "Infrastructure (Service)", 
+    perms: ["VIEW_SERVICE_INVENTORY", "PROVISION_SERVICE", "MANAGE_SERVICE_INVENTORY"] 
+  },
+  { 
+    group: "Security & Secrets", 
+    perms: ["VIEW_CREDENTIALS", "MANAGE_CREDENTIALS"] 
+  },
+  { 
+    group: "Asset Registry", 
+    perms: ["VIEW_ASSETS", "MANAGE_ASSETS"] 
+  },
+  { 
+    group: "Tasks Tracker", 
+    perms: ["VIEW_TASKS", "MANAGE_TASKS"] 
+  },
+  { 
+    group: "File Manager & Storage", 
+    perms: ["VIEW_FILES", "MANAGE_FILES"] 
+  },
+  { 
+    group: "Human Resource Management", 
+    perms: [
+      "VIEW_HRM", 
+      "MANAGE_HRM", 
+      "VIEW_HRM_ADMIN_PANEL", 
+      "MANAGE_HRM_ATTENDANCE", 
+      "MANAGE_HRM_LEAVES", 
+      "MANAGE_HRM_DIVISIONS", 
+      "MANAGE_HRM_SCHEDULER", 
+      "MANAGE_HRM_ADJUSTMENTS"
+    ] 
+  },
+  { 
+    group: "Notes & Schedule", 
+    perms: ["VIEW_NOTES", "MANAGE_NOTES"] 
+  },
+  { 
+    group: "PMO Calendar & Timeline", 
+    perms: ["VIEW_PMO_CALENDAR", "MANAGE_PMO_CALENDAR"] 
+  },
+  { 
+    group: "Integrations & Broadcast", 
+    perms: ["VIEW_INTEGRATIONS", "VIEW_BROADCAST"] 
+  },
+  { 
+    group: "System & Governance", 
+    perms: ["VIEW_AUDIT_LOGS", "VIEW_SYSTEM_STATUS", "MANAGE_USERS", "MANAGE_ROLES", "MANAGE_CONFIG"] 
+  }
+];
+
 export default function RolesManagementPage() {
   const queryClient = useQueryClient();
   const { isAdmin, isLoading: isProfileLoading } = useIsAdmin();
@@ -63,9 +127,68 @@ export default function RolesManagementPage() {
     queryKey: ["available-permissions"],
     queryFn: async () => {
       const response = await api.get("/roles/permissions");
-      return response.data;
+      return response.data as string[];
     },
   });
+
+  const getGroupedPermissions = () => {
+    const allPerms: string[] = (availablePermissions && availablePermissions.length > 0) ? availablePermissions : [
+      "VIEW_DASHBOARD",
+      "VIEW_SUPPORT_TICKETS",
+      "MANAGE_SUPPORT_TICKETS",
+      "APPROVE_REQUESTS",
+      "VIEW_VM_INVENTORY",
+      "PROVISION_VM",
+      "MANAGE_VM_INVENTORY",
+      "VIEW_SERVICE_INVENTORY",
+      "PROVISION_SERVICE",
+      "MANAGE_SERVICE_INVENTORY",
+      "VIEW_CREDENTIALS",
+      "MANAGE_CREDENTIALS",
+      "VIEW_ASSETS",
+      "MANAGE_ASSETS",
+      "VIEW_AUDIT_LOGS",
+      "VIEW_SYSTEM_STATUS",
+      "MANAGE_USERS",
+      "MANAGE_ROLES",
+      "MANAGE_CONFIG",
+      "VIEW_TASKS",
+      "MANAGE_TASKS",
+      "VIEW_FILES",
+      "MANAGE_FILES",
+      "VIEW_HRM",
+      "MANAGE_HRM",
+      "VIEW_HRM_ADMIN_PANEL",
+      "MANAGE_HRM_ATTENDANCE",
+      "MANAGE_HRM_LEAVES",
+      "MANAGE_HRM_DIVISIONS",
+      "MANAGE_HRM_SCHEDULER",
+      "MANAGE_HRM_ADJUSTMENTS",
+      "VIEW_NOTES",
+      "MANAGE_NOTES",
+      "VIEW_PMO_CALENDAR",
+      "MANAGE_PMO_CALENDAR",
+      "VIEW_INTEGRATIONS",
+      "VIEW_BROADCAST"
+    ];
+
+    const grouped = staticPermissionGroups.map(group => ({
+      group: group.group,
+      perms: group.perms.filter(p => allPerms.includes(p))
+    })).filter(group => group.perms.length > 0);
+
+    const assignedPerms = new Set(staticPermissionGroups.flatMap(g => g.perms));
+    const uncategorized = allPerms.filter(p => !assignedPerms.has(p));
+
+    if (uncategorized.length > 0) {
+      grouped.push({
+        group: "Other Capabilities",
+        perms: uncategorized
+      });
+    }
+
+    return grouped;
+  };
 
   const createMutation = useMutation({
     mutationFn: (data: any) => api.post("/roles", data),
@@ -329,69 +452,7 @@ export default function RolesManagementPage() {
                     </div>
                     
                     <div className="space-y-6 max-h-[280px] overflow-y-auto pr-2 custom-scrollbar">
-                      {[
-                        { 
-                          group: "Main & Dashboard", 
-                          perms: ["VIEW_DASHBOARD"] 
-                        },
-                        { 
-                          group: "Support Ticketing", 
-                          perms: ["VIEW_SUPPORT_TICKETS", "MANAGE_SUPPORT_TICKETS", "APPROVE_REQUESTS"] 
-                        },
-                        { 
-                          group: "Infrastructure (VM)", 
-                          perms: ["VIEW_VM_INVENTORY", "PROVISION_VM", "MANAGE_VM_INVENTORY"] 
-                        },
-                        { 
-                          group: "Infrastructure (Service)", 
-                          perms: ["VIEW_SERVICE_INVENTORY", "PROVISION_SERVICE", "MANAGE_SERVICE_INVENTORY"] 
-                        },
-                        { 
-                          group: "Security & Secrets", 
-                          perms: ["VIEW_CREDENTIALS", "MANAGE_CREDENTIALS"] 
-                        },
-                        { 
-                          group: "Asset Registry", 
-                          perms: ["VIEW_ASSETS", "MANAGE_ASSETS"] 
-                        },
-                        { 
-                          group: "Tasks Tracker", 
-                          perms: ["VIEW_TASKS", "MANAGE_TASKS"] 
-                        },
-                        { 
-                          group: "File Manager & Storage", 
-                          perms: ["VIEW_FILES", "MANAGE_FILES"] 
-                        },
-                        { 
-                          group: "Human Resource Management", 
-                          perms: [
-                            "VIEW_HRM", 
-                            "MANAGE_HRM", 
-                            "VIEW_HRM_ADMIN_PANEL", 
-                            "MANAGE_HRM_ATTENDANCE", 
-                            "MANAGE_HRM_LEAVES", 
-                            "MANAGE_HRM_DIVISIONS", 
-                            "MANAGE_HRM_SCHEDULER", 
-                            "MANAGE_HRM_ADJUSTMENTS"
-                          ] 
-                        },
-                        { 
-                          group: "Notes & Schedule", 
-                          perms: ["VIEW_NOTES", "MANAGE_NOTES"] 
-                        },
-                        { 
-                          group: "PMO Calendar & Timeline", 
-                          perms: ["VIEW_PMO_CALENDAR", "MANAGE_PMO_CALENDAR"] 
-                        },
-                        { 
-                          group: "Integrations & Broadcast", 
-                          perms: ["VIEW_INTEGRATIONS", "VIEW_BROADCAST"] 
-                        },
-                        { 
-                          group: "System & Governance", 
-                          perms: ["VIEW_AUDIT_LOGS", "VIEW_SYSTEM_STATUS", "MANAGE_USERS", "MANAGE_ROLES", "MANAGE_CONFIG"] 
-                        }
-                      ].map(section => (
+                      {getGroupedPermissions().map(section => (
                         <div key={section.group} className="space-y-2.5">
                           <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                             <span className="w-6 h-px bg-slate-100" />

@@ -237,6 +237,10 @@ export class TaskService {
       });
 
       if (!isAdmin && !isCreator && !isAssignee && !isFollower && !isTagged) {
+        await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'Task', id, {
+          reason: 'User is not Creator, Assignee, Follower, Admin or Tagged',
+          user: { id: user.id, username: user.username, email: user.email }
+        });
         throw new NotFoundException(`Task with ID ${id} not found`);
       }
     }
