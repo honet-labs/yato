@@ -2683,7 +2683,7 @@ function TasksPageContent() {
                           try {
                             const files = Array.from(e.target.files);
                             const uploadPromises = files.map((file) => {
-                              return new Promise((resolve, reject) => {
+                              return new Promise<void>((resolve, reject) => {
                                 const reader = new FileReader();
                                 reader.onloadend = async () => {
                                   try {
