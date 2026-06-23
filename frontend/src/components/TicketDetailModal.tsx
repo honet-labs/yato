@@ -52,6 +52,7 @@ interface Comment {
     roles?: { role: { name: string } }[];
   };
   createdAt: string;
+  updatedAt?: string;
   parentId?: string;
   replies?: Comment[];
 }
