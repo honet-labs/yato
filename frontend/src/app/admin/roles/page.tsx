@@ -336,7 +336,7 @@ export default function RolesManagementPage() {
                         },
                         { 
                           group: "Support Ticketing", 
-                          perms: ["VIEW_SUPPORT_TICKETS", "MANAGE_SUPPORT_TICKETS"] 
+                          perms: ["VIEW_SUPPORT_TICKETS", "MANAGE_SUPPORT_TICKETS", "APPROVE_REQUESTS"] 
                         },
                         { 
                           group: "Infrastructure (VM)", 
@@ -364,7 +364,16 @@ export default function RolesManagementPage() {
                         },
                         { 
                           group: "Human Resource Management", 
-                          perms: ["VIEW_HRM", "MANAGE_HRM"] 
+                          perms: [
+                            "VIEW_HRM", 
+                            "MANAGE_HRM", 
+                            "VIEW_HRM_ADMIN_PANEL", 
+                            "MANAGE_HRM_ATTENDANCE", 
+                            "MANAGE_HRM_LEAVES", 
+                            "MANAGE_HRM_DIVISIONS", 
+                            "MANAGE_HRM_SCHEDULER", 
+                            "MANAGE_HRM_ADJUSTMENTS"
+                          ] 
                         },
                         { 
                           group: "PMO Calendar & Timeline", 
