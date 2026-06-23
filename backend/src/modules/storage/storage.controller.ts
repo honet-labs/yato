@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Delete, Body, Param, Query, Res, UseGuards, Request, HttpStatus } from '@nestjs/common';
 import { StorageService } from './storage.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { UpdateStorageConfigDto } from './dto/storage.dto';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -12,7 +14,8 @@ export class StorageController {
   constructor(private storageService: StorageService) {}
 
   @Get('files')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('VIEW_FILES')
   @ApiOperation({ summary: 'List all platform storage files' })
   async list(
     @Request() req: any,
@@ -35,21 +38,24 @@ export class StorageController {
   }
 
   @Get('config')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('MANAGE_FILES')
   @ApiOperation({ summary: 'Fetch platform active storage configurations' })
   async getConfig() {
     return this.storageService.getConfig();
   }
 
   @Post('config')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('MANAGE_FILES')
   @ApiOperation({ summary: 'Save platform active storage credentials' })
   async saveConfig(@Body() dto: UpdateStorageConfigDto) {
     return this.storageService.saveConfig(dto);
   }
 
   @Delete('files/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('MANAGE_FILES')
   @ApiOperation({ summary: 'Permanently delete uploaded file asset' })
   async deleteFile(@Param('id') id: string) {
     return this.storageService.deleteFile(id);

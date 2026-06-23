@@ -62,7 +62,8 @@ interface ServiceInventory {
 
 export default function GlobalServiceAssetsPage() {
   const queryClient = useQueryClient();
-  const { isAdmin, isLoading: isProfileLoading } = useIsAdmin();
+  const { isAdmin, permissions, isLoading: isProfileLoading } = useIsAdmin();
+  const canView = isAdmin || permissions.includes("MANAGE_SERVICE_INVENTORY");
   const [search, setSearch] = useState("");
   const [copiedId, setCopiedId] = useState(null as string | null);
   const [viewingDetails, setViewingDetails] = useState(null as ServiceInventory | null);
@@ -124,7 +125,7 @@ export default function GlobalServiceAssetsPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canView) {
     return (
       <div className="flex min-h-screen bg-slate-950 text-white items-center justify-center p-6">
         <div className="text-center space-y-4 max-w-sm">
@@ -132,7 +133,7 @@ export default function GlobalServiceAssetsPage() {
             <Lock className="w-10 h-10" />
           </div>
           <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
-          <p className="text-sm text-slate-400">You must hold administrative privileges to access Global Service Assets.</p>
+          <p className="text-sm text-slate-400">You must hold appropriate permissions to access Global Service Assets.</p>
         </div>
       </div>
     );

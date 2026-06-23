@@ -66,7 +66,8 @@ export default function ServiceInventoryPage() {
     status: ""
   });
 
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin, permissions, isLoading: isAuthLoading } = useIsAdmin();
+  const canView = isAdmin || permissions.includes("VIEW_SERVICE_INVENTORY") || permissions.includes("MANAGE_SERVICE_INVENTORY");
   const { data: items, isLoading } = useQuery({
     queryKey: ["service-inventory"],
     queryFn: async () => {
@@ -125,6 +126,31 @@ export default function ServiceInventoryPage() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  if (isAuthLoading || isLoading) {
+    return (
+      <div className="flex min-h-screen bg-slate-50 items-center justify-center p-6">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto" />
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Loading Service Assets...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!canView) {
+    return (
+      <div className="flex min-h-screen bg-slate-50 items-center justify-center p-6">
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="w-20 h-20 bg-rose-500/10 rounded-full border border-rose-500/30 flex items-center justify-center mx-auto mb-6 text-rose-500">
+            <Lock className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-800">Access Denied</h2>
+          <p className="text-sm text-slate-500">You do not have permission to access the Service Assets.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-800">

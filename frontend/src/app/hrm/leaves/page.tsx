@@ -22,7 +22,8 @@ import {
   Settings,
   Edit2,
   AlertTriangle,
-  Calendar
+  Calendar,
+  Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -54,7 +55,8 @@ export default function LeaveHubPage() {
     }, 200);
   };
 
-  const { isAdmin, profile, permissions: userPermissions } = useIsAdmin(["HR"]);
+  const { isAdmin, profile, permissions: userPermissions, isLoading: isAuthLoading } = useIsAdmin(["HR"]);
+  const canView = isAdmin || userPermissions.includes("VIEW_HRM") || userPermissions.includes("MANAGE_HRM");
   const canAccessAdmin = isAdmin || userPermissions.includes("VIEW_HRM_ADMIN_PANEL") || userPermissions.includes("MANAGE_HRM") || userPermissions.includes("MANAGE_HRM_LEAVES");
 
   // 2. Load and save customizable leave types (saved in localStorage for tenant flexibility)
@@ -259,6 +261,31 @@ export default function LeaveHubPage() {
     }
     leaveApprovalMutation.mutate({ approvalId, action: "REJECTED", notes });
   };
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex min-h-screen bg-slate-50 items-center justify-center p-6">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto" />
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Loading Access Policies...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!canView) {
+    return (
+      <div className="flex min-h-screen bg-slate-50 items-center justify-center p-6">
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="w-20 h-20 bg-rose-500/10 rounded-full border border-rose-500/30 flex items-center justify-center mx-auto mb-6 text-rose-500">
+            <Lock className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-800">Access Denied</h2>
+          <p className="text-sm text-slate-500">You do not have permission to access the Leave Hub.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background font-sans text-[13px] text-slate-900">

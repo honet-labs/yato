@@ -38,7 +38,8 @@ import {
   Link2,
   UserPlus,
   Edit,
-  Download
+  Download,
+  Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -212,7 +213,8 @@ function TasksPageContent() {
   const taskIdParam = searchParams.get("taskId");
   const projectIdParam = searchParams.get("projectId");
   const queryClient = useQueryClient();
-  const { profile } = useIsAdmin();
+  const { profile, isAdmin, permissions, isLoading: isAuthLoading } = useIsAdmin();
+  const canView = isAdmin || permissions.includes("VIEW_TASKS");
   const [editingCommentId, setEditingCommentId] = useState(null as string | null);
   const [editingCommentText, setEditingCommentText] = useState("");
   const [activeTab, setActiveTab] = useState("board" as "board" | "list");
@@ -956,8 +958,30 @@ function TasksPageContent() {
     const children = getSubtasksOf(task.id);
     return children.some((child: any) => taskOrDescendantMatches(child));
   };
+  if (isAuthLoading) {
+    return (
+      <div className="flex min-h-screen bg-slate-50 items-center justify-center p-6">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto" />
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Loading Access Policies...</p>
+        </div>
+      </div>
+    );
+  }
 
-
+  if (!canView) {
+    return (
+      <div className="flex min-h-screen bg-slate-50 items-center justify-center p-6">
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="w-20 h-20 bg-rose-500/10 rounded-full border border-rose-500/30 flex items-center justify-center mx-auto mb-6 text-rose-500">
+            <Lock className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-850">Access Denied</h2>
+          <p className="text-sm text-slate-500">You do not have permission to access the Tasks Tracker.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
