@@ -1526,6 +1526,7 @@ function TasksPageContent() {
               </div>
             </div>
           )}
+        </div>
 
         {/* ==================== CREATE TASK MODAL ==================== */}
         <AnimatePresence>
