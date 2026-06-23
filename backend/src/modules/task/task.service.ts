@@ -440,13 +440,37 @@ export class TaskService {
     return task;
   }
 
-  async update(id: string, dto: UpdateTaskDto, updaterId: string) {
+  async update(id: string, dto: UpdateTaskDto, user: any) {
     // Ensure task exists
     const existingTask = await this.prisma.task.findUnique({
       where: { id },
       include: { followers: true, assignees: true }
     });
     if (!existingTask) throw new NotFoundException('Task not found');
+
+    const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
+    const isAdmin = userRoles.some((role: string) => 
+      ['ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
+    );
+
+    const isCreator = existingTask.createdById === user.id;
+    const isAssignee = existingTask.assignees.some(a => a.id === user.id);
+    const isFollower = existingTask.followers.some(f => f.id === user.id);
+    const isTagged = existingTask.tags?.some(t => {
+      const cleanTag = t.toLowerCase();
+      const uName = user.username?.toLowerCase();
+      const fName = user.fullName?.toLowerCase();
+      const cleanFName = user.fullName?.replace(/\s+/g, '').toLowerCase();
+      return cleanTag === uName || cleanTag === `@${uName}` || cleanTag === fName || cleanTag === `@${cleanFName}`;
+    });
+
+    if (!isAdmin && !isCreator && !isAssignee && !isFollower && !isTagged) {
+      await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'Task', id, {
+        reason: 'User is not Creator, Assignee, Follower, Admin or Tagged to update task',
+        user: { id: user.id, username: user.username, email: user.email }
+      });
+      throw new NotFoundException('Task not found');
+    }
 
     const data: any = {};
     if (dto.title !== undefined) data.title = dto.title;
@@ -487,7 +511,7 @@ export class TaskService {
     }
 
     // Track auditor updates
-    data.updatedById = updaterId;
+    data.updatedById = user.id;
 
     if (dto.followers !== undefined) {
       data.followers = {
@@ -565,7 +589,7 @@ export class TaskService {
     }
 
     try {
-      await this.auditService.log(updaterId, 'UPDATE_TASK', 'Task', updatedTask.id, {
+      await this.auditService.log(user.id, 'UPDATE_TASK', 'Task', updatedTask.id, {
         dto,
       });
     } catch (err) {
@@ -615,19 +639,35 @@ export class TaskService {
     return updatedTask;
   }
 
-  async delete(id: string, userId?: string) {
-    const task = await this.findOne(id);
+  async delete(id: string, user: any) {
+    const task = await this.prisma.task.findUnique({
+      where: { id }
+    });
+    if (!task) throw new NotFoundException('Task not found');
+
+    const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
+    const isAdmin = userRoles.some((role: string) => 
+      ['ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
+    );
+    const isCreator = task.createdById === user.id;
+
+    if (!isAdmin && !isCreator) {
+      await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'Task', id, {
+        reason: 'User is not Creator or Admin to delete task',
+        user: { id: user.id, username: user.username, email: user.email }
+      });
+      throw new NotFoundException('Task not found');
+    }
+
     const deletedTask = await this.prisma.task.delete({
       where: { id },
     });
-    if (userId) {
-      try {
-        await this.auditService.log(userId, 'DELETE_TASK', 'Task', id, {
-          title: task.title,
-        });
-      } catch (err) {
-        // Safe catch
-      }
+    try {
+      await this.auditService.log(user.id, 'DELETE_TASK', 'Task', id, {
+        title: task.title,
+      });
+    } catch (err) {
+      // Safe catch
     }
     return deletedTask;
   }
@@ -646,8 +686,9 @@ export class TaskService {
     }
   }
 
-  async createComment(taskId: string, dto: CreateTaskCommentDto, authorId: string) {
-    await this.findOne(taskId);
+  async createComment(taskId: string, dto: CreateTaskCommentDto, user: any) {
+    await this.findOne(taskId, user);
+    const authorId = user.id;
 
     const comment = await this.prisma.taskComment.create({
       data: {
@@ -819,7 +860,10 @@ export class TaskService {
     };
   }
 
-  async addAttachment(taskId: string, base64Data: string, filename: string, uploaderId: string) {
+  async addAttachment(taskId: string, base64Data: string, filename: string, uploader: any) {
+    await this.findOne(taskId, uploader);
+    const uploaderId = uploader.id;
+
     // Embed the filename in the base64 URL so uploadFile extracts it!
     let base64WithFilename = base64Data;
     const parts = base64Data.split(';base64,');
@@ -840,7 +884,23 @@ export class TaskService {
     return { fileUrl: fileUrls[0] };
   }
 
-  async removeAttachment(fileId: string) {
+  async removeAttachment(fileId: string, user: any) {
+    const file = await this.prisma.storageFile.findUnique({
+      where: { id: fileId }
+    });
+    if (!file) throw new NotFoundException('Attachment not found');
+
+    if (file.entityType === 'TASK') {
+      await this.findOne(file.entityId, user);
+    } else if (file.entityType === 'COMMENT') {
+      const comment = await this.prisma.taskComment.findUnique({
+        where: { id: file.entityId }
+      });
+      if (comment) {
+        await this.findOne(comment.taskId, user);
+      }
+    }
+
     return this.storageService.deleteFile(fileId);
   }
 

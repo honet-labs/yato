@@ -45,14 +45,14 @@ export class VmRequestController {
 
   @Post(':id/followers')
   @ApiOperation({ summary: 'Add a follower to a VM request' })
-  async addFollower(@Param('id') id: string, @Body('userId') userId: string) {
-    return this.vmRequestService.addFollower(id, userId);
+  async addFollower(@Param('id') id: string, @Body('userId') userId: string, @Req() req: any) {
+    return this.vmRequestService.addFollower(id, userId, req.user);
   }
 
   @Delete(':id/followers/:userId')
   @ApiOperation({ summary: 'Remove a follower from a VM request' })
-  async removeFollower(@Param('id') id: string, @Param('userId') userId: string) {
-    return this.vmRequestService.removeFollower(id, userId);
+  async removeFollower(@Param('id') id: string, @Param('userId') userId: string, @Req() req: any) {
+    return this.vmRequestService.removeFollower(id, userId, req.user);
   }
 
   @Put(':id/approve')
@@ -72,7 +72,7 @@ export class VmRequestController {
   @Put(':id')
   @ApiOperation({ summary: 'Update a VM request' })
   update(@Param('id') id: string, @Body() dto: Partial<CreateVmRequestDto>, @Req() req: any) {
-    return this.vmRequestService.update(id, dto, req.user.id);
+    return this.vmRequestService.update(id, dto, req.user);
   }
 
   @Delete(':id')

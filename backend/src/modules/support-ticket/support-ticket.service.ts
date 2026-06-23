@@ -171,19 +171,38 @@ export class SupportTicketService {
     return ticket;
   }
 
-  async updateStatus(id: string, status: string, userId: string) {
-    const ticket = await this.prisma.supportTicket.update({
+  async updateStatus(id: string, status: string, user: any) {
+    const ticket = await this.prisma.supportTicket.findUnique({
+      where: { id }
+    });
+    if (!ticket) throw new NotFoundException('Ticket not found');
+
+    const isAdmin = user.roles?.some(r => {
+      const name = r.role.name.toUpperCase();
+      return name === 'ADMIN' || name === 'TICKETING_ADMIN' || name === 'SYSTEM ADMIN' || name === 'SYSTEM_ADMIN' || name === 'SUPERADMIN';
+    });
+    const isCreator = ticket.requestedBy === user.id;
+
+    if (!isAdmin && !isCreator) {
+      await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'SupportTicket', id, {
+        reason: 'User is not Creator or Admin to update status of SupportTicket',
+        user: { id: user.id, username: user.username, email: user.email }
+      });
+      throw new NotFoundException('Ticket not found');
+    }
+
+    const updatedTicket = await this.prisma.supportTicket.update({
       where: { id },
       data: { status },
     });
-    await this.auditService.log(userId, 'UPDATE_SUPPORT_TICKET_STATUS', 'SupportTicket', id, { status });
+    await this.auditService.log(user.id, 'UPDATE_SUPPORT_TICKET_STATUS', 'SupportTicket', id, { status });
 
     // Add automatic comment to conversation thread
     await this.prisma.ticketComment.create({
       data: {
         content: `Ticket status has been updated to ${status}.`,
         supportTicketId: id,
-        authorId: userId,
+        authorId: user.id,
       }
     });
     // Notify requester
@@ -194,58 +213,114 @@ export class SupportTicketService {
     const ticketUrl = `${frontendUrl}/tickets?id=${id}&type=SUPPORT`;
     try {
       await this.notificationService.sendToUserQueue(
-        ticket.requestedBy,
-        `Support Ticket Updated: ${ticket.ticketId}`,
-        `Your ticket <b>${ticket.ticketId}</b> status has been changed to ${status}.\n\nLink: ${ticketUrl}`,
+        updatedTicket.requestedBy,
+        `Support Ticket Updated: ${updatedTicket.ticketId}`,
+        `Your ticket <b>${updatedTicket.ticketId}</b> status has been changed to ${status}.\n\nLink: ${ticketUrl}`,
         `/tickets?id=${id}&type=SUPPORT`
       );
     } catch (err) {
       // Safe catch
     }
-    return ticket;
+    return updatedTicket;
   }
 
-  async addFollower(id: string, userId: string) {
+  async addFollower(id: string, followerUserId: string, user: any) {
+    const ticket = await this.prisma.supportTicket.findUnique({ 
+      where: { id },
+      include: { followers: { select: { id: true } } }
+    });
+    if (!ticket) throw new NotFoundException('Ticket not found');
+
+    const isAdmin = user.roles?.some(r => {
+      const name = r.role.name.toUpperCase();
+      return name === 'ADMIN' || name === 'TICKETING_ADMIN' || name === 'SYSTEM ADMIN' || name === 'SYSTEM_ADMIN' || name === 'SUPERADMIN';
+    });
+    const isCreator = ticket.requestedBy === user.id;
+    const isFollower = ticket.followers.some(f => f.id === user.id);
+
+    if (!isAdmin && !isCreator && !isFollower) {
+      await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'SupportTicket', id, {
+        reason: 'User is not Creator, Admin, or Follower to add a follower',
+        user: { id: user.id, username: user.username, email: user.email }
+      });
+      throw new NotFoundException('Ticket not found');
+    }
+
     try {
-      const ticket = await this.prisma.supportTicket.findUnique({ where: { id } });
-      if (ticket) {
-        const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-          where: { key: 'PLATFORM_URL' }
-        });
-        const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
-        const ticketUrl = `${frontendUrl}/tickets?id=${ticket.id}&type=SUPPORT`;
-        await this.notificationService.sendToUserQueue(
-          userId,
-          `Follower Added: ${ticket.ticketId}`,
-          `You have been added as a follower to support ticket <b>${ticket.ticketId}</b>: "${ticket.subject}".\n\nLink: ${ticketUrl}`,
-        );
-      }
+      const platformUrlSetting = await this.prisma.systemSetting.findUnique({
+        where: { key: 'PLATFORM_URL' }
+      });
+      const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+      const ticketUrl = `${frontendUrl}/tickets?id=${ticket.id}&type=SUPPORT`;
+      await this.notificationService.sendToUserQueue(
+        followerUserId,
+        `Follower Added: ${ticket.ticketId}`,
+        `You have been added as a follower to support ticket <b>${ticket.ticketId}</b>: "${ticket.subject}".\n\nLink: ${ticketUrl}`,
+      );
     } catch (err) {
       // Safe catch
     }
 
     return this.prisma.supportTicket.update({
       where: { id },
-      data: { followers: { connect: { id: userId } } }
+      data: { followers: { connect: { id: followerUserId } } }
     });
   }
 
-  async removeFollower(id: string, userId: string) {
+  async removeFollower(id: string, followerUserId: string, user: any) {
+    const ticket = await this.prisma.supportTicket.findUnique({ 
+      where: { id },
+      include: { followers: { select: { id: true } } }
+    });
+    if (!ticket) throw new NotFoundException('Ticket not found');
+
+    const isAdmin = user.roles?.some(r => {
+      const name = r.role.name.toUpperCase();
+      return name === 'ADMIN' || name === 'TICKETING_ADMIN' || name === 'SYSTEM ADMIN' || name === 'SYSTEM_ADMIN' || name === 'SUPERADMIN';
+    });
+    const isCreator = ticket.requestedBy === user.id;
+    const isFollower = ticket.followers.some(f => f.id === user.id);
+
+    if (!isAdmin && !isCreator && !isFollower) {
+      await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'SupportTicket', id, {
+        reason: 'User is not Creator, Admin, or Follower to remove a follower',
+        user: { id: user.id, username: user.username, email: user.email }
+      });
+      throw new NotFoundException('Ticket not found');
+    }
+
     return this.prisma.supportTicket.update({
       where: { id },
-      data: { followers: { disconnect: { id: userId } } }
+      data: { followers: { disconnect: { id: followerUserId } } }
     });
   }
 
-  async update(id: string, dto: any, userId: string) {
-    const ticket = await this.prisma.supportTicket.findUnique({ where: { id } });
+  async update(id: string, dto: any, user: any) {
+    const ticket = await this.prisma.supportTicket.findUnique({ 
+      where: { id },
+      include: { followers: { select: { id: true } } }
+    });
     if (!ticket) throw new NotFoundException('Ticket not found');
+
+    const isAdmin = user.roles?.some(r => {
+      const name = r.role.name.toUpperCase();
+      return name === 'ADMIN' || name === 'TICKETING_ADMIN' || name === 'SYSTEM ADMIN' || name === 'SYSTEM_ADMIN' || name === 'SUPERADMIN';
+    });
+    const isCreator = ticket.requestedBy === user.id;
+
+    if (!isAdmin && !isCreator) {
+      await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'SupportTicket', id, {
+        reason: 'User is not Creator or Admin to update SupportTicket',
+        user: { id: user.id, username: user.username, email: user.email }
+      });
+      throw new NotFoundException('Ticket not found');
+    }
 
     let processedAttachments = dto.attachments;
     if (dto.attachments) {
       processedAttachments = await this.storageService.processAttachments(
         dto.attachments,
-        userId,
+        user.id,
         ticket.ticketId,
         'SUPPORT_TICKET',
       );
@@ -264,7 +339,7 @@ export class SupportTicketService {
       },
     });
 
-    await this.auditService.log(userId, 'UPDATE_SUPPORT_TICKET', 'SupportTicket', id, dto);
+    await this.auditService.log(user.id, 'UPDATE_SUPPORT_TICKET', 'SupportTicket', id, dto);
     return updated;
   }
 

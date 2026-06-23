@@ -62,13 +62,13 @@ export class TaskController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update task properties' })
   async update(@Param('id') id: string, @Body() dto: UpdateTaskDto, @Request() req: any) {
-    return this.taskService.update(id, dto, req.user.id);
+    return this.taskService.update(id, dto, req.user);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete specific task' })
   async delete(@Param('id') id: string, @Request() req: any) {
-    return this.taskService.delete(id, req.user.id);
+    return this.taskService.delete(id, req.user);
   }
 
   @Post(':id/comments')
@@ -78,7 +78,7 @@ export class TaskController {
     @Body() dto: CreateTaskCommentDto,
     @Request() req: any,
   ) {
-    return this.taskService.createComment(id, dto, req.user.id);
+    return this.taskService.createComment(id, dto, req.user);
   }
 
   @Patch('comments/:commentId')
@@ -98,12 +98,12 @@ export class TaskController {
     @Body() body: { base64Data: string; filename: string },
     @Request() req: any,
   ) {
-    return this.taskService.addAttachment(id, body.base64Data, body.filename, req.user.id);
+    return this.taskService.addAttachment(id, body.base64Data, body.filename, req.user);
   }
 
   @Delete('attachments/:fileId')
   @ApiOperation({ summary: 'Delete task attachment' })
-  async removeAttachment(@Param('fileId') fileId: string) {
-    return this.taskService.removeAttachment(fileId);
+  async removeAttachment(@Param('fileId') fileId: string, @Request() req: any) {
+    return this.taskService.removeAttachment(fileId, req.user);
   }
 }

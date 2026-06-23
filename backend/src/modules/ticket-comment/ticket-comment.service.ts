@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { StorageService } from '../storage/storage.service';
@@ -19,7 +19,61 @@ export class TicketCommentService {
     serviceRequestId?: string; 
     supportTicketId?: string;
     parentId?: string 
-  }) {
+  }, user: any) {
+    if (data.vmRequestId) {
+      const vmReq = await this.prisma.vMRequest.findUnique({
+        where: { id: data.vmRequestId },
+        include: { followers: true }
+      });
+      if (!vmReq) throw new NotFoundException('Request not found');
+      const isAdmin = user.roles?.some(r => r.role.name === 'ADMIN' || r.role.name === 'TICKETING_ADMIN');
+      if (!isAdmin) {
+        const isCreator = vmReq.requestedBy === user.id;
+        const isFollower = vmReq.followers?.some(f => f.id === user.id);
+        if (!isCreator && !isFollower) {
+          throw new NotFoundException('Request not found');
+        }
+      }
+    } else if (data.serviceRequestId) {
+      const svcReq = await this.prisma.serviceRequest.findUnique({
+        where: { id: data.serviceRequestId },
+        include: { followers: true }
+      });
+      if (!svcReq) throw new NotFoundException('Request not found');
+      const isAdmin = user.roles?.some(r => r.role.name === 'ADMIN' || r.role.name === 'TICKETING_ADMIN');
+      if (!isAdmin) {
+        const isCreator = svcReq.requestedBy === user.id;
+        const isFollower = svcReq.followers?.some(f => f.id === user.id);
+        if (!isCreator && !isFollower) {
+          throw new NotFoundException('Request not found');
+        }
+      }
+    } else if (data.supportTicketId) {
+      const ticket = await this.prisma.supportTicket.findUnique({
+        where: { id: data.supportTicketId },
+        include: { followers: true }
+      });
+      if (!ticket) throw new NotFoundException('Ticket not found');
+      const isAdmin = user.roles?.some(r => {
+        const name = r.role.name.toUpperCase();
+        return name === 'ADMIN' || name === 'TICKETING_ADMIN' || name === 'SYSTEM ADMIN' || name === 'SYSTEM_ADMIN' || name === 'SUPERADMIN';
+      });
+      if (!isAdmin) {
+        const isCreator = ticket.requestedBy === user.id;
+        const isFollower = ticket.followers.some(f => f.id === user.id);
+        const isTagged = ticket.tags?.some(t => {
+          const cleanTag = t.toLowerCase();
+          const uName = user.username?.toLowerCase();
+          const fName = user.fullName?.toLowerCase();
+          const cleanFName = user.fullName?.replace(/\s+/g, '').toLowerCase();
+          return cleanTag === uName || cleanTag === `@${uName}` || cleanTag === fName || cleanTag === `@${cleanFName}`;
+        });
+        if (!isCreator && !isFollower && !isTagged) {
+          throw new NotFoundException('Ticket not found');
+        }
+      }
+    }
+
     let processedAttachment = data.attachment;
     if (data.attachment && data.attachment.startsWith('data:')) {
       const entityId = data.supportTicketId || data.vmRequestId || data.serviceRequestId || undefined;
@@ -36,8 +90,13 @@ export class TicketCommentService {
 
     const comment = await this.prisma.ticketComment.create({
       data: {
-        ...data,
+        content: data.content,
         attachment: processedAttachment,
+        authorId: data.authorId,
+        vmRequestId: data.vmRequestId,
+        serviceRequestId: data.serviceRequestId,
+        supportTicketId: data.supportTicketId,
+        parentId: data.parentId,
       },
       include: { 
         author: { select: { fullName: true, username: true, roles: { include: { role: true } } } },
@@ -129,7 +188,61 @@ export class TicketCommentService {
     return comment;
   }
 
-  async findByTicket(id: string, type: 'VM' | 'SERVICE' | 'SUPPORT') {
+  async findByTicket(id: string, type: 'VM' | 'SERVICE' | 'SUPPORT', user: any) {
+    if (type === 'VM') {
+      const vmReq = await this.prisma.vMRequest.findUnique({
+        where: { id },
+        include: { followers: true }
+      });
+      if (!vmReq) throw new NotFoundException('Request not found');
+      const isAdmin = user.roles?.some(r => r.role.name === 'ADMIN' || r.role.name === 'TICKETING_ADMIN');
+      if (!isAdmin) {
+        const isCreator = vmReq.requestedBy === user.id;
+        const isFollower = vmReq.followers?.some(f => f.id === user.id);
+        if (!isCreator && !isFollower) {
+          throw new NotFoundException('Request not found');
+        }
+      }
+    } else if (type === 'SERVICE') {
+      const svcReq = await this.prisma.serviceRequest.findUnique({
+        where: { id },
+        include: { followers: true }
+      });
+      if (!svcReq) throw new NotFoundException('Request not found');
+      const isAdmin = user.roles?.some(r => r.role.name === 'ADMIN' || r.role.name === 'TICKETING_ADMIN');
+      if (!isAdmin) {
+        const isCreator = svcReq.requestedBy === user.id;
+        const isFollower = svcReq.followers?.some(f => f.id === user.id);
+        if (!isCreator && !isFollower) {
+          throw new NotFoundException('Request not found');
+        }
+      }
+    } else if (type === 'SUPPORT') {
+      const ticket = await this.prisma.supportTicket.findUnique({
+        where: { id },
+        include: { followers: true }
+      });
+      if (!ticket) throw new NotFoundException('Ticket not found');
+      const isAdmin = user.roles?.some(r => {
+        const name = r.role.name.toUpperCase();
+        return name === 'ADMIN' || name === 'TICKETING_ADMIN' || name === 'SYSTEM ADMIN' || name === 'SYSTEM_ADMIN' || name === 'SUPERADMIN';
+      });
+      if (!isAdmin) {
+        const isCreator = ticket.requestedBy === user.id;
+        const isFollower = ticket.followers.some(f => f.id === user.id);
+        const isTagged = ticket.tags?.some(t => {
+          const cleanTag = t.toLowerCase();
+          const uName = user.username?.toLowerCase();
+          const fName = user.fullName?.toLowerCase();
+          const cleanFName = user.fullName?.replace(/\s+/g, '').toLowerCase();
+          return cleanTag === uName || cleanTag === `@${uName}` || cleanTag === fName || cleanTag === `@${cleanFName}`;
+        });
+        if (!isCreator && !isFollower && !isTagged) {
+          throw new NotFoundException('Ticket not found');
+        }
+      }
+    }
+
     const allComments = await this.prisma.ticketComment.findMany({
       where: {
         ...(type === 'VM' ? { vmRequestId: id } : 

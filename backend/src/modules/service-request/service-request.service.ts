@@ -118,7 +118,8 @@ export class ServiceRequestService {
     });
   }
 
-  async addFollower(ticketId: string, userId: string) {
+  async addFollower(ticketId: string, followerUserId: string, user: any) {
+    await this.findOne(ticketId, user);
     try {
       const ticket = await this.prisma.serviceRequest.findUnique({ where: { id: ticketId } });
       if (ticket) {
@@ -128,7 +129,7 @@ export class ServiceRequestService {
         const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
         const ticketUrl = `${frontendUrl}/tickets?id=${ticket.id}&type=SERVICE`;
         await this.notificationService.sendToUserQueue(
-          userId,
+          followerUserId,
           `Follower Added: ${ticket.ticketId}`,
           `You have been added as a follower to service request <b>${ticket.ticketId}</b> for service <b>${ticket.serviceName}</b>.\n\nLink: ${ticketUrl}`,
         );
@@ -139,14 +140,15 @@ export class ServiceRequestService {
 
     return this.prisma.serviceRequest.update({
       where: { id: ticketId },
-      data: { followers: { connect: { id: userId } } }
+      data: { followers: { connect: { id: followerUserId } } }
     });
   }
 
-  async removeFollower(ticketId: string, userId: string) {
+  async removeFollower(ticketId: string, followerUserId: string, user: any) {
+    await this.findOne(ticketId, user);
     return this.prisma.serviceRequest.update({
       where: { id: ticketId },
-      data: { followers: { disconnect: { id: userId } } }
+      data: { followers: { disconnect: { id: followerUserId } } }
     });
   }
 
@@ -284,14 +286,21 @@ export class ServiceRequestService {
     return updated;
   }
 
-  async update(id: string, dto: any, userId: string) {
-    const request = await this.findOne(id);
+  async update(id: string, dto: any, user: any) {
+    const request = await this.findOne(id, user);
+
+    // Ensure only admin or creator can update it
+    const isAdmin = user.roles?.some(r => r.role.name === 'ADMIN' || r.role.name === 'TICKETING_ADMIN');
+    const isCreator = request.requestedBy === user.id;
+    if (!isAdmin && !isCreator) {
+      throw new NotFoundException('Request not found');
+    }
 
     if (dto.status === 'APPROVED' && request.status === 'PENDING') {
-      return this.approve(id, userId, dto);
+      return this.approve(id, user.id, dto);
     }
     if (dto.status === 'REJECTED' && request.status === 'PENDING') {
-      return this.reject(id, userId, dto.rejectionReason || 'Status updated to REJECTED via edit');
+      return this.reject(id, user.id, dto.rejectionReason || 'Status updated to REJECTED via edit');
     }
 
     const updated = await this.prisma.serviceRequest.update({
@@ -306,7 +315,7 @@ export class ServiceRequestService {
       },
     });
 
-    await this.auditService.log(userId, 'UPDATE_SERVICE_REQUEST', 'ServiceRequest', id, dto);
+    await this.auditService.log(user.id, 'UPDATE_SERVICE_REQUEST', 'ServiceRequest', id, dto);
     return updated;
   }
 

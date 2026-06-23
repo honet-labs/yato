@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Patch, Delete, Body, UseGuards, Request, Param } from '@nestjs/common';
 import { PmoService } from './pmo.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('pmo')
@@ -16,11 +18,13 @@ export class PmoController {
 
   @Get('projects')
   @ApiOperation({ summary: 'Retrieve all projects' })
-  async findAllProjects() {
-    return this.pmoService.findAllProjects();
+  async findAllProjects(@Request() req: any) {
+    return this.pmoService.findAllProjects(req.user);
   }
 
   @Post('projects')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Create a new project' })
   async createProject(
     @Body() body: {
@@ -36,6 +40,8 @@ export class PmoController {
   }
 
   @Patch('projects/:id')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Update a project' })
   async updateProject(
     @Param('id') id: string,
@@ -52,6 +58,8 @@ export class PmoController {
   }
 
   @Delete('projects/:id')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Delete a project' })
   async deleteProject(@Param('id') id: string) {
     return this.pmoService.deleteProject(id);
@@ -68,6 +76,8 @@ export class PmoController {
   }
 
   @Post('milestones')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Create a new milestone' })
   async createMilestone(
     @Body() body: {
@@ -82,6 +92,8 @@ export class PmoController {
   }
 
   @Patch('milestones/:id')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Update a milestone' })
   async updateMilestone(
     @Param('id') id: string,
@@ -96,6 +108,8 @@ export class PmoController {
   }
 
   @Delete('milestones/:id')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Delete a milestone' })
   async deleteMilestone(@Param('id') id: string) {
     return this.pmoService.deleteMilestone(id);

@@ -9,10 +9,35 @@ export class PmoService {
   // PROJECT OPERATIONS
   // ==========================================
 
-  async findAllProjects() {
+  async findAllProjects(user?: any) {
+    let taskWhere = {};
+    if (user) {
+      const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
+      const isAdmin = userRoles.some((role: string) => 
+        ['ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
+      );
+
+      const userTagIdentifiers = [
+        user.username,
+        user.fullName,
+        user.username ? `@${user.username}` : null,
+        user.fullName ? `@${user.fullName.replace(/\s+/g, '')}` : null
+      ].filter(Boolean) as string[];
+
+      taskWhere = isAdmin ? {} : {
+        OR: [
+          { createdById: user.id },
+          { assignees: { some: { id: user.id } } },
+          { followers: { some: { id: user.id } } },
+          { tags: { hasSome: userTagIdentifiers } }
+        ]
+      };
+    }
+
     return this.prisma.project.findMany({
       include: {
         tasks: {
+          where: taskWhere,
           select: {
             id: true,
             title: true,

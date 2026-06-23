@@ -16,7 +16,7 @@ export class TicketCommentController {
     return this.commentService.create({
       ...body,
       authorId: req.user.id,
-    });
+    }, req.user);
   }
 
   @Patch(':id')
@@ -27,8 +27,8 @@ export class TicketCommentController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get all comments for a specific ticket' })
-  async findByTicket(@Param('id') id: string, @Query('type') type: 'VM' | 'SERVICE' | 'SUPPORT') {
-    return this.commentService.findByTicket(id, type);
+  async findByTicket(@Param('id') id: string, @Query('type') type: 'VM' | 'SERVICE' | 'SUPPORT', @Request() req: any) {
+    return this.commentService.findByTicket(id, type, req.user);
   }
 }
 

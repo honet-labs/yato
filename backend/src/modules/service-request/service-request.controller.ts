@@ -40,14 +40,14 @@ export class ServiceRequestController {
 
   @Post(':id/followers')
   @ApiOperation({ summary: 'Add a follower to a service request' })
-  async addFollower(@Param('id') id: string, @Body('userId') userId: string) {
-    return this.serviceRequestService.addFollower(id, userId);
+  async addFollower(@Param('id') id: string, @Body('userId') userId: string, @Req() req: any) {
+    return this.serviceRequestService.addFollower(id, userId, req.user);
   }
 
   @Delete(':id/followers/:userId')
   @ApiOperation({ summary: 'Remove a follower from a service request' })
-  async removeFollower(@Param('id') id: string, @Param('userId') userId: string) {
-    return this.serviceRequestService.removeFollower(id, userId);
+  async removeFollower(@Param('id') id: string, @Param('userId') userId: string, @Req() req: any) {
+    return this.serviceRequestService.removeFollower(id, userId, req.user);
   }
 
   @Get(':id')
@@ -73,7 +73,7 @@ export class ServiceRequestController {
   @Put(':id')
   @ApiOperation({ summary: 'Update a service request' })
   update(@Param('id') id: string, @Body() dto: Partial<CreateServiceRequestDto>, @Req() req: any) {
-    return this.serviceRequestService.update(id, dto, req.user.id);
+    return this.serviceRequestService.update(id, dto, req.user);
   }
 
   @Delete(':id')

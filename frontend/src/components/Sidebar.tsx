@@ -170,6 +170,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
 
   const handleSignOut = () => {
     localStorage.removeItem("yato_token");
+    queryClient.clear();
     router.push("/login");
   };
 

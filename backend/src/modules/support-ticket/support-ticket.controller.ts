@@ -48,23 +48,23 @@ export class SupportTicketController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update support ticket status' })
   updateStatus(@Param('id') id: string, @Body('status') status: string, @Req() req: any) {
-    return this.supportTicketService.updateStatus(id, status, req.user.id);
+    return this.supportTicketService.updateStatus(id, status, req.user);
   }
 
   @Post(':id/followers')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add a follower to a support ticket' })
-  async addFollower(@Param('id') id: string, @Body('userId') userId: string) {
-    return this.supportTicketService.addFollower(id, userId);
+  async addFollower(@Param('id') id: string, @Body('userId') userId: string, @Req() req: any) {
+    return this.supportTicketService.addFollower(id, userId, req.user);
   }
 
   @Delete(':id/followers/:userId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Remove a follower from a support ticket' })
-  async removeFollower(@Param('id') id: string, @Param('userId') userId: string) {
-    return this.supportTicketService.removeFollower(id, userId);
+  async removeFollower(@Param('id') id: string, @Param('userId') userId: string, @Req() req: any) {
+    return this.supportTicketService.removeFollower(id, userId, req.user);
   }
 
   @Put(':id')
@@ -72,7 +72,7 @@ export class SupportTicketController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a support ticket' })
   update(@Param('id') id: string, @Body() dto: any, @Req() req: any) {
-    return this.supportTicketService.update(id, dto, req.user.id);
+    return this.supportTicketService.update(id, dto, req.user);
   }
 
   @Delete(':id')
