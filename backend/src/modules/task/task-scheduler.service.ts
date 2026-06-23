@@ -317,7 +317,15 @@ export class TaskSchedulerService {
   // Also run on application startup to ensure repeating tasks and initial alerts are handled
   async onApplicationBootstrap() {
     this.logger.log('🚀 Bootstrapping Repeating Task Scheduler...');
-    await this.handleRepeatingTasks();
-    await this.sendTaskReminders();
+    try {
+      await this.handleRepeatingTasks();
+    } catch (e) {
+      this.logger.error('Failed to run bootstrapping repeating tasks:', e.stack || e.message);
+    }
+    try {
+      await this.sendTaskReminders();
+    } catch (e) {
+      this.logger.error('Failed to run bootstrapping task reminders:', e.stack || e.message);
+    }
   }
 }

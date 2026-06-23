@@ -2157,7 +2157,14 @@ function TasksPageContent() {
 
                 {/* Drawer Body */}
                 <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
-                  {/* Task Title */}
+                  {!taskDetail ? (
+                    <div className="flex flex-col items-center justify-center py-32 gap-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading task details...</span>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Task Title */}
                   <div className="space-y-1">
                     <input 
                       id="task-detail-title"
@@ -3200,6 +3207,8 @@ function TasksPageContent() {
                       </div>
                     </form>
                   </div>
+                  </>
+                  )}
                 </div>
               </motion.div>
             </div>
