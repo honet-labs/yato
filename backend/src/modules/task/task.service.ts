@@ -32,7 +32,12 @@ export class TaskService {
   ) {}
 
   async findAll(user: any) {
-    const where = {
+    const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
+    const isAdmin = userRoles.some((role: string) => 
+      ['ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
+    );
+
+    const where = isAdmin ? {} : {
       OR: [
         { createdById: user.id },
         { assignees: { some: { id: user.id } } },
@@ -207,11 +212,16 @@ export class TaskService {
     }
 
     if (user) {
+      const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
+      const isAdmin = userRoles.some((role: string) => 
+        ['ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
+      );
+
       const isCreator = task.createdById === user.id;
       const isAssignee = task.assignees.some(a => a.id === user.id);
       const isFollower = task.followers.some(f => f.id === user.id);
 
-      if (!isCreator && !isAssignee && !isFollower) {
+      if (!isAdmin && !isCreator && !isAssignee && !isFollower) {
         throw new NotFoundException(`Task with ID ${id} not found`);
       }
     }
