@@ -150,12 +150,25 @@ export class ServiceRequestService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user?: any) {
     const request = await this.prisma.serviceRequest.findUnique({
       where: { id },
       include: { user: true, followers: true }
     });
     if (!request) throw new NotFoundException('Service request not found');
+
+    // Enforce visibility: only admin, creator, or followers can view
+    if (user) {
+      const isAdmin = user.roles?.some(r => r.role.name === 'ADMIN' || r.role.name === 'TICKETING_ADMIN');
+      if (!isAdmin) {
+        const isCreator = request.requestedBy === user.id;
+        const isFollower = request.followers?.some(f => f.id === user.id);
+        if (!isCreator && !isFollower) {
+          throw new NotFoundException('Service request not found');
+        }
+      }
+    }
+
     return request;
   }
 

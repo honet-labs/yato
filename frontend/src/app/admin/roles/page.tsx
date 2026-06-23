@@ -142,7 +142,7 @@ export default function RolesManagementPage() {
 
   if (isProfileLoading || isLoading) {
     return (
-      <div className="flex min-h-screen bg-slate-950 text-white items-center justify-center p-6">
+      <div className="flex min-h-screen bg-white items-center justify-center p-6">
         <div className="text-center space-y-4">
           <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto" />
           <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Loading Access Policies...</p>
@@ -153,12 +153,12 @@ export default function RolesManagementPage() {
 
   if (!isAdmin) {
     return (
-      <div className="flex min-h-screen bg-slate-950 text-white items-center justify-center p-6">
+      <div className="flex min-h-screen bg-white items-center justify-center p-6">
         <div className="text-center space-y-4 max-w-sm">
-          <div className="w-20 h-20 bg-rose-500/10 rounded-full border border-rose-500/30 flex items-center justify-center mx-auto mb-6 text-rose-500">
+          <div className="w-20 h-20 bg-rose-50 rounded-full border border-rose-200 flex items-center justify-center mx-auto mb-6 text-rose-500">
             <Lock className="w-10 h-10" />
           </div>
-          <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-800">Access Denied</h2>
           <p className="text-sm text-slate-400">You must hold administrative privileges to access Access Control.</p>
         </div>
       </div>
@@ -376,8 +376,16 @@ export default function RolesManagementPage() {
                           ] 
                         },
                         { 
+                          group: "Notes & Schedule", 
+                          perms: ["VIEW_NOTES", "MANAGE_NOTES"] 
+                        },
+                        { 
                           group: "PMO Calendar & Timeline", 
                           perms: ["VIEW_PMO_CALENDAR", "MANAGE_PMO_CALENDAR"] 
+                        },
+                        { 
+                          group: "Integrations & Broadcast", 
+                          perms: ["VIEW_INTEGRATIONS", "VIEW_BROADCAST"] 
                         },
                         { 
                           group: "System & Governance", 

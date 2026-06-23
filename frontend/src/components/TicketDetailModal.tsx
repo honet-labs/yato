@@ -464,8 +464,13 @@ export function TicketDetailModal({ isOpen, onClose, ticket, isAdmin = false, on
                 <span className="text-[8px] font-black bg-blue-600 text-white px-1.5 py-0.5 rounded tracking-tighter uppercase">Admin</span>
               )}
             </div>
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight flex items-center gap-1.5">
               {new Date(comment.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              {comment.updatedAt && new Date(comment.updatedAt).getTime() - new Date(comment.createdAt).getTime() > 1000 && (
+                <span className="text-slate-400 italic lowercase normal-case">
+                  (edited: {new Date(comment.updatedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })})
+                </span>
+              )}
             </span>
           </div>
       <div className="p-5 bg-white rounded-2xl rounded-tl-none border border-slate-100 shadow-sm space-y-4">

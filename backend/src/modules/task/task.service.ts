@@ -37,11 +37,19 @@ export class TaskService {
       ['ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
     );
 
+    const userTagIdentifiers = [
+      user.username,
+      user.fullName,
+      user.username ? `@${user.username}` : null,
+      user.fullName ? `@${user.fullName.replace(/\s+/g, '')}` : null
+    ].filter(Boolean) as string[];
+
     const where = isAdmin ? {} : {
       OR: [
         { createdById: user.id },
         { assignees: { some: { id: user.id } } },
-        { followers: { some: { id: user.id } } }
+        { followers: { some: { id: user.id } } },
+        { tags: { hasSome: userTagIdentifiers } }
       ]
     };
 
@@ -220,8 +228,15 @@ export class TaskService {
       const isCreator = task.createdById === user.id;
       const isAssignee = task.assignees.some(a => a.id === user.id);
       const isFollower = task.followers.some(f => f.id === user.id);
+      const isTagged = task.tags?.some(t => {
+        const cleanTag = t.toLowerCase();
+        const uName = user.username?.toLowerCase();
+        const fName = user.fullName?.toLowerCase();
+        const cleanFName = user.fullName?.replace(/\s+/g, '').toLowerCase();
+        return cleanTag === uName || cleanTag === `@${uName}` || cleanTag === fName || cleanTag === `@${cleanFName}`;
+      });
 
-      if (!isAdmin && !isCreator && !isAssignee && !isFollower) {
+      if (!isAdmin && !isCreator && !isAssignee && !isFollower && !isTagged) {
         throw new NotFoundException(`Task with ID ${id} not found`);
       }
     }

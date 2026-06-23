@@ -2825,8 +2825,13 @@ function TasksPageContent() {
                               </div>
                               {comment.author.fullName}
                             </span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">
-                              {new Date(comment.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            <span className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1.5">
+                              {new Date(comment.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              {comment.updatedAt && new Date(comment.updatedAt).getTime() - new Date(comment.createdAt).getTime() > 1000 && (
+                                <span className="text-slate-400 italic lowercase normal-case">
+                                  (edited: {new Date(comment.updatedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })})
+                                </span>
+                              )}
                             </span>
                           </div>
                           {editingCommentId === comment.id ? (
@@ -2934,8 +2939,13 @@ function TasksPageContent() {
                                   </div>
                                   {reply.author.fullName}
                                 </span>
-                                <span className="text-[9px] font-bold text-slate-400 uppercase">
-                                  {new Date(reply.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                <span className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1.5">
+                                  {new Date(reply.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                  {reply.updatedAt && new Date(reply.updatedAt).getTime() - new Date(reply.createdAt).getTime() > 1000 && (
+                                    <span className="text-slate-400 italic lowercase normal-case">
+                                      (edited: {new Date(reply.updatedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })})
+                                    </span>
+                                  )}
                                 </span>
                               </div>
                               {editingCommentId === reply.id ? (

@@ -52,8 +52,8 @@ export class ServiceRequestController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get service request detail' })
-  findOne(@Param('id') id: string) {
-    return this.serviceRequestService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: any) {
+    return this.serviceRequestService.findOne(id, req.user);
   }
 
   @Put(':id/approve')

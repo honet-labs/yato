@@ -67,8 +67,12 @@ export class RoleService {
       "MANAGE_HRM_DIVISIONS",
       "MANAGE_HRM_SCHEDULER",
       "MANAGE_HRM_ADJUSTMENTS",
+      "VIEW_NOTES",
+      "MANAGE_NOTES",
       "VIEW_PMO_CALENDAR",
-      "MANAGE_PMO_CALENDAR"
+      "MANAGE_PMO_CALENDAR",
+      "VIEW_INTEGRATIONS",
+      "VIEW_BROADCAST"
     ];
   }
 }

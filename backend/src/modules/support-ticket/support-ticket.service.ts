@@ -101,11 +101,23 @@ export class SupportTicketService {
   }
 
   async findAll(user: any) {
-    const isAdmin = user.roles?.some(r => r.role.name === 'ADMIN' || r.role.name === 'TICKETING_ADMIN');
+    const isAdmin = user.roles?.some(r => {
+      const name = r.role.name.toUpperCase();
+      return name === 'ADMIN' || name === 'TICKETING_ADMIN' || name === 'SYSTEM ADMIN' || name === 'SYSTEM_ADMIN' || name === 'SUPERADMIN';
+    });
+
+    const userTagIdentifiers = [
+      user.username,
+      user.fullName,
+      user.username ? `@${user.username}` : null,
+      user.fullName ? `@${user.fullName.replace(/\s+/g, '')}` : null
+    ].filter(Boolean) as string[];
+
     const where = isAdmin ? {} : {
       OR: [
         { requestedBy: user.id },
-        { followers: { some: { id: user.id } } }
+        { followers: { some: { id: user.id } } },
+        { tags: { hasSome: userTagIdentifiers } }
       ]
     };
 
@@ -134,11 +146,21 @@ export class SupportTicketService {
     });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
-    const isAdmin = user.roles?.some(r => r.role.name === 'ADMIN' || r.role.name === 'TICKETING_ADMIN');
+    const isAdmin = user.roles?.some(r => {
+      const name = r.role.name.toUpperCase();
+      return name === 'ADMIN' || name === 'TICKETING_ADMIN' || name === 'SYSTEM ADMIN' || name === 'SYSTEM_ADMIN' || name === 'SUPERADMIN';
+    });
     const isCreator = ticket.requestedBy === user.id;
     const isFollower = ticket.followers.some(f => f.id === user.id);
+    const isTagged = ticket.tags?.some(t => {
+      const cleanTag = t.toLowerCase();
+      const uName = user.username?.toLowerCase();
+      const fName = user.fullName?.toLowerCase();
+      const cleanFName = user.fullName?.replace(/\s+/g, '').toLowerCase();
+      return cleanTag === uName || cleanTag === `@${uName}` || cleanTag === fName || cleanTag === `@${cleanFName}`;
+    });
 
-    if (!isAdmin && !isCreator && !isFollower) {
+    if (!isAdmin && !isCreator && !isFollower && !isTagged) {
       throw new NotFoundException('Ticket not found');
     }
 

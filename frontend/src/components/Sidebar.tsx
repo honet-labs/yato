@@ -211,7 +211,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
       title: "Productivity",
       items: [
         { icon: CheckSquare, label: "Tasks Tracker", href: "/tasks", permission: "VIEW_TASKS" },
-        { icon: Edit, label: "Notes & Schedule", href: "/notes" },
+        { icon: Edit, label: "Notes & Schedule", href: "/notes", permission: "VIEW_NOTES" },
         { icon: Calendar, label: "PMO Calendar", href: "/pmo-calendar", permission: "VIEW_PMO_CALENDAR" },
       ]
     },
@@ -253,10 +253,10 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
         { icon: Activity, label: "System Status", href: "/admin/status", permission: "VIEW_SYSTEM_STATUS" },
         { icon: History, label: "Log Activity", href: "/audit", permission: "VIEW_AUDIT_LOGS" },
         { icon: Users, label: "User Management", href: "/admin/users", permission: "MANAGE_USERS" },
-        { icon: Send, label: "Broadcast Message", href: "/admin/users?broadcast=true", permission: "MANAGE_USERS" },
+        { icon: Send, label: "Broadcast Message", href: "/admin/users?broadcast=true", permission: "VIEW_BROADCAST" },
         { icon: ShieldCheck, label: "Access Control", href: "/admin/roles", permission: "MANAGE_ROLES" },
         { icon: Settings, label: "Platform Settings", href: "/admin/config", permission: "MANAGE_CONFIG" },
-        { icon: Plug, label: "Integration Hub", href: "/admin/integrations", permission: "MANAGE_CONFIG" },
+        { icon: Plug, label: "Integration Hub", href: "/admin/integrations", permission: "VIEW_INTEGRATIONS" },
       ]
     }
   ];

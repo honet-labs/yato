@@ -39,8 +39,8 @@ export class VmRequestController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get VM request detail' })
-  findOne(@Param('id') id: string) {
-    return this.vmRequestService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: any) {
+    return this.vmRequestService.findOne(id, req.user);
   }
 
   @Post(':id/followers')
