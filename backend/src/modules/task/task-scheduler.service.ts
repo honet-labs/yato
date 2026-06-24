@@ -175,6 +175,7 @@ export class TaskSchedulerService {
                 checklist: template.checklist || [],
                 createdById: template.createdById,
                 templateId: template.id,
+                projectId: template.projectId || null,
                 tags: (template as any).tags || [],
                 assigneeId: template.createdById,
                 assignees: {

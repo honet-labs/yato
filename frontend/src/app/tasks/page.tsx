@@ -346,7 +346,8 @@ function TasksPageContent() {
     repeatTime: "09:00",
     repeatDayOfWeek: 1,
     repeatDayOfMonth: 1,
-    tags: [] as string[]
+    tags: [] as string[],
+    projectId: ""
   });
 
   // State for Create Modal
@@ -541,7 +542,7 @@ function TasksPageContent() {
         checklist: template.checklist || [],
         templateId: template.id,
         tags: template.tags || [],
-        projectId: projectIdParam || undefined
+        projectId: template.projectId || projectIdParam || undefined
       };
       const res = await api.post("/tasks", payload);
       return res.data;
@@ -726,7 +727,8 @@ function TasksPageContent() {
       repeatTime: "09:00",
       repeatDayOfWeek: 1,
       repeatDayOfMonth: 1,
-      tags: []
+      tags: [],
+      projectId: projectIdParam || ""
     });
     setIsTemplateEditorOpen(true);
   };
@@ -744,7 +746,8 @@ function TasksPageContent() {
       repeatTime: template.repeatTime || "09:00",
       repeatDayOfWeek: template.repeatDayOfWeek !== null && template.repeatDayOfWeek !== undefined ? template.repeatDayOfWeek : 1,
       repeatDayOfMonth: template.repeatDayOfMonth !== null && template.repeatDayOfMonth !== undefined ? template.repeatDayOfMonth : 1,
-      tags: template.tags || []
+      tags: template.tags || [],
+      projectId: template.projectId || ""
     });
     setIsTemplateEditorOpen(true);
   };
@@ -1277,13 +1280,29 @@ function TasksPageContent() {
                               <button
                                 type="button"
                                 onClick={() => handleUseTemplate(t)}
-                                title={t.templateName}
-                                className="flex-1 text-left text-[11px] font-bold text-slate-700 hover:text-blue-600 transition-colors truncate pr-2 cursor-pointer"
+                                title={`${t.templateName}${t.project ? ` (Workspace: ${t.project.name})` : ' (Global)'}`}
+                                className="flex-1 text-left text-[11px] font-bold text-slate-700 hover:text-blue-600 transition-colors truncate pr-2 cursor-pointer flex items-center"
                               >
-                                <span className="bg-amber-100/60 text-amber-800 text-[8px] font-black uppercase tracking-tight px-1.5 py-0.5 rounded mr-2 border border-amber-200/40">
+                                <span className="bg-amber-100/60 text-amber-800 text-[8px] font-black uppercase tracking-tight px-1.5 py-0.5 rounded mr-2 border border-amber-200/40 shrink-0">
                                   Blueprint
                                 </span>
-                                {t.templateName}
+                                {t.project ? (
+                                  <span 
+                                    className="text-[8px] font-extrabold uppercase tracking-tight px-1.5 py-0.5 rounded mr-2 border shrink-0 max-w-[80px] truncate"
+                                    style={{
+                                      backgroundColor: `${t.project.colorCode}10`,
+                                      color: t.project.colorCode,
+                                      borderColor: `${t.project.colorCode}30`
+                                    }}
+                                  >
+                                    {t.project.name}
+                                  </span>
+                                ) : (
+                                  <span className="bg-slate-100 text-slate-500 text-[8px] font-extrabold uppercase tracking-tight px-1.5 py-0.5 rounded mr-2 border border-slate-200/50 shrink-0">
+                                    Global
+                                  </span>
+                                )}
+                                <span className="truncate">{t.templateName}</span>
                               </button>
                               
                               <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
@@ -1966,6 +1985,23 @@ function TasksPageContent() {
                         </select>
                         <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Destination Task Tracker Workspace</label>
+                    <div className="relative">
+                      <select 
+                        value={templateForm.projectId || ""}
+                        onChange={(e) => setTemplateForm(prev => ({ ...prev, projectId: e.target.value }))}
+                        className="input-field pr-10 w-full bg-white cursor-pointer appearance-none"
+                      >
+                        <option value="">No specific workspace (unassigned / global fallback)</option>
+                        {projects?.map((proj: any) => (
+                          <option key={proj.id} value={proj.id}>{proj.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                     </div>
                   </div>
 

@@ -506,6 +506,9 @@ model TaskTemplate {
   createdById     String
   createdBy       User      @relation("UserCreatedTemplates", fields: [createdById], references: [id])
 
+  projectId       String?
+  project         Project?  @relation("TemplateProjects", fields: [projectId], references: [id], onDelete: SetNull)
+
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
@@ -755,11 +758,13 @@ model Project {
   status       String      @default("PLANNING") // PLANNING, ACTIVE, COMPLETED, ON_HOLD
   colorCode    String      @default("#4F46E5")
   
-  tasks        Task[]
-  milestones   Milestone[]
+  tasks         Task[]
+  milestones    Milestone[]
   
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  taskTemplates TaskTemplate[] @relation("TemplateProjects")
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
 model Milestone {
