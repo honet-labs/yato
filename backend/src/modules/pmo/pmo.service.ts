@@ -11,6 +11,7 @@ export class PmoService {
 
   async findAllProjects(user?: any) {
     let taskWhere = {};
+    let projectWhere = {};
     if (user) {
       const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
       const isAdmin = userRoles.some((role: string) => 
@@ -32,9 +33,16 @@ export class PmoService {
           { tags: { hasSome: userTagIdentifiers } }
         ]
       };
+
+      projectWhere = isAdmin ? {} : {
+        tasks: {
+          some: taskWhere
+        }
+      };
     }
 
     return this.prisma.project.findMany({
+      where: projectWhere,
       include: {
         tasks: {
           where: taskWhere,
@@ -62,11 +70,76 @@ export class PmoService {
     });
   }
 
-  async findOneProject(id: string) {
+  async findOneProject(id: string, user?: any) {
+    let taskWhere = {};
+    if (user) {
+      const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
+      const isAdmin = userRoles.some((role: string) => 
+        ['ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
+      );
+
+      const userTagIdentifiers = [
+        user.username,
+        user.fullName,
+        user.username ? `@${user.username}` : null,
+        user.fullName ? `@${user.fullName.replace(/\s+/g, '')}` : null
+      ].filter(Boolean) as string[];
+
+      taskWhere = isAdmin ? {} : {
+        OR: [
+          { createdById: user.id },
+          { assignees: { some: { id: user.id } } },
+          { followers: { some: { id: user.id } } },
+          { tags: { hasSome: userTagIdentifiers } }
+        ]
+      };
+
+      if (!isAdmin) {
+        // Find if this project has any task matching the user's access
+        const projectExists = await this.prisma.project.findFirst({
+          where: {
+            id,
+            tasks: {
+              some: taskWhere
+            }
+          }
+        });
+        if (!projectExists) {
+          throw new NotFoundException(`Project with ID ${id} not found`);
+        }
+      }
+    }
+
     const project = await this.prisma.project.findUnique({
       where: { id },
       include: {
-        tasks: true,
+        tasks: {
+          where: taskWhere,
+          include: {
+            assignee: {
+              select: {
+                id: true,
+                fullName: true,
+                username: true,
+              },
+            },
+            assignees: {
+              select: {
+                id: true,
+                fullName: true,
+                username: true,
+                email: true,
+              },
+            },
+            followers: {
+              select: {
+                id: true,
+                fullName: true,
+                username: true,
+              },
+            },
+          }
+        },
         milestones: true,
       },
     });

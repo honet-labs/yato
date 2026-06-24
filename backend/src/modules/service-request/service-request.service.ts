@@ -97,7 +97,10 @@ export class ServiceRequestService {
   }
 
   async findAll(user: any) {
-    const isAdmin = user.roles?.some(r => r.role.name === 'ADMIN' || r.role.name === 'TICKETING_ADMIN');
+    const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
+    const isAdmin = userRoles.some((role: string) => 
+      ['ADMIN', 'TICKETING_ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
+    );
     
     const where = isAdmin ? {} : {
       OR: [
@@ -161,7 +164,10 @@ export class ServiceRequestService {
 
     // Enforce visibility: only admin, creator, or followers can view
     if (user) {
-      const isAdmin = user.roles?.some(r => r.role.name === 'ADMIN' || r.role.name === 'TICKETING_ADMIN');
+      const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
+      const isAdmin = userRoles.some((role: string) => 
+        ['ADMIN', 'TICKETING_ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
+      );
       if (!isAdmin) {
         const isCreator = request.requestedBy === user.id;
         const isFollower = request.followers?.some(f => f.id === user.id);
@@ -290,7 +296,10 @@ export class ServiceRequestService {
     const request = await this.findOne(id, user);
 
     // Ensure only admin or creator can update it
-    const isAdmin = user.roles?.some(r => r.role.name === 'ADMIN' || r.role.name === 'TICKETING_ADMIN');
+    const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
+    const isAdmin = userRoles.some((role: string) => 
+      ['ADMIN', 'TICKETING_ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
+    );
     const isCreator = request.requestedBy === user.id;
     if (!isAdmin && !isCreator) {
       throw new NotFoundException('Request not found');
