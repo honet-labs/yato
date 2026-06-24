@@ -30,7 +30,8 @@ async function main() {
         'VIEW_FILES',
         'MANAGE_FILES',
         'read:vms',
-        'create:vm_request'
+        'create:vm_request',
+        'VIEW_COMMUNITY'
       ]
     },
     create: {
@@ -49,7 +50,8 @@ async function main() {
         'VIEW_FILES',
         'MANAGE_FILES',
         'read:vms',
-        'create:vm_request'
+        'create:vm_request',
+        'VIEW_COMMUNITY'
       ],
     },
   });

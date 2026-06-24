@@ -22,6 +22,7 @@ const enToId: Record<string, string> = {
   "dashboard": "dasbor",
   "support tickets": "tiket dukungan",
   "tasks tracker": "pelacak tugas",
+  "community hub": "pusat komunitas",
   "productivity": "produktivitas",
   "attendance & timesheet": "kehadiran & timesheet",
   "pmo calendar": "kalender pmo",

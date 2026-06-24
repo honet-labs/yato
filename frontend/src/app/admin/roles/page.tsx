@@ -38,7 +38,7 @@ interface Role {
 const staticPermissionGroups = [
   { 
     group: "Main & Dashboard", 
-    perms: ["VIEW_DASHBOARD"] 
+    perms: ["VIEW_DASHBOARD", "VIEW_COMMUNITY"] 
   },
   { 
     group: "Support Ticketing", 
@@ -169,7 +169,8 @@ export default function RolesManagementPage() {
       "VIEW_PMO_CALENDAR",
       "MANAGE_PMO_CALENDAR",
       "VIEW_INTEGRATIONS",
-      "VIEW_BROADCAST"
+      "VIEW_BROADCAST",
+      "VIEW_COMMUNITY"
     ];
 
     const grouped = staticPermissionGroups.map(group => ({

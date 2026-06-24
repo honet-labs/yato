@@ -72,7 +72,8 @@ export class RoleService {
       "VIEW_PMO_CALENDAR",
       "MANAGE_PMO_CALENDAR",
       "VIEW_INTEGRATIONS",
-      "VIEW_BROADCAST"
+      "VIEW_BROADCAST",
+      "VIEW_COMMUNITY"
     ];
   }
 }

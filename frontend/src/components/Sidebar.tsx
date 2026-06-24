@@ -206,6 +206,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
         { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", permission: "VIEW_DASHBOARD" },
         { icon: Ticket, label: "Support Tickets", href: "/tickets", permission: "VIEW_SUPPORT_TICKETS" },
         { icon: HardDrive, label: "File Manager", href: "/files", permission: "VIEW_FILES" },
+        { icon: Users, label: "Community Hub", href: "/community", permission: "VIEW_COMMUNITY" },
       ]
     },
     {
