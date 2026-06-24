@@ -31,7 +31,9 @@ import {
   Coins,
   Edit,
   Languages,
-  Send
+  Send,
+  Star,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
@@ -87,13 +89,40 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState({} as Record<string, boolean>);
+  const [quickAccess, setQuickAccess] = useState<string[]>([]);
   const profileRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedCollapsed = localStorage.getItem("yato_sidebar_collapsed");
+      if (savedCollapsed) {
+        try {
+          setCollapsedSections(JSON.parse(savedCollapsed));
+        } catch (e) {}
+      }
+      const savedQuick = localStorage.getItem("yato_quick_access");
+      if (savedQuick) {
+        try {
+          setQuickAccess(JSON.parse(savedQuick));
+        } catch (e) {}
+      }
+    }
+  }, []);
+
   const toggleSection = (title: string) => {
-    setCollapsedSections(prev => ({
-      ...prev,
-      [title]: !prev[title]
-    }));
+    setCollapsedSections(prev => {
+      const next = { ...prev, [title]: !prev[title] };
+      localStorage.setItem("yato_sidebar_collapsed", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const toggleQuickAccess = (href: string) => {
+    setQuickAccess(prev => {
+      const next = prev.includes(href) ? prev.filter(h => h !== href) : [...prev, href];
+      localStorage.setItem("yato_quick_access", JSON.stringify(next));
+      return next;
+    });
   };
 
 
@@ -105,6 +134,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
       return response.data;
     },
     refetchInterval: 15000,
+    staleTime: 60000,
   });
 
   const markReadMutation = useMutation({
@@ -128,6 +158,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
       }
     },
     refetchInterval: 15000,
+    staleTime: 60000,
   });
 
   const { data: sidebarProjects } = useQuery({
@@ -141,6 +172,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
       }
     },
     refetchInterval: 30000,
+    staleTime: 120000,
   });
 
   const [pathnameQueryProjectId, setPathnameQueryProjectId] = useState<string | null>(null);
@@ -287,6 +319,69 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto custom-scrollbar">
+        {/* Quick Access Section */}
+        {quickAccess.length > 0 && (
+          <div className="space-y-1.5 pb-4 border-b border-slate-100/50">
+            <div className="px-3 py-1.5 text-[10px] font-bold text-slate-450 uppercase tracking-widest flex items-center gap-1.5">
+              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+              <span>{t("Quick Access")}</span>
+            </div>
+            <div className="space-y-1">
+              {sections
+                .flatMap(s => s.items)
+                .filter(item => quickAccess.includes(item.href))
+                .filter((item, idx, self) => self.findIndex(t => t.href === item.href) === idx)
+                .map((item: any) => {
+                  const isTaskTrackerRoot = item.href === "/tasks";
+                  const isItemActive = isTaskTrackerRoot
+                    ? (pathname === "/tasks" && !pathnameQueryProjectId)
+                    : (pathname === item.href);
+
+                  return (
+                    <div key={`qa-${item.href}`} className="relative group/qa-item flex items-center w-full">
+                      <Link
+                        href={item.href}
+                        onClick={() => onNavItemClick?.()}
+                        className={cn(
+                          "flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group cursor-pointer pr-10",
+                          isItemActive 
+                            ? "bg-blue-50 text-blue-600 shadow-sm" 
+                            : "text-slate-500 hover:bg-slate-50/80 hover:text-slate-900"
+                        )}
+                      >
+                        <item.icon className={cn("w-4 h-4", isItemActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600")} />
+                        <span className="font-semibold text-[13px] tracking-tight">{t(item.label)}</span>
+                        {item.href === "/tickets" && ticketUnreadCount > 0 && (
+                          <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
+                            {ticketUnreadCount}
+                          </span>
+                        )}
+                        {item.href === "/tasks" && notStartedTasksCount > 0 && (
+                          <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
+                            {notStartedTasksCount}
+                          </span>
+                        )}
+                      </Link>
+                      
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleQuickAccess(item.href);
+                        }}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-amber-500 hover:text-amber-600 transition-colors rounded hover:bg-slate-100/50 cursor-pointer z-10"
+                        title={t("Remove from Quick Access")}
+                      >
+                        <Star className="w-3.5 h-3.5 fill-amber-500" />
+                      </button>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
         {filteredSections.map((section: any) => {
           const isCollapsed = collapsedSections[section.title] || false;
           return (
@@ -319,29 +414,49 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
 
                       return (
                         <div key={item.href} className="flex flex-col">
-                          <Link
-                            href={item.href}
-                            onClick={() => onNavItemClick?.()}
-                            className={cn(
-                              "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group cursor-pointer",
-                              isItemActive 
-                                ? "bg-blue-50 text-blue-600 shadow-sm" 
-                                : "text-slate-500 hover:bg-slate-50/80 hover:text-slate-900"
-                            )}
-                          >
-                            <item.icon className={cn("w-4 h-4", isItemActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600")} />
-                            <span className="font-semibold text-[13px] tracking-tight">{t(item.label)}</span>
-                            {item.href === "/tickets" && ticketUnreadCount > 0 && (
-                              <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
-                                {ticketUnreadCount}
-                              </span>
-                            )}
-                            {item.href === "/tasks" && notStartedTasksCount > 0 && (
-                              <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
-                                {notStartedTasksCount}
-                              </span>
-                            )}
-                          </Link>
+                          <div className="relative group/menu-item flex items-center w-full">
+                            <Link
+                              href={item.href}
+                              onClick={() => onNavItemClick?.()}
+                              className={cn(
+                                "flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group cursor-pointer pr-10",
+                                isItemActive 
+                                  ? "bg-blue-50 text-blue-600 shadow-sm" 
+                                  : "text-slate-500 hover:bg-slate-50/80 hover:text-slate-900"
+                              )}
+                            >
+                              <item.icon className={cn("w-4 h-4", isItemActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600")} />
+                              <span className="font-semibold text-[13px] tracking-tight">{t(item.label)}</span>
+                              {item.href === "/tickets" && ticketUnreadCount > 0 && (
+                                <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
+                                  {ticketUnreadCount}
+                                </span>
+                              )}
+                              {item.href === "/tasks" && notStartedTasksCount > 0 && (
+                                <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
+                                  {notStartedTasksCount}
+                                </span>
+                              )}
+                            </Link>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleQuickAccess(item.href);
+                              }}
+                              className={cn(
+                                "absolute right-3.5 top-1/2 -translate-y-1/2 p-1 transition-all rounded hover:bg-slate-100/80 cursor-pointer z-10",
+                                quickAccess.includes(item.href)
+                                  ? "text-amber-500 opacity-100"
+                                  : "text-slate-350 hover:text-amber-500 opacity-0 group-hover/menu-item:opacity-100 focus/menu-item:opacity-100"
+                              )}
+                              title={quickAccess.includes(item.href) ? t("Remove from Quick Access") : t("Pin to Quick Access")}
+                            >
+                              <Star className={cn("w-3.5 h-3.5", quickAccess.includes(item.href) ? "fill-amber-500" : "")} />
+                            </button>
+                          </div>
                           
                           {isTaskTrackerRoot && sidebarProjects && sidebarProjects.length > 0 && (
                             <div className="pl-6 mt-1.5 mb-1.5 space-y-1 border-l border-slate-100 ml-5">
