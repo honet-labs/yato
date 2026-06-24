@@ -213,6 +213,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
       title: "Productivity",
       items: [
         { icon: CheckSquare, label: "Tasks Tracker", href: "/tasks", permission: "VIEW_TASKS" },
+        { icon: Layers, label: "Task Templates", href: "/tasks/templates", permission: "VIEW_TASKS" },
         { icon: Edit, label: "Notes & Schedule", href: "/notes", permission: "VIEW_NOTES" },
         { icon: Calendar, label: "PMO Calendar", href: "/pmo-calendar", permission: "VIEW_PMO_CALENDAR" },
       ]
