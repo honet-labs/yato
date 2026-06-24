@@ -1254,7 +1254,7 @@ function TasksPageContent() {
                     </button>
                     
                     {/* Templates Dropdown Menu */}
-                    <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-slate-200/80 rounded-2xl shadow-2xl p-2.5 z-[100] opacity-0 pointer-events-none group-focus-within/template-dd:opacity-100 group-focus-within/template-dd:pointer-events-auto transition-all space-y-1.5">
+                    <div className="absolute right-0 top-full mt-2 w-96 bg-white border border-slate-200/80 rounded-2xl shadow-2xl p-2.5 z-[100] opacity-0 pointer-events-none group-focus-within/template-dd:opacity-100 group-focus-within/template-dd:pointer-events-auto transition-all space-y-1.5">
                       <div className="px-3 py-1.5 border-b border-slate-100/60 flex items-center justify-between">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Templates</span>
                         <button 
@@ -1277,6 +1277,7 @@ function TasksPageContent() {
                               <button
                                 type="button"
                                 onClick={() => handleUseTemplate(t)}
+                                title={t.templateName}
                                 className="flex-1 text-left text-[11px] font-bold text-slate-700 hover:text-blue-600 transition-colors truncate pr-2 cursor-pointer"
                               >
                                 <span className="bg-amber-100/60 text-amber-800 text-[8px] font-black uppercase tracking-tight px-1.5 py-0.5 rounded mr-2 border border-amber-200/40">
