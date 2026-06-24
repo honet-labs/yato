@@ -54,6 +54,9 @@ export class TaskSchedulerService {
             in: ['DAILY', 'WEEKLY', 'MONTHLY'],
           },
         },
+        include: {
+          projects: true,
+        },
       });
 
       this.logger.log(`Found ${templates.length} active repeating blueprints/templates.`);
@@ -160,65 +163,75 @@ export class TaskSchedulerService {
 
         if (shouldGenerate) {
           this.logger.log(
-            `Generating automated task from template "${template.templateName}" (Interval: ${template.repeatInterval}, Scheduled Time: ${targetTime})`
+            `Generating automated tasks from template "${template.templateName}" (Interval: ${template.repeatInterval}, Scheduled Time: ${targetTime})`
           );
 
-          // Create the Task
-          const task = await this.prisma.$transaction(async (tx) => {
-            const t = await tx.task.create({
-              data: {
-                title: replaceDatePlaceholders(template.title),
-                description: template.description || '',
-                status: 'NOT_STARTED',
-                priority: template.priority,
-                taskType: template.taskType,
-                checklist: template.checklist || [],
-                createdById: template.createdById,
-                templateId: template.id,
-                projectId: template.projectId || null,
-                tags: (template as any).tags || [],
-                assigneeId: template.createdById,
-                assignees: {
-                  connect: [{ id: template.createdById }]
-                }
-              },
-            });
+          const generatedTasks = [];
+          const projectList = (template as any).projects && (template as any).projects.length > 0
+            ? (template as any).projects
+            : [null];
+
+          await this.prisma.$transaction(async (tx) => {
+            for (const proj of projectList) {
+              const t = await tx.task.create({
+                data: {
+                  title: replaceDatePlaceholders(template.title),
+                  description: template.description || '',
+                  status: 'NOT_STARTED',
+                  priority: template.priority,
+                  taskType: template.taskType,
+                  checklist: template.checklist || [],
+                  createdById: template.createdById,
+                  templateId: template.id,
+                  projectId: proj ? proj.id : null,
+                  tags: (template as any).tags || [],
+                  assigneeId: template.createdById,
+                  assignees: {
+                    connect: [{ id: template.createdById }]
+                  }
+                },
+              });
+              generatedTasks.push(t);
+
+              try {
+                await this.auditService.log(template.createdById, 'CREATE_TASK', 'Task', t.id, {
+                  title: t.title,
+                  templateId: template.id,
+                  reason: 'AUTOMATED_SCHEDULE',
+                });
+              } catch (err) {
+                // Safe catch
+              }
+            }
 
             // Update template's lastGeneratedAt field
             await tx.taskTemplate.update({
               where: { id: template.id },
               data: { lastGeneratedAt: now },
             });
-
-            try {
-              await this.auditService.log(template.createdById, 'CREATE_TASK', 'Task', t.id, {
-                title: t.title,
-                templateId: template.id,
-                reason: 'AUTOMATED_SCHEDULE',
-              });
-            } catch (err) {
-              // Safe catch
-            }
-            return t;
           });
 
-          this.logger.log(`Successfully generated task for template ID: ${template.id}`);
+          this.logger.log(`Successfully generated ${generatedTasks.length} tasks for template ID: ${template.id}`);
 
-          // Trigger immediate notification for the generated task
+          // Trigger immediate notifications for the generated tasks
           try {
             const platformUrlSetting = await this.prisma.systemSetting.findUnique({
               where: { key: 'PLATFORM_URL' }
             });
             const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
-            const taskUrl = `${frontendUrl}/tasks?taskId=${task.id}`;
-            await this.notificationService.sendToUserQueue(
-              template.createdById,
-              `New Repeating Task Generated`,
-              `Hello,\n\nA new automated task <b>${task.title}</b> has been generated from your daily template <b>${template.templateName}</b>.\n\nLink: ${taskUrl}`,
-            );
-            this.logger.log(`Dispatched generation notification for template ID: ${template.id} to user ${template.createdById}`);
+            
+            for (const task of generatedTasks) {
+              const taskUrl = `${frontendUrl}/tasks?taskId=${task.id}`;
+              const workspaceName = projectList.find(p => p?.id === task.projectId)?.name || 'Global';
+              await this.notificationService.sendToUserQueue(
+                template.createdById,
+                `New Repeating Task Generated`,
+                `Hello,\n\nA new automated task <b>${task.title}</b> has been generated in workspace <b>${workspaceName}</b> from your daily template <b>${template.templateName}</b>.\n\nLink: ${taskUrl}`,
+              );
+            }
+            this.logger.log(`Dispatched generation notifications for template ID: ${template.id} to user ${template.createdById}`);
           } catch (notificationError) {
-            this.logger.error(`Failed to send generation notification for template ${template.id}: ${notificationError.message}`);
+            this.logger.error(`Failed to send generation notifications for template ${template.id}: ${notificationError.message}`);
           }
         }
       }

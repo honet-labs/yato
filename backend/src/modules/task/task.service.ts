@@ -907,7 +907,7 @@ export class TaskService {
   async findAllTemplates(userId: string) {
     return this.prisma.taskTemplate.findMany({
       where: { createdById: userId },
-      include: { project: true },
+      include: { projects: true },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -915,7 +915,7 @@ export class TaskService {
   async findOneTemplate(id: string, userId?: string) {
     const template = await this.prisma.taskTemplate.findUnique({
       where: { id },
-      include: { project: true },
+      include: { projects: true },
     });
     if (!template) {
       throw new NotFoundException(`Task template with ID ${id} not found`);
@@ -941,7 +941,9 @@ export class TaskService {
         repeatDayOfWeek: dto.repeatDayOfWeek !== undefined ? Number(dto.repeatDayOfWeek) : null,
         repeatDayOfMonth: dto.repeatDayOfMonth !== undefined ? Number(dto.repeatDayOfMonth) : null,
         createdById: creatorId,
-        projectId: dto.projectId || null,
+        projects: dto.projectIds && dto.projectIds.length > 0
+          ? { connect: dto.projectIds.map(id => ({ id })) }
+          : undefined,
       },
     });
     try {
@@ -969,7 +971,11 @@ export class TaskService {
     if (dto.repeatTime !== undefined) data.repeatTime = dto.repeatTime;
     if (dto.repeatDayOfWeek !== undefined) data.repeatDayOfWeek = dto.repeatDayOfWeek !== null ? Number(dto.repeatDayOfWeek) : null;
     if (dto.repeatDayOfMonth !== undefined) data.repeatDayOfMonth = dto.repeatDayOfMonth !== null ? Number(dto.repeatDayOfMonth) : null;
-    if (dto.projectId !== undefined) data.projectId = dto.projectId || null;
+    if (dto.projectIds !== undefined) {
+      data.projects = {
+        set: dto.projectIds ? dto.projectIds.map(id => ({ id })) : []
+      };
+    }
 
     const template = await this.prisma.taskTemplate.update({
       where: { id },

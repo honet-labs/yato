@@ -208,9 +208,10 @@ export class CreateTaskTemplateDto {
   @IsOptional()
   repeatDayOfMonth?: number;
 
-  @IsString()
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
-  projectId?: string;
+  projectIds?: string[];
 }
 
 export class UpdateTaskTemplateDto {
@@ -256,9 +257,10 @@ export class UpdateTaskTemplateDto {
   @IsOptional()
   repeatDayOfMonth?: number;
 
-  @IsString()
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
-  projectId?: string;
+  projectIds?: string[];
 }
 
 export class UpdateTaskCommentDto {

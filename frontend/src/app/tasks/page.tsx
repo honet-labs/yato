@@ -347,7 +347,7 @@ function TasksPageContent() {
     repeatDayOfWeek: 1,
     repeatDayOfMonth: 1,
     tags: [] as string[],
-    projectId: ""
+    projectIds: [] as string[]
   });
 
   // State for Create Modal
@@ -533,23 +533,33 @@ function TasksPageContent() {
   // Use Template Mutation (creates a task from a template)
   const useTemplateMutation = useMutation({
     mutationFn: async (template: any) => {
-      const payload = {
-        title: template.title || "New Task from Template",
-        description: template.description || "",
-        status: "NOT_STARTED",
-        priority: template.priority || "MEDIUM",
-        taskType: template.taskType || "TASK",
-        checklist: template.checklist || [],
-        templateId: template.id,
-        tags: template.tags || [],
-        projectId: template.projectId || projectIdParam || undefined
-      };
-      const res = await api.post("/tasks", payload);
-      return res.data;
+      const projects = template.projects && template.projects.length > 0
+        ? template.projects
+        : [null];
+
+      const results = [];
+      for (const proj of projects) {
+        const payload = {
+          title: template.title || "New Task from Template",
+          description: template.description || "",
+          status: "NOT_STARTED",
+          priority: template.priority || "MEDIUM",
+          taskType: template.taskType || "TASK",
+          checklist: template.checklist || [],
+          templateId: template.id,
+          tags: template.tags || [],
+          projectId: proj ? proj.id : (projectIdParam || undefined)
+        };
+        const res = await api.post("/tasks", payload);
+        results.push(res.data);
+      }
+      return results[0]; // Open detail drawer for the first generated task
     },
     onSuccess: (newTask) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      setSelectedTask(newTask); // Open detail drawer automatically!
+      if (newTask) {
+        setSelectedTask(newTask); // Open detail drawer automatically!
+      }
     }
   });
 
@@ -728,7 +738,7 @@ function TasksPageContent() {
       repeatDayOfWeek: 1,
       repeatDayOfMonth: 1,
       tags: [],
-      projectId: projectIdParam || ""
+      projectIds: projectIdParam ? [projectIdParam] : []
     });
     setIsTemplateEditorOpen(true);
   };
@@ -747,7 +757,7 @@ function TasksPageContent() {
       repeatDayOfWeek: template.repeatDayOfWeek !== null && template.repeatDayOfWeek !== undefined ? template.repeatDayOfWeek : 1,
       repeatDayOfMonth: template.repeatDayOfMonth !== null && template.repeatDayOfMonth !== undefined ? template.repeatDayOfMonth : 1,
       tags: template.tags || [],
-      projectId: template.projectId || ""
+      projectIds: template.projects ? template.projects.map((p: any) => p.id) : []
     });
     setIsTemplateEditorOpen(true);
   };
@@ -1280,26 +1290,34 @@ function TasksPageContent() {
                               <button
                                 type="button"
                                 onClick={() => handleUseTemplate(t)}
-                                title={`${t.templateName}${t.project ? ` (Workspace: ${t.project.name})` : ' (Global)'}`}
+                                title={`${t.templateName}${t.projects && t.projects.length > 0 ? ` (Workspaces: ${t.projects.map((p: any) => p.name).join(', ')})` : ' (Global)'}`}
                                 className="flex-1 text-left text-[11px] font-bold text-slate-700 hover:text-blue-600 transition-colors truncate pr-2 cursor-pointer flex items-center"
                               >
                                 <span className="bg-amber-100/60 text-amber-800 text-[8px] font-black uppercase tracking-tight px-1.5 py-0.5 rounded mr-2 border border-amber-200/40 shrink-0">
                                   Blueprint
                                 </span>
-                                {t.project ? (
-                                  <span 
-                                    className="text-[8px] font-extrabold uppercase tracking-tight px-1.5 py-0.5 rounded mr-2 border shrink-0 max-w-[80px] truncate"
-                                    style={{
-                                      backgroundColor: `${t.project.colorCode}10`,
-                                      color: t.project.colorCode,
-                                      borderColor: `${t.project.colorCode}30`
-                                    }}
-                                  >
-                                    {t.project.name}
-                                  </span>
+                                {t.projects && t.projects.length > 0 ? (
+                                  t.projects.slice(0, 2).map((p: any) => (
+                                    <span 
+                                      key={p.id}
+                                      className="text-[8px] font-extrabold uppercase tracking-tight px-1.5 py-0.5 rounded mr-1.5 border shrink-0 max-w-[65px] truncate"
+                                      style={{
+                                        backgroundColor: `${p.colorCode}10`,
+                                        color: p.colorCode,
+                                        borderColor: `${p.colorCode}30`
+                                      }}
+                                    >
+                                      {p.name}
+                                    </span>
+                                  ))
                                 ) : (
                                   <span className="bg-slate-100 text-slate-500 text-[8px] font-extrabold uppercase tracking-tight px-1.5 py-0.5 rounded mr-2 border border-slate-200/50 shrink-0">
                                     Global
+                                  </span>
+                                )}
+                                {t.projects && t.projects.length > 2 && (
+                                  <span className="bg-slate-100 text-slate-500 text-[7px] font-black px-1 py-0.5 rounded mr-1.5 border border-slate-200/50 shrink-0">
+                                    +{t.projects.length - 2}
                                   </span>
                                 )}
                                 <span className="truncate">{t.templateName}</span>
@@ -1989,19 +2007,56 @@ function TasksPageContent() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Destination Task Tracker Workspace</label>
-                    <div className="relative">
-                      <select 
-                        value={templateForm.projectId || ""}
-                        onChange={(e) => setTemplateForm(prev => ({ ...prev, projectId: e.target.value }))}
-                        className="input-field pr-10 w-full bg-white cursor-pointer appearance-none"
+                    <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Destination Task Tracker Workspaces</label>
+                    <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
+                      {/* Option for Unassigned / Global */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTemplateForm(prev => ({ ...prev, projectIds: [] }));
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer animate-none ${
+                          templateForm.projectIds.length === 0
+                            ? "bg-slate-900 border-slate-950 text-white shadow-sm"
+                            : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100/50"
+                        }`}
                       >
-                        <option value="">No specific workspace (unassigned / global fallback)</option>
-                        {projects?.map((proj: any) => (
-                          <option key={proj.id} value={proj.id}>{proj.name}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                        Global (unassigned)
+                      </button>
+
+                      {/* Map through all projects/workspaces */}
+                      {projects?.map((proj: any) => {
+                        const isSelected = templateForm.projectIds.includes(proj.id);
+                        return (
+                          <button
+                            key={proj.id}
+                            type="button"
+                            onClick={() => {
+                              setTemplateForm(prev => {
+                                const exist = prev.projectIds.includes(proj.id);
+                                const newIds = exist
+                                  ? prev.projectIds.filter(id => id !== proj.id)
+                                  : [...prev.projectIds, proj.id];
+                                return { ...prev, projectIds: newIds };
+                              });
+                            }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer animate-none flex items-center gap-1.5"
+                            style={{
+                              backgroundColor: isSelected ? `${proj.colorCode}15` : '#ffffff',
+                              color: isSelected ? proj.colorCode : '#475569',
+                              borderColor: isSelected ? proj.colorCode : '#e2e8f0',
+                              boxShadow: isSelected ? `0 1px 2px 0 ${proj.colorCode}10` : 'none'
+                            }}
+                          >
+                            <span 
+                              className="w-1.5 h-1.5 rounded-full" 
+                              style={{ backgroundColor: proj.colorCode }}
+                            />
+                            <span>{proj.name}</span>
+                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 

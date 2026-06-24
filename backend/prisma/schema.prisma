@@ -506,8 +506,7 @@ model TaskTemplate {
   createdById     String
   createdBy       User      @relation("UserCreatedTemplates", fields: [createdById], references: [id])
 
-  projectId       String?
-  project         Project?  @relation("TemplateProjects", fields: [projectId], references: [id], onDelete: SetNull)
+  projects        Project[] @relation("TemplateProjects")
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
