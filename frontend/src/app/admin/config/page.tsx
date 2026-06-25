@@ -442,7 +442,10 @@ export default function SystemConfigPage() {
       setEditingCatalogId(null);
       setIsAddCatalogModalOpen(false);
       fetchCatalogs();
-    } catch (e: any) { console.error(e); }
+    } catch (e: any) {
+      console.error(e);
+      alert(e.response?.data?.message || e.message || "Failed to save catalog item. Please try again.");
+    }
   };
 
   const handleAddCustomField = () => {

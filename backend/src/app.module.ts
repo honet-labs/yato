@@ -64,15 +64,26 @@ import { envValidationSchema } from './config/env.validation';
     }]),
     CacheModule.registerAsync({
       isGlobal: true,
-      useFactory: async () => ({
-        store: await redisStore({
+      useFactory: async () => {
+        const store = await redisStore({
           socket: {
             host: process.env.REDIS_HOST || 'localhost',
             port: parseInt(process.env.REDIS_PORT) || 6379,
+            keepAlive: true,
           },
           ttl: parseInt(process.env.CACHE_TTL_SECONDS || '600', 10),
-        }),
-      }),
+        });
+
+        // Listen to error events on the underlying Redis client to avoid crashing on socket drops
+        const client = (store as any).client || ((store as any).getClient ? (store as any).getClient() : null);
+        if (client) {
+          client.on('error', (err: any) => {
+            console.error('Redis Client Error:', err);
+          });
+        }
+
+        return { store };
+      },
     }),
     PrismaModule,
     AuthModule,
