@@ -103,6 +103,10 @@ function TaskTemplatesPageContent() {
       queryClient.invalidateQueries({ queryKey: ["task-templates"] });
       setIsTemplateEditorOpen(false);
       queryClient.setQueryData(["toast"], { message: "Template blueprint created successfully!", type: "success" });
+    },
+    onError: (error: any) => {
+      const errMsg = error.response?.data?.message || "Failed to create template blueprint";
+      queryClient.setQueryData(["toast"], { message: errMsg, type: "error" });
     }
   });
 
@@ -115,6 +119,10 @@ function TaskTemplatesPageContent() {
       queryClient.invalidateQueries({ queryKey: ["task-templates"] });
       setIsTemplateEditorOpen(false);
       queryClient.setQueryData(["toast"], { message: "Template blueprint updated successfully!", type: "success" });
+    },
+    onError: (error: any) => {
+      const errMsg = error.response?.data?.message || "Failed to update template blueprint";
+      queryClient.setQueryData(["toast"], { message: errMsg, type: "error" });
     }
   });
 
@@ -202,11 +210,23 @@ function TaskTemplatesPageContent() {
 
   const handleSaveTemplate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!templateForm.templateName.trim() || !templateForm.title.trim()) return;
+    if (!templateForm.templateName.trim()) {
+      queryClient.setQueryData(["toast"], {
+        message: lang === "ID" ? "Nama templat tidak boleh kosong!" : "Template name cannot be empty!",
+        type: "error"
+      });
+      return;
+    }
+    if (!templateForm.title.trim()) {
+      queryClient.setQueryData(["toast"], {
+        message: lang === "ID" ? "Judul tugas default tidak boleh kosong!" : "Default task title blueprint cannot be empty!",
+        type: "error"
+      });
+      return;
+    }
 
     const payload = {
       ...templateForm,
-      projects: templateForm.projectIds.map(id => ({ id }))
     };
 
     if (editingTemplateId) {
@@ -437,11 +457,13 @@ function TaskTemplatesPageContent() {
                   <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-3 flex flex-wrap items-center justify-between text-amber-800 gap-3 rounded-t-2xl relative overflow-visible">
                     <div className="flex items-center gap-2 text-xs font-bold">
                       <span className="animate-pulse w-2 h-2 bg-amber-500 rounded-full" />
-                      <span>{lang === "ID" ? "Mengedit templat:" : "Editing blueprint:"}</span>
+                      <span>{editingTemplateId ? (lang === "ID" ? "Mengedit templat:" : "Editing blueprint:") : (lang === "ID" ? "Membuat templat:" : "Creating blueprint:")}</span>
                       <span className="bg-amber-500/20 text-amber-900 px-2.5 py-1 rounded-lg flex items-center gap-1 border border-amber-500/20">
                         <Check className="w-3.5 h-3.5 text-amber-700 stroke-[3]" />
                         <input 
                           type="text"
+                          required
+                          form="template-editor-form"
                           value={templateForm.templateName}
                           onChange={(e) => setTemplateForm(prev => ({ ...prev, templateName: e.target.value }))}
                           className="bg-transparent border-none focus:outline-none focus:ring-0 p-0 text-xs font-black text-amber-900 w-36 outline-none"
@@ -487,7 +509,7 @@ function TaskTemplatesPageContent() {
                     </div>
                   </div>
 
-                  <form onSubmit={handleSaveTemplate} className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+                  <form id="template-editor-form" onSubmit={handleSaveTemplate} className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Default Task Title Blueprint</label>
                       <input 
