@@ -101,11 +101,6 @@ export class SupportTicketService {
   }
 
   async findAll(user: any) {
-    const isAdmin = user.roles?.some(r => {
-      const name = r.role.name.toUpperCase();
-      return name === 'ADMIN' || name === 'TICKETING_ADMIN' || name === 'SYSTEM ADMIN' || name === 'SYSTEM_ADMIN' || name === 'SUPERADMIN';
-    });
-
     const userTagIdentifiers = [
       user.username,
       user.fullName,
@@ -113,7 +108,7 @@ export class SupportTicketService {
       user.fullName ? `@${user.fullName.replace(/\s+/g, '')}` : null
     ].filter(Boolean) as string[];
 
-    const where = isAdmin ? {} : {
+    const where = {
       OR: [
         { requestedBy: user.id },
         { followers: { some: { id: user.id } } },
@@ -146,10 +141,6 @@ export class SupportTicketService {
     });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
-    const isAdmin = user.roles?.some(r => {
-      const name = r.role.name.toUpperCase();
-      return name === 'ADMIN' || name === 'TICKETING_ADMIN' || name === 'SYSTEM ADMIN' || name === 'SYSTEM_ADMIN' || name === 'SUPERADMIN';
-    });
     const isCreator = ticket.requestedBy === user.id;
     const isFollower = ticket.followers.some(f => f.id === user.id);
     const isTagged = ticket.tags?.some(t => {
@@ -160,9 +151,9 @@ export class SupportTicketService {
       return cleanTag === uName || cleanTag === `@${uName}` || cleanTag === fName || cleanTag === `@${cleanFName}`;
     });
 
-    if (!isAdmin && !isCreator && !isFollower && !isTagged) {
+    if (!isCreator && !isFollower && !isTagged) {
       await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'SupportTicket', id, {
-        reason: 'User is not Creator, Follower, Admin or Tagged',
+        reason: 'User is not Creator, Follower or Tagged',
         user: { id: user.id, username: user.username, email: user.email }
       });
       throw new NotFoundException('Ticket not found');
@@ -177,15 +168,19 @@ export class SupportTicketService {
     });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
-    const isAdmin = user.roles?.some(r => {
-      const name = r.role.name.toUpperCase();
-      return name === 'ADMIN' || name === 'TICKETING_ADMIN' || name === 'SYSTEM ADMIN' || name === 'SYSTEM_ADMIN' || name === 'SUPERADMIN';
-    });
     const isCreator = ticket.requestedBy === user.id;
+    const isFollower = ticket.followers.some(f => f.id === user.id);
+    const isTagged = ticket.tags?.some(t => {
+      const cleanTag = t.toLowerCase();
+      const uName = user.username?.toLowerCase();
+      const fName = user.fullName?.toLowerCase();
+      const cleanFName = user.fullName?.replace(/\s+/g, '').toLowerCase();
+      return cleanTag === uName || cleanTag === `@${uName}` || cleanTag === fName || cleanTag === `@${cleanFName}`;
+    });
 
-    if (!isAdmin && !isCreator) {
+    if (!isCreator && !isFollower && !isTagged) {
       await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'SupportTicket', id, {
-        reason: 'User is not Creator or Admin to update status of SupportTicket',
+        reason: 'User is not Creator, Follower or Tagged to update status of SupportTicket',
         user: { id: user.id, username: user.username, email: user.email }
       });
       throw new NotFoundException('Ticket not found');
@@ -231,16 +226,19 @@ export class SupportTicketService {
     });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
-    const isAdmin = user.roles?.some(r => {
-      const name = r.role.name.toUpperCase();
-      return name === 'ADMIN' || name === 'TICKETING_ADMIN' || name === 'SYSTEM ADMIN' || name === 'SYSTEM_ADMIN' || name === 'SUPERADMIN';
-    });
     const isCreator = ticket.requestedBy === user.id;
     const isFollower = ticket.followers.some(f => f.id === user.id);
+    const isTagged = ticket.tags?.some(t => {
+      const cleanTag = t.toLowerCase();
+      const uName = user.username?.toLowerCase();
+      const fName = user.fullName?.toLowerCase();
+      const cleanFName = user.fullName?.replace(/\s+/g, '').toLowerCase();
+      return cleanTag === uName || cleanTag === `@${uName}` || cleanTag === fName || cleanTag === `@${cleanFName}`;
+    });
 
-    if (!isAdmin && !isCreator && !isFollower) {
+    if (!isCreator && !isFollower && !isTagged) {
       await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'SupportTicket', id, {
-        reason: 'User is not Creator, Admin, or Follower to add a follower',
+        reason: 'User is not Creator, Follower, or Tagged to add a follower',
         user: { id: user.id, username: user.username, email: user.email }
       });
       throw new NotFoundException('Ticket not found');
@@ -274,16 +272,19 @@ export class SupportTicketService {
     });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
-    const isAdmin = user.roles?.some(r => {
-      const name = r.role.name.toUpperCase();
-      return name === 'ADMIN' || name === 'TICKETING_ADMIN' || name === 'SYSTEM ADMIN' || name === 'SYSTEM_ADMIN' || name === 'SUPERADMIN';
-    });
     const isCreator = ticket.requestedBy === user.id;
     const isFollower = ticket.followers.some(f => f.id === user.id);
+    const isTagged = ticket.tags?.some(t => {
+      const cleanTag = t.toLowerCase();
+      const uName = user.username?.toLowerCase();
+      const fName = user.fullName?.toLowerCase();
+      const cleanFName = user.fullName?.replace(/\s+/g, '').toLowerCase();
+      return cleanTag === uName || cleanTag === `@${uName}` || cleanTag === fName || cleanTag === `@${cleanFName}`;
+    });
 
-    if (!isAdmin && !isCreator && !isFollower) {
+    if (!isCreator && !isFollower && !isTagged) {
       await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'SupportTicket', id, {
-        reason: 'User is not Creator, Admin, or Follower to remove a follower',
+        reason: 'User is not Creator, Follower, or Tagged to remove a follower',
         user: { id: user.id, username: user.username, email: user.email }
       });
       throw new NotFoundException('Ticket not found');
@@ -302,15 +303,19 @@ export class SupportTicketService {
     });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
-    const isAdmin = user.roles?.some(r => {
-      const name = r.role.name.toUpperCase();
-      return name === 'ADMIN' || name === 'TICKETING_ADMIN' || name === 'SYSTEM ADMIN' || name === 'SYSTEM_ADMIN' || name === 'SUPERADMIN';
-    });
     const isCreator = ticket.requestedBy === user.id;
+    const isFollower = ticket.followers.some(f => f.id === user.id);
+    const isTagged = ticket.tags?.some(t => {
+      const cleanTag = t.toLowerCase();
+      const uName = user.username?.toLowerCase();
+      const fName = user.fullName?.toLowerCase();
+      const cleanFName = user.fullName?.replace(/\s+/g, '').toLowerCase();
+      return cleanTag === uName || cleanTag === `@${uName}` || cleanTag === fName || cleanTag === `@${cleanFName}`;
+    });
 
-    if (!isAdmin && !isCreator) {
+    if (!isCreator && !isFollower && !isTagged) {
       await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'SupportTicket', id, {
-        reason: 'User is not Creator or Admin to update SupportTicket',
+        reason: 'User is not Creator, Follower or Tagged to update SupportTicket',
         user: { id: user.id, username: user.username, email: user.email }
       });
       throw new NotFoundException('Ticket not found');

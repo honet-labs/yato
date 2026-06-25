@@ -32,11 +32,6 @@ export class TaskService {
   ) {}
 
   async findAll(user: any) {
-    const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
-    const isAdmin = userRoles.some((role: string) => 
-      ['ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
-    );
-
     const userTagIdentifiers = [
       user.username,
       user.fullName,
@@ -44,7 +39,7 @@ export class TaskService {
       user.fullName ? `@${user.fullName.replace(/\s+/g, '')}` : null
     ].filter(Boolean) as string[];
 
-    const where = isAdmin ? {} : {
+    const where = {
       OR: [
         { createdById: user.id },
         { assignees: { some: { id: user.id } } },
@@ -220,11 +215,6 @@ export class TaskService {
     }
 
     if (user) {
-      const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
-      const isAdmin = userRoles.some((role: string) => 
-        ['ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
-      );
-
       const isCreator = task.createdById === user.id;
       const isAssignee = task.assignees.some(a => a.id === user.id);
       const isFollower = task.followers.some(f => f.id === user.id);
@@ -236,9 +226,9 @@ export class TaskService {
         return cleanTag === uName || cleanTag === `@${uName}` || cleanTag === fName || cleanTag === `@${cleanFName}`;
       });
 
-      if (!isAdmin && !isCreator && !isAssignee && !isFollower && !isTagged) {
+      if (!isCreator && !isAssignee && !isFollower && !isTagged) {
         await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'Task', id, {
-          reason: 'User is not Creator, Assignee, Follower, Admin or Tagged',
+          reason: 'User is not Creator, Assignee, Follower or Tagged',
           user: { id: user.id, username: user.username, email: user.email }
         });
         throw new NotFoundException(`Task with ID ${id} not found`);
@@ -448,11 +438,6 @@ export class TaskService {
     });
     if (!existingTask) throw new NotFoundException('Task not found');
 
-    const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
-    const isAdmin = userRoles.some((role: string) => 
-      ['ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
-    );
-
     const isCreator = existingTask.createdById === user.id;
     const isAssignee = existingTask.assignees.some(a => a.id === user.id);
     const isFollower = existingTask.followers.some(f => f.id === user.id);
@@ -464,9 +449,9 @@ export class TaskService {
       return cleanTag === uName || cleanTag === `@${uName}` || cleanTag === fName || cleanTag === `@${cleanFName}`;
     });
 
-    if (!isAdmin && !isCreator && !isAssignee && !isFollower && !isTagged) {
+    if (!isCreator && !isAssignee && !isFollower && !isTagged) {
       await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'Task', id, {
-        reason: 'User is not Creator, Assignee, Follower, Admin or Tagged to update task',
+        reason: 'User is not Creator, Assignee, Follower or Tagged to update task',
         user: { id: user.id, username: user.username, email: user.email }
       });
       throw new NotFoundException('Task not found');
@@ -645,15 +630,11 @@ export class TaskService {
     });
     if (!task) throw new NotFoundException('Task not found');
 
-    const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
-    const isAdmin = userRoles.some((role: string) => 
-      ['ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
-    );
     const isCreator = task.createdById === user.id;
 
-    if (!isAdmin && !isCreator) {
+    if (!isCreator) {
       await this.auditService.log(user.id, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'Task', id, {
-        reason: 'User is not Creator or Admin to delete task',
+        reason: 'User is not Creator to delete task',
         user: { id: user.id, username: user.username, email: user.email }
       });
       throw new NotFoundException('Task not found');

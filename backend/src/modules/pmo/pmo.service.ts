@@ -13,11 +13,6 @@ export class PmoService {
     let taskWhere = {};
     let projectWhere = {};
     if (user) {
-      const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
-      const isAdmin = userRoles.some((role: string) => 
-        ['ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
-      );
-
       const userTagIdentifiers = [
         user.username,
         user.fullName,
@@ -25,7 +20,7 @@ export class PmoService {
         user.fullName ? `@${user.fullName.replace(/\s+/g, '')}` : null
       ].filter(Boolean) as string[];
 
-      taskWhere = isAdmin ? {} : {
+      taskWhere = {
         OR: [
           { createdById: user.id },
           { assignees: { some: { id: user.id } } },
@@ -34,7 +29,7 @@ export class PmoService {
         ]
       };
 
-      projectWhere = isAdmin ? {} : {
+      projectWhere = {
         tasks: {
           some: taskWhere
         }
@@ -73,11 +68,6 @@ export class PmoService {
   async findOneProject(id: string, user?: any) {
     let taskWhere = {};
     if (user) {
-      const userRoles = user?.roles?.map((ur: any) => ur.role?.name?.toUpperCase()) || [];
-      const isAdmin = userRoles.some((role: string) => 
-        ['ADMIN', 'SYSTEM ADMIN', 'SYSTEM_ADMIN', 'SUPERADMIN'].includes(role)
-      );
-
       const userTagIdentifiers = [
         user.username,
         user.fullName,
@@ -85,7 +75,7 @@ export class PmoService {
         user.fullName ? `@${user.fullName.replace(/\s+/g, '')}` : null
       ].filter(Boolean) as string[];
 
-      taskWhere = isAdmin ? {} : {
+      taskWhere = {
         OR: [
           { createdById: user.id },
           { assignees: { some: { id: user.id } } },
@@ -94,19 +84,17 @@ export class PmoService {
         ]
       };
 
-      if (!isAdmin) {
-        // Find if this project has any task matching the user's access
-        const projectExists = await this.prisma.project.findFirst({
-          where: {
-            id,
-            tasks: {
-              some: taskWhere
-            }
+      // Find if this project has any task matching the user's access
+      const projectExists = await this.prisma.project.findFirst({
+        where: {
+          id,
+          tasks: {
+            some: taskWhere
           }
-        });
-        if (!projectExists) {
-          throw new NotFoundException(`Project with ID ${id} not found`);
         }
+      });
+      if (!projectExists) {
+        throw new NotFoundException(`Project with ID ${id} not found`);
       }
     }
 
