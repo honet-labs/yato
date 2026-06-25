@@ -267,10 +267,10 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
       ]
     },
     {
-      title: "Infrastructure",
+      title: "Inventory Assets",
       items: [
-        { icon: Server, label: "VM Instances", href: "/vm/inventory", permission: "VIEW_VM_INVENTORY" },
-        { icon: Layers, label: "Service Assets", href: "/service/inventory", permission: "VIEW_SERVICE_INVENTORY" },
+        { icon: Server, label: "VM Inventory", href: "/vm/inventory", permission: "VIEW_VM_INVENTORY" },
+        { icon: Layers, label: "Inventory Services", href: "/service/inventory", permission: "VIEW_SERVICE_INVENTORY" },
         { icon: Key, label: "Credential Vault", href: "/credentials", permission: "VIEW_CREDENTIALS" },
       ]
     },
