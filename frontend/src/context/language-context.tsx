@@ -59,7 +59,6 @@ const enToId: Record<string, string> = {
   "cancel": "batal",
   "account settings": "pengaturan akun",
   "notes & schedule": "catatan & jadwal",
-  "vm inventory": "inventaris vm",
   "service assets inventory": "inventaris aset layanan",
   "asset registry": "registri aset",
   "system status": "status sistem",
