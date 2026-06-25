@@ -164,7 +164,8 @@ export class SupportTicketService {
 
   async updateStatus(id: string, status: string, user: any) {
     const ticket = await this.prisma.supportTicket.findUnique({
-      where: { id }
+      where: { id },
+      include: { followers: { select: { id: true } } }
     });
     if (!ticket) throw new NotFoundException('Ticket not found');
 

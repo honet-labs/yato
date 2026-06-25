@@ -69,7 +69,7 @@ import { envValidationSchema } from './config/env.validation';
           socket: {
             host: process.env.REDIS_HOST || 'localhost',
             port: parseInt(process.env.REDIS_PORT) || 6379,
-            keepAlive: true,
+            keepAlive: 30000,
           },
           ttl: parseInt(process.env.CACHE_TTL_SECONDS || '600', 10),
         });
