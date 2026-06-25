@@ -73,6 +73,7 @@ async function main() {
           roleId: adminRole.id,
         },
       },
+    },
   });
 
   // Seed Database Credential Catalog Item
