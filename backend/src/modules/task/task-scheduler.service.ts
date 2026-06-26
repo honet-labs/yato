@@ -169,7 +169,7 @@ export class TaskSchedulerService {
           const generatedTasks = [];
           const projectList = (template as any).projects && (template as any).projects.length > 0
             ? (template as any).projects
-            : [null];
+            : [];
 
           await this.prisma.$transaction(async (tx) => {
             for (const proj of projectList) {
@@ -221,7 +221,9 @@ export class TaskSchedulerService {
             const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
             
             for (const task of generatedTasks) {
-              const taskUrl = `${frontendUrl}/tasks?taskId=${task.id}`;
+              const taskUrl = task.projectId 
+                ? `${frontendUrl}/tasks?projectId=${task.projectId}&taskId=${task.id}` 
+                : `${frontendUrl}/tasks?taskId=${task.id}`;
               const workspaceName = projectList.find(p => p?.id === task.projectId)?.name || 'Global';
               await this.notificationService.sendToUserQueue(
                 template.createdById,
@@ -285,7 +287,9 @@ export class TaskSchedulerService {
           continue;
         }
 
-        const taskUrl = `${frontendUrl}/tasks?taskId=${task.id}`;
+        const taskUrl = task.projectId 
+          ? `${frontendUrl}/tasks?projectId=${task.projectId}&taskId=${task.id}` 
+          : `${frontendUrl}/tasks?taskId=${task.id}`;
         const statusLabel = task.status === 'IN_PROGRESS' ? 'In Progress' : 'Not Started';
         const actionLabel = task.status === 'IN_PROGRESS' 
           ? 'Please continue working on it or update its status once completed.' 

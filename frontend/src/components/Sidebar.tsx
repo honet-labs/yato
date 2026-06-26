@@ -184,7 +184,9 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
     }
   }, [pathname]);
 
-  const notStartedTasksCount = (sidebarTasks || []).filter((t: any) => t.status === "NOT_STARTED").length || 0;
+  const notStartedTasksCount = (sidebarTasks || [])
+    .filter((t: any) => t.status === "NOT_STARTED" && t.projectId && (sidebarProjects || []).some((p: any) => p.id === t.projectId))
+    .length || 0;
 
   const unreadCount = (notifications?.data || []).filter((n: any) => !n.isRead).length || 0;
   const ticketUnreadCount = (notifications?.data || []).filter((n: any) => !n.isRead && n.link?.includes("/tickets")).length || 0;

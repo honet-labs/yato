@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskDto, UpdateTaskDto, CreateTaskCommentDto, CreateTaskTemplateDto, UpdateTaskTemplateDto } from './dto/task.dto';
 import { StorageService } from '../storage/storage.service';
@@ -395,7 +395,7 @@ export class TaskService {
       where: { key: 'PLATFORM_URL' }
     });
     const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
-    const taskUrl = `${frontendUrl}/tasks?taskId=${task.id}`;
+    const taskUrl = task.projectId ? `${frontendUrl}/tasks?projectId=${task.projectId}&taskId=${task.id}` : `${frontendUrl}/tasks?taskId=${task.id}`;
 
     // Notify assignees
     if (assigneeIds.length > 0) {
@@ -585,7 +585,7 @@ export class TaskService {
       where: { key: 'PLATFORM_URL' }
     });
     const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
-    const taskUrl = `${frontendUrl}/tasks?taskId=${updatedTask.id}`;
+    const taskUrl = updatedTask.projectId ? `${frontendUrl}/tasks?projectId=${updatedTask.projectId}&taskId=${updatedTask.id}` : `${frontendUrl}/tasks?taskId=${updatedTask.id}`;
 
     // Notify any new assignees
     if (dto.assigneeIds !== undefined) {
@@ -744,7 +744,7 @@ export class TaskService {
           where: { key: 'PLATFORM_URL' }
         });
         const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
-        const taskUrl = `${frontendUrl}/tasks?taskId=${task.id}`;
+        const taskUrl = task.projectId ? `${frontendUrl}/tasks?projectId=${task.projectId}&taskId=${task.id}` : `${frontendUrl}/tasks?taskId=${task.id}`;
 
         if (matches.length > 0) {
           const usernames = matches.map(m => m[1].toLowerCase());
@@ -908,6 +908,9 @@ export class TaskService {
   }
 
   async createTemplate(dto: CreateTaskTemplateDto, creatorId: string) {
+    if (!dto.projectIds || dto.projectIds.length === 0) {
+      throw new BadRequestException('At least one project/workspace must be associated with the template');
+    }
     const template = await this.prisma.taskTemplate.create({
       data: {
         templateName: dto.templateName,
@@ -953,8 +956,11 @@ export class TaskService {
     if (dto.repeatDayOfWeek !== undefined) data.repeatDayOfWeek = dto.repeatDayOfWeek !== null ? Number(dto.repeatDayOfWeek) : null;
     if (dto.repeatDayOfMonth !== undefined) data.repeatDayOfMonth = dto.repeatDayOfMonth !== null ? Number(dto.repeatDayOfMonth) : null;
     if (dto.projectIds !== undefined) {
+      if (!dto.projectIds || dto.projectIds.length === 0) {
+        throw new BadRequestException('At least one project/workspace must be associated with the template');
+      }
       data.projects = {
-        set: dto.projectIds ? dto.projectIds.map(id => ({ id })) : []
+        set: dto.projectIds.map(id => ({ id }))
       };
     }
 

@@ -30,9 +30,18 @@ export class PmoService {
       };
 
       projectWhere = {
-        tasks: {
-          some: taskWhere
-        }
+        OR: [
+          {
+            tasks: {
+              some: taskWhere
+            }
+          },
+          {
+            tasks: {
+              none: {}
+            }
+          }
+        ]
       };
     }
 
@@ -84,13 +93,22 @@ export class PmoService {
         ]
       };
 
-      // Find if this project has any task matching the user's access
+      // Find if this project has any task matching the user's access, or is an empty project
       const projectExists = await this.prisma.project.findFirst({
         where: {
           id,
-          tasks: {
-            some: taskWhere
-          }
+          OR: [
+            {
+              tasks: {
+                some: taskWhere
+              }
+            },
+            {
+              tasks: {
+                none: {}
+              }
+            }
+          ]
         }
       });
       if (!projectExists) {

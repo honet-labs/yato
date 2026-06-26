@@ -141,7 +141,7 @@ function TaskTemplatesPageContent() {
     mutationFn: async (template: any) => {
       const targetProjects = template.projects && template.projects.length > 0
         ? template.projects
-        : [null];
+        : [];
 
       const results = [];
       for (const proj of targetProjects) {
@@ -220,6 +220,15 @@ function TaskTemplatesPageContent() {
     if (!templateForm.title.trim()) {
       queryClient.setQueryData(["toast"], {
         message: lang === "ID" ? "Judul tugas default tidak boleh kosong!" : "Default task title blueprint cannot be empty!",
+        type: "error"
+      });
+      return;
+    }
+    if (!templateForm.projectIds || templateForm.projectIds.length === 0) {
+      queryClient.setQueryData(["toast"], {
+        message: lang === "ID" 
+          ? "Anda harus memilih setidaknya satu Tracker Workspace!" 
+          : "You must select at least one Tracker Workspace!",
         type: "error"
       });
       return;
@@ -631,20 +640,6 @@ function TaskTemplatesPageContent() {
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Destination Task Tracker Workspaces</label>
                       <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setTemplateForm(prev => ({ ...prev, projectIds: [] }));
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                            templateForm.projectIds.length === 0
-                              ? "bg-slate-900 border-slate-950 text-white shadow-sm"
-                              : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100/50"
-                          }`}
-                        >
-                          Global (unassigned)
-                        </button>
-
                         {projects?.map((proj: any) => {
                           const isSelected = templateForm.projectIds.includes(proj.id);
                           return (
