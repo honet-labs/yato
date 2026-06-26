@@ -1,11 +1,20 @@
-import { Controller, Get, Delete, Put, Body, Param, UseGuards, Query, Req } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Put, Body, Param, UseGuards, Query, Req } from '@nestjs/common';
 import { VmInventoryService } from './vm-inventory.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 
 @Controller('vm-inventory')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class VmInventoryController {
   constructor(private vmInventoryService: VmInventoryService) {}
+
+  @Post()
+  @Permissions('PROVISION_VM')
+  async create(@Body() data: any, @Req() req: any) {
+    return this.vmInventoryService.create(data, req.user.id);
+  }
 
   @Get()
   async findAll(@Query('scope') scope: string, @Req() req: any) {
@@ -27,3 +36,4 @@ export class VmInventoryController {
     return this.vmInventoryService.updateConfig(id, data);
   }
 }
+

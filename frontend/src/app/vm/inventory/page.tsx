@@ -35,7 +35,7 @@ import {
 import { exportToCSV } from "@/lib/csvHelper";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 import { cn } from "@/lib/utils";
@@ -66,6 +66,21 @@ export default function VmInventoryPage() {
   // Modals
   const [showConsole, setShowConsole] = useState(null as VM | null);
   const [isCopied, setIsCopied] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  
+  const [addFormData, setAddFormData] = useState({
+    hostname: "",
+    environment: "Production",
+    osTemplate: "",
+    cpu: 2,
+    ram: 4,
+    disk: 50,
+    notes: "",
+    ipAddress: "",
+    sshUser: "root",
+    sshPassword: "",
+    sshPort: 22
+  });
 
   const terminateMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/vm-inventory/${id}`),
@@ -75,9 +90,45 @@ export default function VmInventoryPage() {
     },
   });
 
-
   const { isAdmin, permissions, isLoading: isAuthLoading } = useIsAdmin();
   const canView = isAdmin || permissions.includes("VIEW_VM_INVENTORY") || permissions.includes("MANAGE_VM_INVENTORY");
+  const canAddVm = isAdmin || permissions.includes("PROVISION_VM");
+
+  const { data: osTemplates } = useQuery({
+    queryKey: ["catalog", "OS_TEMPLATE"],
+    queryFn: async () => {
+      const response = await api.get("/catalog?category=OS_TEMPLATE");
+      return response.data;
+    },
+  });
+
+  useEffect(() => {
+    if (osTemplates && osTemplates.length > 0 && !addFormData.osTemplate) {
+      setAddFormData(prev => ({ ...prev, osTemplate: osTemplates[0].name }));
+    }
+  }, [osTemplates]);
+
+  const addMutation = useMutation({
+    mutationFn: (newVm: any) => api.post("/vm-inventory", newVm),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vm-inventory"] });
+      setIsAddModalOpen(false);
+      setAddFormData({
+        hostname: "",
+        environment: "Production",
+        osTemplate: osTemplates && osTemplates.length > 0 ? osTemplates[0].name : "",
+        cpu: 2,
+        ram: 4,
+        disk: 50,
+        notes: "",
+        ipAddress: "",
+        sshUser: "root",
+        sshPassword: "",
+        sshPort: 22
+      });
+    }
+  });
+
   const { data: inventory, isLoading } = useQuery({
     queryKey: ["vm-inventory"],
     queryFn: async () => {
@@ -181,6 +232,15 @@ export default function VmInventoryPage() {
                   <Filter className="w-4 h-4" />
                   Filter
                 </button>
+                {canAddVm && (
+                  <button 
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="btn-primary flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add VM
+                  </button>
+                )}
               </div>
             </header>
 
@@ -442,6 +502,190 @@ export default function VmInventoryPage() {
       </AnimatePresence>
 
 
+
+      <AnimatePresence>
+        {isAddModalOpen && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm overflow-y-auto py-12">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100"
+            >
+              <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-xl shadow-blue-600/20">
+                    <Monitor className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 tracking-tight">Add Virtual Machine</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Provision direct inventory entry</p>
+                  </div>
+                </div>
+                <button onClick={() => setIsAddModalOpen(false)} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm">
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                addMutation.mutate(addFormData);
+              }} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Hostname */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Hostname / Instance Name</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="input-field w-full py-2.5 text-sm" 
+                      placeholder="e.g. web-prod-01"
+                      value={addFormData.hostname}
+                      onChange={e => setAddFormData({...addFormData, hostname: e.target.value})}
+                    />
+                  </div>
+
+                  {/* Environment */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Environment</label>
+                    <select 
+                      className="input-field w-full py-2.5 text-sm"
+                      value={addFormData.environment}
+                      onChange={e => setAddFormData({...addFormData, environment: e.target.value})}
+                    >
+                      <option value="Production">Production</option>
+                      <option value="Staging">Staging</option>
+                      <option value="Development">Development</option>
+                    </select>
+                  </div>
+
+                  {/* OS Template */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">OS Template</label>
+                    <select 
+                      className="input-field w-full py-2.5 text-sm"
+                      value={addFormData.osTemplate}
+                      onChange={e => setAddFormData({...addFormData, osTemplate: e.target.value})}
+                    >
+                      {osTemplates?.map(os => (
+                        <option key={os.id} value={os.name}>{os.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* IP Address */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">IP Address</label>
+                    <input 
+                      type="text" 
+                      className="input-field w-full py-2.5 text-sm" 
+                      placeholder="e.g. 192.168.1.50"
+                      value={addFormData.ipAddress}
+                      onChange={e => setAddFormData({...addFormData, ipAddress: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                {/* Specs */}
+                <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-50">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">vCPU Cores</label>
+                    <input 
+                      type="number" 
+                      required
+                      className="input-field w-full py-2.5 text-sm" 
+                      value={addFormData.cpu}
+                      onChange={e => setAddFormData({...addFormData, cpu: parseInt(e.target.value) || 0})}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">RAM (GB)</label>
+                    <input 
+                      type="number" 
+                      required
+                      className="input-field w-full py-2.5 text-sm" 
+                      value={addFormData.ram}
+                      onChange={e => setAddFormData({...addFormData, ram: parseInt(e.target.value) || 0})}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Disk (GB)</label>
+                    <input 
+                      type="number" 
+                      required
+                      className="input-field w-full py-2.5 text-sm" 
+                      value={addFormData.disk}
+                      onChange={e => setAddFormData({...addFormData, disk: parseInt(e.target.value) || 0})}
+                    />
+                  </div>
+                </div>
+
+                {/* SSH credentials */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-50">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">SSH Username</label>
+                    <input 
+                      type="text" 
+                      className="input-field w-full py-2.5 text-sm" 
+                      value={addFormData.sshUser}
+                      onChange={e => setAddFormData({...addFormData, sshUser: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">SSH Password</label>
+                    <input 
+                      type="password" 
+                      className="input-field w-full py-2.5 text-sm" 
+                      placeholder="••••••••"
+                      value={addFormData.sshPassword}
+                      onChange={e => setAddFormData({...addFormData, sshPassword: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">SSH Port</label>
+                    <input 
+                      type="number" 
+                      className="input-field w-full py-2.5 text-sm" 
+                      value={addFormData.sshPort}
+                      onChange={e => setAddFormData({...addFormData, sshPort: parseInt(e.target.value) || 22})}
+                    />
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div className="space-y-1.5 pt-4 border-t border-slate-50">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Additional Notes</label>
+                  <textarea 
+                    rows={3}
+                    className="input-field w-full py-2.5 text-sm resize-none" 
+                    placeholder="Provisioning details, special usage note..."
+                    value={addFormData.notes}
+                    onChange={e => setAddFormData({...addFormData, notes: e.target.value})}
+                  />
+                </div>
+
+                <div className="pt-6 border-t border-slate-50 flex gap-4">
+                  <button 
+                    type="button"
+                    onClick={() => setIsAddModalOpen(false)}
+                    className="w-1/2 py-3 border border-slate-200 hover:bg-slate-50 rounded-xl font-bold text-sm text-slate-600 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={addMutation.isPending}
+                    className="w-1/2 btn-primary flex items-center justify-center gap-2"
+                  >
+                    {addMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                    <span>Save VM</span>
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {isCopied && (

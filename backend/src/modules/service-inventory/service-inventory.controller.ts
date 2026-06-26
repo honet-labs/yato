@@ -1,15 +1,24 @@
-import { Controller, Get, Param, UseGuards, Put, Body, Query, Req } from '@nestjs/common';
+import { Controller, Get, Post, Param, UseGuards, Put, Body, Query, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ServiceInventoryService } from './service-inventory.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 
 @ApiTags('service-inventory')
 @Controller('service-inventory')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class ServiceInventoryController {
   constructor(private readonly serviceInventoryService: ServiceInventoryService) {}
+
+  @Post()
+  @Permissions('PROVISION_SERVICE')
+  @ApiOperation({ summary: 'Create service inventory item directly' })
+  create(@Body() data: any, @Req() req: any) {
+    return this.serviceInventoryService.create(data, req.user.id);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Get service inventory items (personal or global)' })

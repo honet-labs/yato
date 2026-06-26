@@ -30,7 +30,7 @@ import {
   Trash2
 } from "lucide-react";
 import { exportToCSV } from "@/lib/csvHelper";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -57,6 +57,18 @@ export default function ServiceInventoryPage() {
   const [copiedId, setCopiedId] = useState(null as string | null);
   const [showEditModal, setShowEditModal] = useState(null as ServiceInventory | null);
   const [viewingDetails, setViewingDetails] = useState(null as ServiceInventory | null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addFormData, setAddFormData] = useState({
+    serviceName: "",
+    version: "1.0.0",
+    environment: "Production",
+    endpoint: "",
+    address: "",
+    port: 3306,
+    username: "",
+    password: ""
+  });
+  
   const [editData, setEditData] = useState({
     endpoint: "",
     address: "",
@@ -68,6 +80,34 @@ export default function ServiceInventoryPage() {
 
   const { isAdmin, permissions, isLoading: isAuthLoading } = useIsAdmin();
   const canView = isAdmin || permissions.includes("VIEW_SERVICE_INVENTORY") || permissions.includes("MANAGE_SERVICE_INVENTORY");
+  const canAddService = isAdmin || permissions.includes("PROVISION_SERVICE");
+
+  const { data: serviceTypes } = useQuery({
+    queryKey: ["catalog", "SERVICE_TYPE"],
+    queryFn: async () => {
+      const response = await api.get("/catalog?category=SERVICE_TYPE");
+      return response.data;
+    },
+  });
+
+  const addMutation = useMutation({
+    mutationFn: (newService: any) => api.post("/service-inventory", newService),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["service-inventory"] });
+      setIsAddModalOpen(false);
+      setAddFormData({
+        serviceName: "",
+        version: "1.0.0",
+        environment: "Production",
+        endpoint: "",
+        address: "",
+        port: 3306,
+        username: "",
+        password: ""
+      });
+    }
+  });
+
   const { data: items, isLoading } = useQuery({
     queryKey: ["service-inventory"],
     queryFn: async () => {
@@ -162,13 +202,24 @@ export default function ServiceInventoryPage() {
           <div>
             <PageHeader title="Service Assets" subtitle="Active infrastructure services and endpoints" />
           </div>
-          <button 
-            onClick={handleExport}
-            className="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Export CSV
-          </button>
+          <div className="flex gap-3">
+            <button 
+              onClick={handleExport}
+              className="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
+            {canAddService && (
+              <button 
+                onClick={() => setIsAddModalOpen(true)}
+                className="btn-primary flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add Service
+              </button>
+            )}
+          </div>
         </header>
 
         <div className="flex gap-4 mb-8">
@@ -439,6 +490,159 @@ export default function ServiceInventoryPage() {
           )}
         </AnimatePresence>
         
+        {/* Add Service Modal */}
+        <AnimatePresence>
+          {isAddModalOpen && (
+            <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm overflow-y-auto py-12">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100"
+              >
+                <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-xl shadow-emerald-600/20">
+                      <Layers className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900 tracking-tight">Add Service Asset</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Provision direct service inventory entry</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setIsAddModalOpen(false)} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm">
+                    <X className="w-5 h-5 text-slate-400" />
+                  </button>
+                </div>
+
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  addMutation.mutate(addFormData);
+                }} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Service Name */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Service Identifier / Name</label>
+                      <input 
+                        type="text" 
+                        required
+                        className="input-field w-full py-2.5 text-sm" 
+                        placeholder="e.g. Redis-Cache-01"
+                        value={addFormData.serviceName}
+                        onChange={e => setAddFormData({...addFormData, serviceName: e.target.value})}
+                      />
+                    </div>
+
+                    {/* Environment */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Environment</label>
+                      <select 
+                        className="input-field w-full py-2.5 text-sm font-bold"
+                        value={addFormData.environment}
+                        onChange={e => setAddFormData({...addFormData, environment: e.target.value})}
+                      >
+                        <option value="Production">Production</option>
+                        <option value="Staging">Staging</option>
+                        <option value="Development">Development</option>
+                      </select>
+                    </div>
+
+                    {/* Version */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Version</label>
+                      <input 
+                        type="text" 
+                        required
+                        className="input-field w-full py-2.5 text-sm" 
+                        placeholder="e.g. 1.0.0"
+                        value={addFormData.version}
+                        onChange={e => setAddFormData({...addFormData, version: e.target.value})}
+                      />
+                    </div>
+
+                    {/* Endpoint / URL */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Endpoint / URL</label>
+                      <input 
+                        type="text" 
+                        className="input-field w-full py-2.5 text-sm" 
+                        placeholder="e.g. http://10.10.1.50:5678"
+                        value={addFormData.endpoint}
+                        onChange={e => setAddFormData({...addFormData, endpoint: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Connection details */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-50">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">IP Address / Host</label>
+                      <input 
+                        type="text" 
+                        className="input-field w-full py-2.5 text-sm" 
+                        placeholder="e.g. 10.10.1.50"
+                        value={addFormData.address}
+                        onChange={e => setAddFormData({...addFormData, address: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Port</label>
+                      <input 
+                        type="number" 
+                        className="input-field w-full py-2.5 text-sm" 
+                        value={addFormData.port}
+                        onChange={e => setAddFormData({...addFormData, port: parseInt(e.target.value) || 0})}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Credentials */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-50">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Username</label>
+                      <input 
+                        type="text" 
+                        className="input-field w-full py-2.5 text-sm" 
+                        placeholder="Username for service"
+                        value={addFormData.username}
+                        onChange={e => setAddFormData({...addFormData, username: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Password</label>
+                      <input 
+                        type="password" 
+                        className="input-field w-full py-2.5 text-sm" 
+                        placeholder="••••••••"
+                        value={addFormData.password}
+                        onChange={e => setAddFormData({...addFormData, password: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-slate-50 flex gap-4">
+                    <button 
+                      type="button"
+                      onClick={() => setIsAddModalOpen(false)}
+                      className="w-1/2 py-3 border border-slate-200 hover:bg-slate-50 rounded-xl font-bold text-sm text-slate-600 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit"
+                      disabled={addMutation.isPending}
+                      className="w-1/2 btn-primary flex items-center justify-center gap-2"
+                    >
+                      {addMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                      <span>Save Service</span>
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
         {/* Detail Modal for Users */}
         <AnimatePresence>
           {viewingDetails && (

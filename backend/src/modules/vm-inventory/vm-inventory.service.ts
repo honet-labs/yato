@@ -102,4 +102,58 @@ export class VmInventoryService {
       },
     });
   }
+
+  private async generateTicketId() {
+    const today = new Date();
+    const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+    
+    const startOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 0, 0, 0, 0));
+    const endOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 23, 59, 59, 999));
+
+    const count = await this.prisma.vMRequest.count({
+      where: {
+        createdAt: {
+          gte: startOfDay,
+          lt: endOfDay,
+        },
+      },
+    });
+    const sequence = (count + 1).toString().padStart(4, '0');
+    return `VM-${dateStr}-${sequence}`;
+  }
+
+  async create(data: any, userId: string) {
+    const ticketId = await this.generateTicketId();
+    
+    // Create the VM Request as completed/approved
+    const request = await this.prisma.vMRequest.create({
+      data: {
+        ticketId,
+        hostname: data.hostname,
+        cpu: parseInt(data.cpu),
+        ram: parseInt(data.ram),
+        disk: parseInt(data.disk),
+        osTemplate: data.osTemplate,
+        hypervisor: data.hypervisor || 'manual',
+        environment: data.environment || 'Production',
+        notes: data.notes || '',
+        status: 'APPROVED',
+        requestedBy: userId,
+        approvedBy: userId,
+        approvedAt: new Date()
+      }
+    });
+
+    // Create the VM Inventory entry
+    return this.prisma.vMInventory.create({
+      data: {
+        requestId: request.id,
+        ipAddress: data.ipAddress || null,
+        sshUser: data.sshUser || null,
+        sshPassword: data.sshPassword || null,
+        sshPort: data.sshPort ? parseInt(data.sshPort) : 22,
+        status: 'RUNNING'
+      }
+    });
+  }
 }
