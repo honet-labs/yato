@@ -1,6 +1,7 @@
 "use client";
 import { PageHeader } from "@/components/PageHeader";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useLanguage } from "@/context/language-context";
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -214,6 +215,7 @@ function TasksPageContent() {
   const projectIdParam = searchParams.get("projectId");
   const queryClient = useQueryClient();
   const { profile, isAdmin, permissions, isLoading: isAuthLoading } = useIsAdmin();
+  const { lang, t, showToast } = useLanguage();
   const canView = isAdmin || permissions.includes("VIEW_TASKS");
   const [editingCommentId, setEditingCommentId] = useState(null as string | null);
   const [editingCommentText, setEditingCommentText] = useState("");
@@ -505,6 +507,11 @@ function TasksPageContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["task-templates"] });
       setIsTemplateEditorOpen(false);
+      showToast("Template blueprint created successfully!", "success");
+    },
+    onError: (error: any) => {
+      const errMsg = error.response?.data?.message || "Failed to create template blueprint";
+      showToast(errMsg, "error");
     }
   });
 
@@ -517,6 +524,11 @@ function TasksPageContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["task-templates"] });
       setIsTemplateEditorOpen(false);
+      showToast("Template blueprint updated successfully!", "success");
+    },
+    onError: (error: any) => {
+      const errMsg = error.response?.data?.message || "Failed to update template blueprint";
+      showToast(errMsg, "error");
     }
   });
 
@@ -527,6 +539,11 @@ function TasksPageContent() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["task-templates"] });
+      showToast("Template blueprint deleted successfully!", "success");
+    },
+    onError: (error: any) => {
+      const errMsg = error.response?.data?.message || "Failed to delete template blueprint";
+      showToast(errMsg, "error");
     }
   });
 
@@ -746,8 +763,8 @@ function TasksPageContent() {
   const handleEditTemplateStart = (template: any) => {
     setEditingTemplateId(template.id);
     setTemplateForm({
-      templateName: template.templateName,
-      title: template.title,
+      templateName: template.templateName || "",
+      title: template.title || "",
       description: template.description || "",
       priority: template.priority || "MEDIUM",
       taskType: template.taskType || "TASK",
@@ -764,7 +781,23 @@ function TasksPageContent() {
 
   const handleSaveTemplate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!templateForm.templateName.trim() || !templateForm.title.trim()) return;
+    if (!templateForm.templateName || !templateForm.templateName.trim()) {
+      showToast(lang === "ID" ? "Nama templat tidak boleh kosong!" : "Template name cannot be empty!", "error");
+      return;
+    }
+    if (!templateForm.title || !templateForm.title.trim()) {
+      showToast(lang === "ID" ? "Judul tugas default tidak boleh kosong!" : "Default task title blueprint cannot be empty!", "error");
+      return;
+    }
+    if (!templateForm.projectIds || templateForm.projectIds.length === 0) {
+      showToast(
+        lang === "ID" 
+          ? "Anda harus memilih setidaknya satu Tracker Workspace!" 
+          : "You must select at least one Tracker Workspace!",
+        "error"
+      );
+      return;
+    }
 
     if (editingTemplateId) {
       updateTemplateMutation.mutate({
@@ -1833,6 +1866,8 @@ function TasksPageContent() {
                       <Check className="w-3.5 h-3.5 text-amber-700 stroke-[3]" />
                       <input 
                         type="text"
+                        required
+                        form="template-editor-form"
                         value={templateForm.templateName}
                         onChange={(e) => setTemplateForm(prev => ({ ...prev, templateName: e.target.value }))}
                         className="bg-transparent border-none focus:outline-none focus:ring-0 p-0 text-xs font-black text-amber-900 w-36 outline-none"
@@ -1884,7 +1919,7 @@ function TasksPageContent() {
                   </div>
                 </div>
 
-                <form onSubmit={handleSaveTemplate} className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+                <form id="template-editor-form" onSubmit={handleSaveTemplate} className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Default Task Title Blueprint</label>
                     <input 
