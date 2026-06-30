@@ -143,6 +143,7 @@ export default function AdminUsersPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-roles"] });
       queryClient.invalidateQueries({ queryKey: ["roles"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
       setIsModalOpen(false);
       setEditingUser(null);
       setFormData({ email: "", username: "", password: "", fullName: "", phoneNumber: "", personalEmail: "", telegramId: "", roleIds: [], isMfaEnabled: false });
@@ -160,6 +161,7 @@ export default function AdminUsersPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-roles"] });
       queryClient.invalidateQueries({ queryKey: ["roles"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
     },
   });
   

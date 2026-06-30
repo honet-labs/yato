@@ -38,6 +38,10 @@ export class PermissionsGuard implements CanActivate {
       return [...acc, ...(ur.role.permissions || [])];
     }, [] as string[]);
 
+    if (userPermissions.includes('*')) {
+      return true;
+    }
+
     return requiredPermissions.every(permission => userPermissions.includes(permission));
   }
 }

@@ -31,6 +31,10 @@ export class RolesGuard implements CanActivate {
 
     const userRoles = userWithRoles.roles.map((ur) => ur.role.name.toUpperCase());
     
+    // Bypass check if user has wildcard permission '*'
+    const hasWildcard = userWithRoles.roles.some((ur) => ur.role.permissions?.includes('*'));
+    if (hasWildcard) return true;
+    
     // Expand required roles to support equivalent admin names case-insensitively
     const expandedRequiredRoles = requiredRoles.flatMap((role) => {
       const upperRole = role.toUpperCase();

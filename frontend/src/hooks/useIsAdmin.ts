@@ -17,7 +17,7 @@ export function useIsAdmin(extraRoles: string[] = []) {
 
   const isAdmin = roles.some((role: string) =>
     [...ADMIN_ROLES, ...extraRoles].map(r => r.toUpperCase()).includes(role.toUpperCase())
-  );
+  ) || permissions.includes('*');
 
   return {
     isAdmin,

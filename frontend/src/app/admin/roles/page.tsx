@@ -209,6 +209,7 @@ export default function RolesManagementPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-roles"] });
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
       setIsModalOpen(false);
       resetForm();
     },
@@ -221,6 +222,7 @@ export default function RolesManagementPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-roles"] });
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
       setIsDeleteModalOpen(false);
     },
   });

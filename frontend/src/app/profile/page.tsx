@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
@@ -21,6 +22,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -67,6 +69,7 @@ export default function ProfilePage() {
 
     try {
       await api.put("/auth/profile", formData);
+      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
       setMessage({ type: "success", text: "Profile updated successfully!" });
     } catch (err: any) {
       setMessage({ type: "error", text: err.response?.data?.message || "Update failed." });
