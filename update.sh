@@ -85,9 +85,9 @@ echo -e "   • System Timezone detected as: ${GREEN}$HOST_TZ${NC}"
 
 if [ -f ".env" ]; then
   if grep -q "^TZ=" .env; then
-      sed -i "s|^TZ=.*|TZ=\"$HOST_TZ\"|" .env
+      sed -i "s|^TZ=.*|TZ=$HOST_TZ|" .env
   else
-      echo "TZ=\"$HOST_TZ\"" >> .env
+      echo "TZ=$HOST_TZ" >> .env
   fi
 fi
 
