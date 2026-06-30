@@ -292,7 +292,13 @@ export default function NotesPage() {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: async (data: any) => api.post("/notes", data),
+    mutationFn: async (data: any) => {
+      const payload = { ...data };
+      if (payload.reminderAt && typeof payload.reminderAt === "string" && !payload.reminderAt.includes("Z")) {
+        payload.reminderAt = new Date(payload.reminderAt).toISOString();
+      }
+      return api.post("/notes", payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notes"] });
       resetCreator();
@@ -300,7 +306,13 @@ export default function NotesPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => api.patch(`/notes/${id}`, data),
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const payload = { ...data };
+      if (payload.reminderAt && typeof payload.reminderAt === "string" && !payload.reminderAt.includes("Z")) {
+        payload.reminderAt = new Date(payload.reminderAt).toISOString();
+      }
+      return api.patch(`/notes/${id}`, payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notes"] });
       if (editingNote) {
