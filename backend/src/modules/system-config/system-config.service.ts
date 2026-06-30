@@ -38,6 +38,7 @@ export class SystemConfigService {
         tags: true,
         followers: { select: { id: true, username: true } }
       }
+    });
     const notes = await this.prisma.note.findMany({
       select: {
         id: true,
