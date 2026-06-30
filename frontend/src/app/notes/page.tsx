@@ -78,7 +78,7 @@ function toTimezoneDateTimeLocal(dateString: string, timezone: string): string {
       day: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
-      hour12: false
+      hourCycle: "h23"
     });
     return formatter.format(date).replace(" ", "T");
   } catch (e) {
@@ -104,7 +104,7 @@ function fromTimezoneDateTimeLocal(localString: string, timezone: string): strin
       hour: "numeric",
       minute: "numeric",
       second: "numeric",
-      hour12: false
+      hourCycle: "h23"
     }).formatToParts(utcDate);
     
     const getPart = (type: string) => Number(tzParts.find(p => p.type === type)?.value || 0);

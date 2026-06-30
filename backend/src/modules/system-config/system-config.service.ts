@@ -38,8 +38,18 @@ export class SystemConfigService {
         tags: true,
         followers: { select: { id: true, username: true } }
       }
+    const notes = await this.prisma.note.findMany({
+      select: {
+        id: true,
+        title: true,
+        userId: true,
+        reminderAt: true,
+        reminderSent: true,
+        isTrashed: true,
+        repeatInterval: true
+      }
     });
-    return { users, tasks, tickets };
+    return { users, tasks, tickets, notes };
   }
 
   async getSetting(key: string) {
