@@ -42,6 +42,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-context";
+import { useBranding } from "@/context/branding-context";
 
 // Google Keep-like standard color options
 const COLOR_PALETTE = [
@@ -62,6 +63,66 @@ const COLOR_PALETTE = [
 function stripHtml(html: string) {
   if (!html) return "";
   return html.replace(/<[^>]*>/g, "");
+}
+
+function toTimezoneDateTimeLocal(dateString: string, timezone: string): string {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "";
+
+  try {
+    const formatter = new Intl.DateTimeFormat("sv-SE", {
+      timeZone: timezone || "Asia/Jakarta",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    });
+    return formatter.format(date).replace(" ", "T");
+  } catch (e) {
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  }
+}
+
+function fromTimezoneDateTimeLocal(localString: string, timezone: string): string {
+  if (!localString) return "";
+  const [datePart, timePart] = localString.split("T");
+  if (!datePart || !timePart) return new Date(localString).toISOString();
+  
+  try {
+    const [year, month, day] = datePart.split("-").map(Number);
+    const [hour, minute] = timePart.split(":").map(Number);
+    
+    const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+    const tzParts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone || "Asia/Jakarta",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      hour12: false
+    }).formatToParts(utcDate);
+    
+    const getPart = (type: string) => Number(tzParts.find(p => p.type === type)?.value || 0);
+    
+    const tzYear = getPart("year");
+    const tzMonth = getPart("month") - 1;
+    const tzDay = getPart("day");
+    const tzHour = getPart("hour") % 24;
+    const tzMin = getPart("minute");
+    
+    const localEpoch = Date.UTC(year, month - 1, day, hour, minute);
+    const tzEpoch = Date.UTC(tzYear, tzMonth, tzDay, tzHour, tzMin);
+    
+    const diff = localEpoch - tzEpoch;
+    return new Date(utcDate.getTime() + diff).toISOString();
+  } catch (e) {
+    return new Date(localString).toISOString();
+  }
 }
 
 interface RichTextEditorProps {
@@ -252,6 +313,7 @@ function RichTextEditor({ value, onChange, placeholder, minHeight = "120px" }: R
 export default function NotesPage() {
   const queryClient = useQueryClient();
   const { lang } = useLanguage();
+  const { appTimezone } = useBranding();
   const [currentView, setCurrentView] = useState("notes" as "notes" | "reminders" | "archive" | "trash" | "calendar");
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -295,7 +357,7 @@ export default function NotesPage() {
     mutationFn: async (data: any) => {
       const payload = { ...data };
       if (payload.reminderAt && typeof payload.reminderAt === "string" && !payload.reminderAt.includes("Z")) {
-        payload.reminderAt = new Date(payload.reminderAt).toISOString();
+        payload.reminderAt = fromTimezoneDateTimeLocal(payload.reminderAt, appTimezone);
       }
       return api.post("/notes", payload);
     },
@@ -309,7 +371,7 @@ export default function NotesPage() {
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const payload = { ...data };
       if (payload.reminderAt && typeof payload.reminderAt === "string" && !payload.reminderAt.includes("Z")) {
-        payload.reminderAt = new Date(payload.reminderAt).toISOString();
+        payload.reminderAt = fromTimezoneDateTimeLocal(payload.reminderAt, appTimezone);
       }
       return api.patch(`/notes/${id}`, payload);
     },
@@ -409,24 +471,40 @@ export default function NotesPage() {
 
   const getNotesForDate = (date: Date) => {
     if (!date) return [];
+    
+    // Format calendar cell date as YYYY-MM-DD in local time
+    const cellYear = date.getFullYear();
+    const cellMonth = String(date.getMonth() + 1).padStart(2, "0");
+    const cellDay = String(date.getDate()).padStart(2, "0");
+    const cellDateStr = `${cellYear}-${cellMonth}-${cellDay}`;
+    
     return notes.filter(note => {
       if (!note.reminderAt || note.isTrashed) return false;
-      const rDate = new Date(note.reminderAt);
-      return (
-        rDate.getDate() === date.getDate() &&
-        rDate.getMonth() === date.getMonth() &&
-        rDate.getFullYear() === date.getFullYear()
-      );
+      
+      // Get the note's reminder date formatted as YYYY-MM-DD in target timezone
+      const noteDateStr = toTimezoneDateTimeLocal(note.reminderAt, appTimezone).slice(0, 10);
+      
+      return noteDateStr === cellDateStr;
     });
   };
 
   const handleCalendarCellClick = (date: Date) => {
     if (!date) return;
-    const formattedDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 16);
-    
-    setNewReminderAt(formattedDate);
+    try {
+      const formatter = new Intl.DateTimeFormat("sv-SE", {
+        timeZone: appTimezone || "Asia/Jakarta",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      });
+      const formattedDate = formatter.format(date); // YYYY-MM-DD
+      setNewReminderAt(`${formattedDate}T09:00`); // default to 09:00 AM in setup timezone
+    } catch (e) {
+      const formattedDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 10);
+      setNewReminderAt(`${formattedDate}T09:00`);
+    }
     setIsCreatorExpanded(true);
     setCurrentView("notes");
     // Scroll smoothly to note creator
@@ -863,7 +941,7 @@ export default function NotesPage() {
                     <Clock className="w-4 h-4 text-slate-500" />
                     <input 
                       type="datetime-local" 
-                      value={editingNote.reminderAt ? new Date(new Date(editingNote.reminderAt).getTime() - new Date(editingNote.reminderAt).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""}
+                      value={editingNote.reminderAt ? toTimezoneDateTimeLocal(editingNote.reminderAt, appTimezone) : ""}
                       onChange={(e) => {
                         const val = e.target.value || null;
                         setEditingNote({ 
@@ -982,11 +1060,13 @@ function NoteCard({
   setShowColorPicker 
 }: NoteCardProps) {
   const { lang } = useLanguage();
+  const { appTimezone } = useBranding();
   const formattedReminder = note.reminderAt ? new Date(note.reminderAt).toLocaleString(lang === "EN" ? "en-US" : "id-ID", {
     day: "numeric",
     month: "short",
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
+    timeZone: appTimezone || "Asia/Jakarta"
   }) : "";
 
   return (
