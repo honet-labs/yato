@@ -9,6 +9,39 @@ export class SystemConfigService {
     private auditService: AuditService,
   ) {}
 
+  async debugDump() {
+    const users = await this.prisma.user.findMany({
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        email: true,
+        roles: { include: { role: true } }
+      }
+    });
+    const tasks = await this.prisma.task.findMany({
+      select: {
+        id: true,
+        title: true,
+        createdById: true,
+        assigneeId: true,
+        tags: true,
+        assignees: { select: { id: true, username: true } },
+        followers: { select: { id: true, username: true } }
+      }
+    });
+    const tickets = await this.prisma.supportTicket.findMany({
+      select: {
+        id: true,
+        subject: true,
+        requestedBy: true,
+        tags: true,
+        followers: { select: { id: true, username: true } }
+      }
+    });
+    return { users, tasks, tickets };
+  }
+
   async getSetting(key: string) {
     const setting = await this.prisma.systemSetting.findUnique({ where: { key } });
     return setting?.value || null;
