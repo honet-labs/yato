@@ -6,16 +6,31 @@ import { AuditService } from '../audit/audit.service';
 import { NotificationService } from '../notification/notification.service';
 
 function getLocalDateParts(date: Date, timezone: string) {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: 'numeric',
-    second: 'numeric',
-    hour12: false,
-  });
+  let formatter: Intl.DateTimeFormat;
+  try {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hourCycle: 'h23',
+    });
+  } catch (err) {
+    // Fallback to Asia/Jakarta if timezone is invalid
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hourCycle: 'h23',
+    });
+  }
 
   const parts = formatter.formatToParts(date);
   const getPart = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0', 10);
@@ -23,7 +38,7 @@ function getLocalDateParts(date: Date, timezone: string) {
   const year = getPart('year');
   const month = getPart('month') - 1; // 0-indexed month
   const day = getPart('day');
-  const hour = getPart('hour') % 24;
+  const hour = getPart('hour');
   const minute = getPart('minute');
 
   const tempDate = new Date(Date.UTC(year, month, day));
@@ -65,14 +80,20 @@ export class TaskSchedulerService {
       let timezone = 'Asia/Jakarta';
       try {
         const tzSetting = await this.prisma.systemSetting.findUnique({ where: { key: 'TIMEZONE_CONFIG' } });
-        const tzConfig: any = tzSetting?.value || {};
+        let tzConfig: any = tzSetting?.value || {};
+        if (typeof tzConfig === 'string') {
+          try {
+            tzConfig = JSON.parse(tzConfig);
+          } catch (e) {}
+        }
         if (tzConfig.mode === 'MANUAL' && tzConfig.manualValue) {
           timezone = tzConfig.manualValue;
         } else {
-          timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          const systemTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          timezone = (systemTz === 'UTC' || systemTz === 'GMT' || !systemTz) ? 'Asia/Jakarta' : systemTz;
         }
       } catch (e) {
-        // Fallback to Asia/Jakarta
+        timezone = 'Asia/Jakarta';
       }
 
       this.logger.log(`Using timezone for repeating tasks: ${timezone}`);
@@ -243,10 +264,38 @@ export class TaskSchedulerService {
   }
 
   // Daily reminder at 8:00 AM for tasks that are NOT_STARTED or IN_PROGRESS
-  @Cron('0 8 * * *')
+  @Cron('0 * * * *')
   async sendTaskReminders() {
     this.logger.log('⏰ Running daily task reminder check...');
     try {
+      // Get the configured system timezone
+      let timezone = 'Asia/Jakarta';
+      try {
+        const tzSetting = await this.prisma.systemSetting.findUnique({ where: { key: 'TIMEZONE_CONFIG' } });
+        let tzConfig: any = tzSetting?.value || {};
+        if (typeof tzConfig === 'string') {
+          try {
+            tzConfig = JSON.parse(tzConfig);
+          } catch (e) {}
+        }
+        if (tzConfig.mode === 'MANUAL' && tzConfig.manualValue) {
+          timezone = tzConfig.manualValue;
+        } else {
+          const systemTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          timezone = (systemTz === 'UTC' || systemTz === 'GMT' || !systemTz) ? 'Asia/Jakarta' : systemTz;
+        }
+      } catch (e) {
+        timezone = 'Asia/Jakarta';
+      }
+
+      const now = new Date();
+      const nowParts = getLocalDateParts(now, timezone);
+
+      if (nowParts.hour !== 8) {
+        this.logger.log(`Skipping daily task reminders: current hour in timezone ${timezone} is ${nowParts.hour}, not 8.`);
+        return;
+      }
+
       // Find all tasks with status 'NOT_STARTED' or 'IN_PROGRESS' that have assignees
       const tasks = await this.prisma.task.findMany({
         where: {
