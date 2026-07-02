@@ -43,6 +43,11 @@ export class ServiceRequestService {
         config: dto.config || {},
         requestedBy: userId,
         status: 'PENDING',
+        endpoint: dto.endpoint,
+        address: dto.address,
+        port: dto.port ? parseInt(dto.port as any) : undefined,
+        username: dto.username,
+        password: dto.password,
       },
     });
 
@@ -202,15 +207,22 @@ export class ServiceRequestService {
         : !!autoProv.value
       : true;
 
+    const address = dto?.address || request.address;
+    const port = dto?.port ? parseInt(dto.port as any) : (request.port || null);
+    const username = dto?.username || request.username;
+    const password = dto?.password || request.password;
+    const endpoint = request.endpoint;
+
     // Create Inventory Entry
     await this.prisma.serviceInventory.create({
       data: {
         requestId: id,
-        address: dto?.address,
-        port: dto?.port,
-        username: dto?.username,
-        password: dto?.password,
-        status: dto?.address ? 'COMPLETED' : (isAutoEnabled ? 'PROVISIONING' : 'AWAITING_CONFIG')
+        endpoint: endpoint || null,
+        address: address || null,
+        port: port,
+        username: username || null,
+        password: password || null,
+        status: address ? 'COMPLETED' : (isAutoEnabled ? 'PROVISIONING' : 'AWAITING_CONFIG')
       }
     });
 

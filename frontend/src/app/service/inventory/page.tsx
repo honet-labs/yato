@@ -284,7 +284,6 @@ export default function ServiceInventoryPage() {
                         </div>
                         <div>
                           <p className="text-[13px] font-semibold text-slate-900">{item.serviceName}</p>
-                          <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-tighter">{item.version}</p>
                         </div>
                       </div>
                     </td>
@@ -555,18 +554,7 @@ export default function ServiceInventoryPage() {
                       </select>
                     </div>
 
-                    {/* Version */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Version</label>
-                      <input 
-                        type="text" 
-                        required
-                        className="input-field w-full py-2.5 text-sm" 
-                        placeholder="e.g. 1.0.0"
-                        value={addFormData.version}
-                        onChange={e => setAddFormData({...addFormData, version: e.target.value})}
-                      />
-                    </div>
+
 
                     {/* Endpoint / URL */}
                     <div className="space-y-1.5">

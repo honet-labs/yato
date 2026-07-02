@@ -59,6 +59,10 @@ export class VmRequestService {
         environment: dto.environment,
         notes: dto.notes,
         status: 'PENDING',
+        ipAddress: dto.ipAddress,
+        sshUser: dto.sshUser,
+        sshPassword: dto.sshPassword,
+        sshPort: dto.sshPort ? parseInt(dto.sshPort as any) : undefined,
         user: { connect: { id: userId } } // Correct Prisma relation connection
       },
     });
@@ -190,15 +194,20 @@ export class VmRequestService {
         : !!autoProv.value
       : true;
 
+    const ipAddress = dto?.ipAddress || request.ipAddress;
+    const sshUser = dto?.sshUser || request.sshUser;
+    const sshPassword = dto?.sshPassword || request.sshPassword;
+    const sshPort = dto?.sshPort ? parseInt(dto.sshPort) : (request.sshPort || 22);
+
     // Create Inventory Entry
     await this.prisma.vMInventory.create({
       data: {
         requestId: id,
-        ipAddress: dto?.ipAddress,
-        sshUser: dto?.sshUser,
-        sshPassword: dto?.sshPassword,
-        sshPort: dto?.sshPort ? parseInt(dto.sshPort) : 22,
-        status: isAutoEnabled ? 'PROVISIONING' : (dto?.ipAddress ? 'RUNNING' : 'AWAITING_CONFIG')
+        ipAddress: ipAddress || null,
+        sshUser: sshUser || null,
+        sshPassword: sshPassword || null,
+        sshPort: sshPort,
+        status: isAutoEnabled ? 'PROVISIONING' : (ipAddress ? 'RUNNING' : 'AWAITING_CONFIG')
       }
     });
 

@@ -64,6 +64,15 @@ interface UnifiedTicket {
   attachments?: string[];
   followers?: { id: string; fullName: string }[];
   comments?: any[];
+  ipAddress?: string;
+  sshUser?: string;
+  sshPassword?: string;
+  sshPort?: number;
+  endpoint?: string;
+  address?: string;
+  port?: number;
+  username?: string;
+  password?: string;
 }
 
 export default function TicketsPage() {
@@ -300,7 +309,14 @@ function TicketsContent() {
     }
 
     if (ticket.type === 'VM' || ticket.type === 'SERVICE') {
-      setApproveData({ ipAddress: "", sshUser: ticket.type === 'VM' ? "root" : "admin", sshPassword: "", sshPort: ticket.type === 'VM' ? "22" : "" });
+      setApproveData({ 
+        ipAddress: ticket.type === 'VM' ? (ticket.ipAddress || "") : (ticket.address || ""), 
+        sshUser: ticket.type === 'VM' ? (ticket.sshUser || "root") : (ticket.username || "admin"), 
+        sshPassword: ticket.type === 'VM' ? (ticket.sshPassword || "") : (ticket.password || ""), 
+        sshPort: ticket.type === 'VM' 
+          ? (ticket.sshPort ? ticket.sshPort.toString() : "22") 
+          : (ticket.port ? ticket.port.toString() : "") 
+      });
       setShowApproveModal(true);
       return;
     }
@@ -405,7 +421,11 @@ function TicketsContent() {
       requestedById: r.requestedBy,
       actionedBy: r.admin?.fullName,
       followers: r.followers,
-      comments: r.comments
+      comments: r.comments,
+      ipAddress: r.ipAddress,
+      sshUser: r.sshUser,
+      sshPassword: r.sshPassword,
+      sshPort: r.sshPort
     })),
     ...(serviceRequests || []).map((r: any) => ({
       id: r.id,
@@ -420,7 +440,12 @@ function TicketsContent() {
       requestedById: r.requestedBy,
       actionedBy: r.admin?.fullName,
       followers: r.followers,
-      comments: r.comments
+      comments: r.comments,
+      endpoint: r.endpoint,
+      address: r.address,
+      port: r.port,
+      username: r.username,
+      password: r.password
     })),
     ...(supportTickets || []).map((r: any) => ({
       id: r.id,

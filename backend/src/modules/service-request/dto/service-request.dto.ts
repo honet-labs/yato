@@ -59,6 +59,31 @@ export class CreateServiceRequestDto {
   @IsOptional()
   @IsString()
   status?: string;
+
+  @ApiProperty({ example: 'http://10.10.1.50:5678', required: false })
+  @IsOptional()
+  @IsString()
+  endpoint?: string;
+
+  @ApiProperty({ example: '10.10.1.50', required: false })
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @ApiProperty({ example: 3306, required: false })
+  @IsOptional()
+  @IsInt()
+  port?: number;
+
+  @ApiProperty({ example: 'admin', required: false })
+  @IsOptional()
+  @IsString()
+  username?: string;
+
+  @ApiProperty({ example: 'password123', required: false })
+  @IsOptional()
+  @IsString()
+  password?: string;
 }
 
 export class ApproveServiceRequestDto {

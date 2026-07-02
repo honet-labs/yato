@@ -106,6 +106,11 @@ model VMRequest {
   status       String   @default("PENDING") // PENDING, APPROVED, PROVISIONING, COMPLETED, FAILED
   attachments  String[]
   
+  ipAddress    String?
+  sshUser      String?
+  sshPassword  String?
+  sshPort      Int?     @default(22)
+
   requestedBy  String
   user         User     @relation("UserVMRequests", fields: [requestedBy], references: [id])
   
@@ -187,6 +192,13 @@ model ServiceRequest {
   config       Json?
   status       String   @default("PENDING")
   attachments  String[]
+
+  endpoint     String?
+  address      String?
+  port         Int?
+  username     String?
+  password     String?
+
   requestedBy  String
   user         User     @relation("UserServiceRequests", fields: [requestedBy], references: [id])
   createdAt    DateTime @default(now())
