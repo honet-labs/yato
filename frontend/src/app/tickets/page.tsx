@@ -647,18 +647,18 @@ function TicketsContent() {
               </div>
             </header>
 
-            <div className="flex gap-4 mb-8">
+            <div className="flex flex-col md:flex-row gap-4 mb-8">
               <div className="relative flex-1 group">
-                <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                 <input 
                   type="text" 
-                  className="bg-white border border-slate-200 rounded-lg pl-11 pr-4 py-2.5 text-sm w-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all" 
+                  className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all placeholder:text-slate-400 placeholder:font-medium" 
                   placeholder="Search by Ticket ID, Hostname or Service..." 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <button className="bg-white border border-slate-200 text-slate-600 px-5 py-2.5 rounded-lg font-bold text-[13px] shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
+              <button className="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
                 <Filter className="w-4 h-4" />
                 Filter
               </button>

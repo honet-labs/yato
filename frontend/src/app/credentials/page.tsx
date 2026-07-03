@@ -351,21 +351,8 @@ export default function CredentialsPage() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button 
-              onClick={() => {
-                setVerifyPurpose("EXPORT");
-                setVerifyPassword("");
-                setVerifyError("");
-                setIsVerifyModalOpen(true);
-              }}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 flex items-center justify-center gap-2.5 px-6 py-3 rounded-2xl font-bold cursor-pointer transition-all shadow-sm"
-              title="Export Vault details into multi-sheet Excel file"
-            >
-              <Download className="w-5 h-5 text-blue-600" />
-              <span className="font-bold uppercase tracking-widest text-[11px]">Export Vault</span>
-            </button>
-            <button 
               onClick={() => { resetForm(); setIsModalOpen(true); }}
-              className="btn-primary flex items-center justify-center gap-2.5 px-6 shadow-xl shadow-blue-600/20"
+              className="btn-primary flex items-center justify-center gap-2.5 px-6 shadow-xl shadow-blue-600/20 animate-fade-in"
             >
               <Plus className="w-5 h-5" />
               <span className="font-bold uppercase tracking-widest text-[11px]">Add Security Secret</span>
@@ -373,17 +360,30 @@ export default function CredentialsPage() {
           </div>
         </header>
 
-        <div className="flex gap-3 mb-6">
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-1 group">
-            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
             <input 
               type="text" 
-              className="input-field pl-11 w-full bg-slate-50 border-slate-50 focus:bg-white transition-all shadow-none" 
+              className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all placeholder:text-slate-400 placeholder:font-medium" 
               placeholder="Search by name, user, IP or resource..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+          <button 
+            onClick={() => {
+              setVerifyPurpose("EXPORT");
+              setVerifyPassword("");
+              setVerifyError("");
+              setIsVerifyModalOpen(true);
+            }}
+            className="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
+            title="Export Vault details into multi-sheet Excel file"
+          >
+            <Download className="w-4 h-4" />
+            Export Vault
+          </button>
         </div>
 
         {/* Identity Type Dropdown Filter */}

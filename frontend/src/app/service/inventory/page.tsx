@@ -238,15 +238,8 @@ export default function ServiceInventoryPage() {
           <div>
             <PageHeader title="Service Assets" subtitle="Active infrastructure services and endpoints" />
           </div>
-          <div className="flex gap-3">
-            <button 
-              onClick={handleExport}
-              className="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Export CSV
-            </button>
-            {canAddService && (
+          {canAddService && (
+            <div className="flex gap-3">
               <button 
                 onClick={() => setIsAddModalOpen(true)}
                 className="btn-primary flex items-center gap-2"
@@ -254,21 +247,28 @@ export default function ServiceInventoryPage() {
                 <Plus className="w-4 h-4" />
                 Add Service
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </header>
 
-        <div className="flex gap-4 mb-8">
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1 group">
-            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
             <input 
               type="text" 
-              className="input-field pl-11 py-3 w-full bg-slate-50 border-slate-50 focus:bg-white transition-all shadow-none" 
+              className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all placeholder:text-slate-400 placeholder:font-medium" 
               placeholder="Search by service name or endpoint..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+          <button 
+            onClick={handleExport}
+            className="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
         </div>
 
         <div className="bg-white border border-slate-50 rounded-2xl overflow-visible shadow-sm">
