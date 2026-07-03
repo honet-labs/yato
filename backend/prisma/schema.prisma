@@ -292,7 +292,7 @@ model LoginHistory {
   timestamp DateTime @default(now())
 
   @@index([userId])
-  @@index([createdAt])
+  @@index([timestamp])
 }
 
 model Catalog {
