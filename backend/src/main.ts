@@ -46,7 +46,18 @@ async function bootstrap() {
   const expressInstance = app.getHttpAdapter().getInstance();
   expressInstance.set('trust proxy', 1);
   
-  app.use(helmet());
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://static.cloudflareinsights.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https://static.cloudflareinsights.com"],
+      },
+    },
+  }));
 
   // CORS Configuration
   const corsOrigins = process.env.CORS_ORIGINS

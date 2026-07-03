@@ -156,6 +156,8 @@ model SupportTicket {
   @@index([requestedBy])
   @@index([createdAt])
 }
+
+model Notification {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation("UserNotifications", fields: [userId], references: [id])
@@ -292,6 +294,8 @@ model LoginHistory {
   @@index([userId])
   @@index([createdAt])
 }
+
+model Catalog {
   id          String   @id @default(uuid())
   category    String   // SERVICE_TYPE, OS_TEMPLATE
   name        String
@@ -482,6 +486,8 @@ model Task {
   @@index([createdAt])
   @@index([createdById, createdAt])
 }
+
+model TaskComment {
   id        String   @id @default(uuid())
   content   String
   authorId  String
