@@ -18,7 +18,7 @@ export class CleanupSchedulerService {
 
       const result = await this.prisma.loginHistory.deleteMany({
         where: {
-          loginTime: {
+          timestamp: {
             lt: cutoffDate,
           },
         },

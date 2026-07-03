@@ -127,7 +127,7 @@ export class NotificationService {
       const transporter = await this.getEmailTransporter(config);
 
       await transporter.sendMail({
-        from: `"YATO" <${config?.user || (await this.getSetting('EMAIL_CONFIG'))?.user}>`,
+        from: `"YATO" <${config?.user || (await this.getSetting('EMAIL_CONFIG') as any)?.user}>`,
         to,
         subject,
         text,
