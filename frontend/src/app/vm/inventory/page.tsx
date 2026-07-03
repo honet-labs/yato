@@ -458,7 +458,7 @@ export default function VmInventoryPage() {
       {/* Console Access Modal */}
       <AnimatePresence>
         {showConsole && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/80">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -478,7 +478,7 @@ export default function VmInventoryPage() {
                 <div className="font-mono text-[13px] text-emerald-400/90 space-y-2 bg-black/40 p-6 rounded-xl border border-white/5 shadow-inner">
                   <p className="text-white/40 mb-4 tracking-tighter"># System established {new Date().toLocaleString()}</p>
                   <p>$ ssh {revealedPasswords[showConsole.id] && showPassInConsole ? (showConsole.sshUser || 'root') : '••••••••'}@{showConsole.ip || 'pending'} -p {showConsole.sshPort || 22}</p>
-                  <p className="animate-pulse">Authenticating with encrypted keys...</p>
+                  <p>Authenticating with encrypted keys...</p>
                   <p className="text-emerald-500 font-bold">✓ Secure session established.</p>
                 </div>
 
@@ -586,7 +586,7 @@ export default function VmInventoryPage() {
       {/* Identity Verification Modal */}
       <AnimatePresence>
         {isVerifyModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[200]">
+          <div className="fixed inset-0 bg-slate-950/80 flex items-center justify-center p-4 z-[200]">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -695,7 +695,7 @@ export default function VmInventoryPage() {
 
       <AnimatePresence>
         {isAddModalOpen && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm overflow-y-auto py-12">
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-950/80 overflow-y-auto py-12">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}

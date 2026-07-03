@@ -434,7 +434,7 @@ export default function ServiceInventoryPage() {
         {/* Edit Modal */}
         <AnimatePresence>
           {showEditModal && (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/80">
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -528,7 +528,7 @@ export default function ServiceInventoryPage() {
         {/* Add Service Modal */}
         <AnimatePresence>
           {isAddModalOpen && (
-            <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm overflow-y-auto py-12">
+            <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-950/80 overflow-y-auto py-12">
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -670,7 +670,7 @@ export default function ServiceInventoryPage() {
         {/* Detail Modal for Users */}
         <AnimatePresence>
           {viewingDetails && (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/80">
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -792,7 +792,7 @@ export default function ServiceInventoryPage() {
         {/* Identity Verification Modal */}
         <AnimatePresence>
           {isVerifyModalOpen && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[200]">
+            <div className="fixed inset-0 bg-slate-950/80 flex items-center justify-center p-4 z-[200]">
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
