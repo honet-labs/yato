@@ -381,7 +381,7 @@ export default function ServiceInventoryPage() {
                             className="p-2 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                             title="View Credentials"
                           >
-                            <Lock className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </button>
                           {isAdmin && (
                             <>

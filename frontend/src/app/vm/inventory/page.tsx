@@ -77,7 +77,7 @@ export default function VmInventoryPage() {
   const [verifyError, setVerifyError] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [failedVerifyAttempts, setFailedVerifyAttempts] = useState(0);
-  const [verifyPurpose, setVerifyPurpose] = useState("REVEAL" as "REVEAL" | "COPY");
+  const [verifyPurpose, setVerifyPurpose] = useState("REVEAL" as "REVEAL" | "COPY" | "COPY_USER");
   const [pendingRevealVm, setPendingRevealVm] = useState(null as VM | null);
   const [revealedPasswords, setRevealedPasswords] = useState({} as Record<string, string>);
   const [showPassInConsole, setShowPassInConsole] = useState(false);
@@ -183,10 +183,12 @@ export default function VmInventoryPage() {
     currentPage * itemsPerPage
   );
 
-  const handleRevealVmPassword = async (vm: VM, purpose: "REVEAL" | "COPY") => {
+  const handleRevealVmPassword = async (vm: VM, purpose: "REVEAL" | "COPY" | "COPY_USER") => {
     if (revealedPasswords[vm.id]) {
       if (purpose === "REVEAL") {
         setShowPassInConsole(!showPassInConsole);
+      } else if (purpose === "COPY_USER") {
+        copyToClipboard(vm.sshUser || 'root');
       } else {
         copyToClipboard(revealedPasswords[vm.id]);
       }
@@ -382,18 +384,27 @@ export default function VmInventoryPage() {
                           </span>
                         </td>
                         <td className="px-6 py-6 text-right relative">
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveMenu(activeMenu === vm.id ? null : vm.id);
-                            }}
-                            className={cn(
-                              "p-2.5 rounded-lg transition-all hover:bg-white hover:shadow-md border border-transparent hover:border-slate-100 relative z-20",
-                              activeMenu === vm.id ? "bg-white shadow-md border-slate-100 text-blue-600" : "text-slate-400"
-                            )}
-                          >
-                            <MoreVertical className="w-5 h-5" />
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            <button 
+                              onClick={() => setShowConsole(vm)}
+                              className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                              title="Console Access"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenu(activeMenu === vm.id ? null : vm.id);
+                              }}
+                              className={cn(
+                                "p-2.5 rounded-lg transition-all hover:bg-white hover:shadow-md border border-transparent hover:border-slate-100 relative z-20",
+                                activeMenu === vm.id ? "bg-white shadow-md border-slate-100 text-blue-600" : "text-slate-400"
+                              )}
+                            >
+                              <MoreVertical className="w-5 h-5" />
+                            </button>
+                          </div>
 
                           <AnimatePresence>
                             {activeMenu === vm.id && (
@@ -466,7 +477,7 @@ export default function VmInventoryPage() {
               <div className="p-8 space-y-8">
                 <div className="font-mono text-[13px] text-emerald-400/90 space-y-2 bg-black/40 p-6 rounded-xl border border-white/5 shadow-inner">
                   <p className="text-white/40 mb-4 tracking-tighter"># System established {new Date().toLocaleString()}</p>
-                  <p>$ ssh {showConsole.sshUser || 'root'}@{showConsole.ip || 'pending'} -p {showConsole.sshPort || 22}</p>
+                  <p>$ ssh {revealedPasswords[showConsole.id] && showPassInConsole ? (showConsole.sshUser || 'root') : '••••••••'}@{showConsole.ip || 'pending'} -p {showConsole.sshPort || 22}</p>
                   <p className="animate-pulse">Authenticating with encrypted keys...</p>
                   <p className="text-emerald-500 font-bold">✓ Secure session established.</p>
                 </div>
@@ -496,8 +507,20 @@ export default function VmInventoryPage() {
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Username</p>
                       <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                        <span className="text-[13px] font-bold text-white">{showConsole.sshUser || 'root'}</span>
-                        <button onClick={() => copyToClipboard(showConsole.sshUser || 'root')} className="text-white/20 hover:text-white">
+                        <span className="text-[13px] font-bold text-white">
+                          {revealedPasswords[showConsole.id] && showPassInConsole ? (showConsole.sshUser || 'root') : '••••••••'}
+                        </span>
+                        <button 
+                          onClick={() => {
+                            if (revealedPasswords[showConsole.id]) {
+                              copyToClipboard(showConsole.sshUser || 'root');
+                            } else {
+                              handleRevealVmPassword(showConsole, "COPY_USER");
+                            }
+                          }} 
+                          className="text-white/20 hover:text-white"
+                          title="Copy Username"
+                        >
                           <Copy className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -608,6 +631,8 @@ export default function VmInventoryPage() {
                     
                     if (verifyPurpose === "REVEAL") {
                       setShowPassInConsole(true);
+                    } else if (verifyPurpose === "COPY_USER") {
+                      copyToClipboard(pendingRevealVm.sshUser || 'root');
                     } else {
                       copyToClipboard(res.data.sshPassword || '');
                     }
