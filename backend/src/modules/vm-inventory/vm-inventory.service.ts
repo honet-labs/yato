@@ -1,9 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class VmInventoryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
   async findAll(userId?: string) {
     const where = userId ? { request: { requestedBy: userId } } : {};
@@ -38,7 +42,7 @@ export class VmInventoryService {
       disk: item.request.disk,
       status: item.status,
       sshUser: item.sshUser,
-      sshPassword: item.sshPassword,
+      sshPassword: item.sshPassword ? '••••••••••••' : null,
       sshPort: item.sshPort,
       environment: item.request.environment,
       requestedBy: item.request.user.fullName,
@@ -155,5 +159,24 @@ export class VmInventoryService {
         status: 'RUNNING'
       }
     });
+  }
+
+  async revealSecret(id: string, userId: string) {
+    const item = await this.prisma.vMInventory.findUnique({
+      where: { id },
+      include: { request: true },
+    });
+    if (!item) throw new NotFoundException('VM inventory item not found');
+
+    try {
+      await this.auditService.log(userId, 'REVEAL_VM_SECRET', 'VMInventory', id);
+    } catch (auditError) {
+      console.error('Failed to log audit:', auditError.message);
+    }
+
+    return {
+      id: item.id,
+      sshPassword: item.sshPassword,
+    };
   }
 }

@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class ServiceInventoryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
   async findAll(userId?: string) {
     const where = userId ? { request: { requestedBy: userId } } : {};
@@ -26,7 +30,7 @@ export class ServiceInventoryService {
       address: item.address,
       port: item.port,
       username: item.username,
-      password: item.password,
+      password: item.password ? '••••••••••••' : null,
       status: item.status,
       requestedBy: item.request.user.fullName,
       createdAt: item.createdAt,
@@ -49,7 +53,7 @@ export class ServiceInventoryService {
       address: item.address,
       port: item.port,
       username: item.username,
-      password: item.password,
+      password: item.password ? '••••••••••••' : null,
       status: item.status,
       createdAt: item.createdAt,
     };
@@ -119,5 +123,24 @@ export class ServiceInventoryService {
         status: 'COMPLETED'
       }
     });
+  }
+
+  async revealSecret(id: string, userId: string) {
+    const item = await this.prisma.serviceInventory.findUnique({
+      where: { id },
+      include: { request: true },
+    });
+    if (!item) throw new NotFoundException('Service inventory item not found');
+
+    try {
+      await this.auditService.log(userId, 'REVEAL_SERVICE_SECRET', 'ServiceInventory', id);
+    } catch (auditError) {
+      console.error('Failed to log audit:', auditError.message);
+    }
+
+    return {
+      id: item.id,
+      password: item.password,
+    };
   }
 }

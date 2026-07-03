@@ -27,7 +27,9 @@ import {
   User as UserIcon,
   Lock,
   Download,
-  Trash2
+  Trash2,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { exportToCSV } from "@/lib/csvHelper";
 import { useState, useEffect } from "react";
@@ -57,6 +59,17 @@ export default function ServiceInventoryPage() {
   const [copiedId, setCopiedId] = useState(null as string | null);
   const [showEditModal, setShowEditModal] = useState(null as ServiceInventory | null);
   const [viewingDetails, setViewingDetails] = useState(null as ServiceInventory | null);
+  
+  // Password verification states
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+  const [verifyPassword, setVerifyPassword] = useState("");
+  const [verifyError, setVerifyError] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [failedVerifyAttempts, setFailedVerifyAttempts] = useState(0);
+  const [pendingRevealService, setPendingRevealService] = useState(null as ServiceInventory | null);
+  const [revealedPasswords, setRevealedPasswords] = useState({} as Record<string, string>);
+  const [showPassInDetail, setShowPassInDetail] = useState(false);
+  
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addFormData, setAddFormData] = useState({
     serviceName: "",
@@ -149,6 +162,21 @@ export default function ServiceInventoryPage() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 30;
+
+  const handleViewServiceCredentials = (item: ServiceInventory) => {
+    if (revealedPasswords[item.id]) {
+      setViewingDetails({
+        ...item,
+        password: revealedPasswords[item.id]
+      });
+      setShowPassInDetail(false);
+    } else {
+      setPendingRevealService(item);
+      setVerifyPassword("");
+      setVerifyError("");
+      setIsVerifyModalOpen(true);
+    }
+  };
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -349,7 +377,7 @@ export default function ServiceInventoryPage() {
                     <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button 
-                            onClick={() => setViewingDetails(item)}
+                            onClick={() => handleViewServiceCredentials(item)}
                             className="p-2 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                             title="View Credentials"
                           >
@@ -724,16 +752,28 @@ export default function ServiceInventoryPage() {
                           <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Password</span>
                             <span className="text-sm font-mono text-slate-900">
-                              {viewingDetails.password ? '••••••••' : '---'}
+                              {viewingDetails.password 
+                                ? (showPassInDetail ? viewingDetails.password : '••••••••') 
+                                : '---'}
                             </span>
                           </div>
                         </div>
-                        <button 
-                          onClick={() => handleCopy(viewingDetails.password || '', 'detail-pass')}
-                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all"
-                        >
-                          {copiedId === 'detail-pass' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button 
+                            onClick={() => setShowPassInDetail(!showPassInDetail)}
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all"
+                            title={showPassInDetail ? "Hide Password" : "Show Password"}
+                          >
+                            {showPassInDetail ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                          <button 
+                            onClick={() => handleCopy(viewingDetails.password || '', 'detail-pass')}
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all"
+                            title="Copy Password"
+                          >
+                            {copiedId === 'detail-pass' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -743,6 +783,112 @@ export default function ServiceInventoryPage() {
                       Security Note: These credentials grant direct access to the backend resource. Keep them secure.
                     </p>
                   </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Identity Verification Modal */}
+        <AnimatePresence>
+          {isVerifyModalOpen && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[200]">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-slate-100 relative"
+              >
+                <button 
+                  onClick={() => { setIsVerifyModalOpen(false); setVerifyPassword(""); }}
+                  className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-5">
+                    <ShieldCheck className="w-8 h-8 text-amber-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-1">Identity Verification</h3>
+                  <p className="text-[11px] font-medium text-slate-400 mb-6">
+                    Enter your account password to reveal this service's credentials
+                  </p>
+                  
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!verifyPassword.trim()) return;
+                    if (!pendingRevealService) return;
+
+                    setIsVerifying(true);
+                    setVerifyError("");
+                    try {
+                      const res = await api.post(`/service-inventory/${pendingRevealService.id}/reveal`, { password: verifyPassword });
+                      
+                      setRevealedPasswords(prev => ({
+                        ...prev,
+                        [pendingRevealService.id]: res.data.password
+                      }));
+                      setIsVerifyModalOpen(false);
+                      setVerifyPassword("");
+                      setFailedVerifyAttempts(0);
+                      
+                      setViewingDetails({
+                        ...pendingRevealService,
+                        password: res.data.password
+                      });
+                      setShowPassInDetail(false);
+                    } catch (err: any) {
+                      const nextAttempts = failedVerifyAttempts + 1;
+                      setFailedVerifyAttempts(nextAttempts);
+                      
+                      if (nextAttempts >= 3) {
+                        setFailedVerifyAttempts(0);
+                        setIsVerifyModalOpen(false);
+                        localStorage.removeItem("yato_token");
+                        window.location.href = "/login";
+                      } else {
+                        const attemptsRemaining = 3 - nextAttempts;
+                        setVerifyError(`Invalid password. ${attemptsRemaining} attempt${attemptsRemaining > 1 ? 's' : ''} remaining before logout.`);
+                      }
+                    } finally {
+                      setIsVerifying(false);
+                    }
+                  }}>
+                    <div className="space-y-4 mb-6">
+                      <input 
+                        type="password"
+                        placeholder="••••••••"
+                        value={verifyPassword}
+                        onChange={(e) => setVerifyPassword(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-center text-sm font-semibold tracking-widest bg-slate-50"
+                        autoFocus
+                      />
+                      {verifyError && (
+                        <p className="text-[10px] font-bold text-rose-500 leading-normal bg-rose-50 p-3 rounded-xl border border-rose-100">
+                          {verifyError}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button 
+                        type="button"
+                        onClick={() => { setIsVerifyModalOpen(false); setVerifyPassword(""); }}
+                        className="flex-1 py-3 border border-slate-200 text-slate-500 rounded-xl text-xs font-bold uppercase transition-all hover:bg-slate-50"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit"
+                        disabled={isVerifying || !verifyPassword.trim()}
+                        className="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold uppercase transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-amber-600/10"
+                      >
+                        {isVerifying && <Loader2 className="w-4 h-4 animate-spin" />}
+                        Verify
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </motion.div>
             </div>

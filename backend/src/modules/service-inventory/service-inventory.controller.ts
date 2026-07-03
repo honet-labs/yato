@@ -5,13 +5,17 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { AuthService } from '../auth/auth.service';
 
 @ApiTags('service-inventory')
 @Controller('service-inventory')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class ServiceInventoryController {
-  constructor(private readonly serviceInventoryService: ServiceInventoryService) {}
+  constructor(
+    private readonly serviceInventoryService: ServiceInventoryService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Post()
   @Permissions('PROVISION_SERVICE')
@@ -41,5 +45,16 @@ export class ServiceInventoryController {
   @ApiOperation({ summary: 'Update service inventory item' })
   update(@Param('id') id: string, @Body() data: any) {
     return this.serviceInventoryService.update(id, data);
+  }
+
+  @Post(':id/reveal')
+  @ApiOperation({ summary: 'Reveal service inventory credentials after password re-authentication' })
+  async revealSecret(
+    @Param('id') id: string,
+    @Body('password') password: string,
+    @Req() req: any,
+  ) {
+    await this.authService.verifyPassword(req.user.id || req.user.sub, password);
+    return this.serviceInventoryService.revealSecret(id, req.user.id || req.user.sub);
   }
 }
