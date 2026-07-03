@@ -33,7 +33,8 @@ import {
   Lock,
   Eye,
   EyeOff,
-  ShieldCheck
+  ShieldCheck,
+  AlertTriangle
 } from "lucide-react";
 import { exportToCSV } from "@/lib/csvHelper";
 import { motion, AnimatePresence } from "framer-motion";
@@ -186,7 +187,8 @@ export default function VmInventoryPage() {
   const handleRevealVmPassword = async (vm: VM, purpose: "REVEAL" | "COPY" | "COPY_USER") => {
     if (revealedPasswords[vm.id]) {
       if (purpose === "REVEAL") {
-        setShowPassInConsole(!showPassInConsole);
+        setShowPassInConsole(true);
+        setShowConsole(vm);
       } else if (purpose === "COPY_USER") {
         copyToClipboard(vm.sshUser || 'root');
       } else {
@@ -389,9 +391,9 @@ export default function VmInventoryPage() {
                         <td className="px-6 py-6 text-right relative">
                           <div className="flex items-center justify-end gap-1">
                             <button 
-                              onClick={() => setShowConsole(vm)}
+                              onClick={() => handleRevealVmPassword(vm, "REVEAL")}
                               className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                              title="Console Access"
+                              title="View Credentials"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
@@ -589,29 +591,20 @@ export default function VmInventoryPage() {
       {/* Identity Verification Modal */}
       <AnimatePresence>
         {isVerifyModalOpen && (
-          <div className="fixed inset-0 bg-slate-950/80 flex items-center justify-center p-4 z-[200]">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/80">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-slate-100 relative"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm border border-slate-100"
             >
-              <button 
-                onClick={() => { setIsVerifyModalOpen(false); setVerifyPassword(""); }}
-                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="text-center">
+              <div className="p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-5">
                   <ShieldCheck className="w-8 h-8 text-amber-600" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 mb-1">Identity Verification</h3>
                 <p className="text-[11px] font-medium text-slate-400 mb-6">
-                  {verifyPurpose === "COPY" 
-                    ? "Enter your password to copy this secret key" 
-                    : "Enter your account password to reveal this secret"}
+                  Enter your account password to reveal this secret
                 </p>
                 
                 <form onSubmit={async (e) => {
@@ -634,6 +627,7 @@ export default function VmInventoryPage() {
                     
                     if (verifyPurpose === "REVEAL") {
                       setShowPassInConsole(true);
+                      setShowConsole(pendingRevealVm);
                     } else if (verifyPurpose === "COPY_USER") {
                       copyToClipboard(pendingRevealVm.sshUser || 'root');
                     } else {
@@ -655,38 +649,50 @@ export default function VmInventoryPage() {
                   } finally {
                     setIsVerifying(false);
                   }
-                }}>
-                  <div className="space-y-4 mb-6">
+                }} className="space-y-4">
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input 
                       type="password"
-                      placeholder="••••••••"
-                      value={verifyPassword}
-                      onChange={(e) => setVerifyPassword(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-center text-sm font-semibold tracking-widest bg-slate-50"
                       autoFocus
+                      required
+                      placeholder="Enter your password..."
+                      value={verifyPassword}
+                      onChange={(e) => { setVerifyPassword(e.target.value); setVerifyError(""); }}
+                      className={cn(
+                        "input-field pl-12 w-full py-3 bg-slate-50/50 font-medium text-center",
+                        verifyError && "!border-red-300 !ring-red-100"
+                      )}
+                      autoComplete="current-password"
                     />
-                    {verifyError && (
-                      <p className="text-[10px] font-bold text-rose-500 leading-normal bg-rose-50 p-3 rounded-xl border border-rose-100">
-                        {verifyError}
-                      </p>
-                    )}
                   </div>
-
-                  <div className="flex gap-3">
+                  
+                  {verifyError && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-2 text-red-600 text-[11px] font-bold bg-red-50 px-4 py-2.5 rounded-xl border border-red-100"
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      {verifyError}
+                    </motion.div>
+                  )}
+                  
+                  <div className="flex gap-3 pt-2">
                     <button 
                       type="button"
-                      onClick={() => { setIsVerifyModalOpen(false); setVerifyPassword(""); }}
-                      className="flex-1 py-3 border border-slate-200 text-slate-500 rounded-xl text-xs font-bold uppercase transition-all hover:bg-slate-50"
+                      onClick={() => { setIsVerifyModalOpen(false); setVerifyPassword(""); setVerifyError(""); }}
+                      className="btn-secondary flex-1"
                     >
                       Cancel
                     </button>
                     <button 
-                      type="submit"
+                      type="submit" 
                       disabled={isVerifying || !verifyPassword.trim()}
-                      className="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold uppercase transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-amber-600/10"
+                      className="btn-primary flex-1 flex items-center justify-center gap-2"
                     >
-                      {isVerifying && <Loader2 className="w-4 h-4 animate-spin" />}
-                      Verify
+                      {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+                      <span className="text-[11px] font-bold uppercase tracking-wider">Verify & Reveal</span>
                     </button>
                   </div>
                 </form>
