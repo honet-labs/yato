@@ -37,10 +37,7 @@ export class VmRequestService {
   }
 
   private async getFrontendUrl() {
-    const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-      where: { key: 'PLATFORM_URL' }
-    });
-    return (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+    return this.notificationService.getFrontendUrl();
   }
 
   async create(dto: CreateVmRequestDto, userId: string) {

@@ -153,9 +153,8 @@ model SupportTicket {
 
   @@index([status])
   @@index([requestedBy])
+  @@index([createdAt])
 }
-
-model Notification {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation("UserNotifications", fields: [userId], references: [id])
@@ -288,9 +287,8 @@ model LoginHistory {
   timestamp DateTime @default(now())
 
   @@index([userId])
+  @@index([createdAt])
 }
-
-model Catalog {
   id          String   @id @default(uuid())
   category    String   // SERVICE_TYPE, OS_TEMPLATE
   name        String
@@ -300,6 +298,8 @@ model Catalog {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([category, isActive])
 }
 
 model SystemSetting {
@@ -476,9 +476,9 @@ model Task {
   @@index([status])
   @@index([priority])
   @@index([parentId])
+  @@index([createdAt])
+  @@index([createdById, createdAt])
 }
-
-model TaskComment {
   id        String   @id @default(uuid())
   content   String
   authorId  String

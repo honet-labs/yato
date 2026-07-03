@@ -7,11 +7,39 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
+  private emailTransporter: nodemailer.Transporter | null = null;
+  private platformUrlCache: string | null = null;
+  private platformUrlCacheTime: number = 0;
 
   constructor(
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2,
   ) {}
+
+  private async getEmailTransporter(config?: any): Promise<nodemailer.Transporter> {
+    const emailConfig = config || await this.getSetting('EMAIL_CONFIG');
+    if (!emailConfig) throw new Error('Email configuration not found');
+
+    if (!this.emailTransporter || config) {
+      this.emailTransporter = nodemailer.createTransport({
+        host: emailConfig.host,
+        port: parseInt(emailConfig.port),
+        secure: emailConfig.security === 'SSL',
+        auth: {
+          user: emailConfig.user,
+          pass: emailConfig.pass,
+        },
+        tls: {
+          rejectUnauthorized: process.env.NODE_ENV !== 'development'
+        },
+        pool: true,
+        maxConnections: 5,
+        maxMessages: 100,
+      });
+    }
+
+    return this.emailTransporter;
+  }
 
   async create(userId: string, title: string, message: string, type: string, link?: string) {
     return this.prisma.notification.create({
@@ -25,7 +53,6 @@ export class NotificationService {
     });
   }
 
-  // Compatibility method for worker
   async createNotification(userId: string, type: string, title: string, message: string) {
     let extractedLink = undefined;
     if (message) {
@@ -95,27 +122,12 @@ export class NotificationService {
     });
   }
 
-  // Email logic
   async sendEmail(to: string, subject: string, text: string, config?: any) {
     try {
-      const emailConfig = config || await this.getSetting('EMAIL_CONFIG');
-      if (!emailConfig) throw new Error('Email configuration not found');
-
-      const transporter = nodemailer.createTransport({
-        host: emailConfig.host,
-        port: parseInt(emailConfig.port),
-        secure: emailConfig.security === 'SSL',
-        auth: {
-          user: emailConfig.user,
-          pass: emailConfig.pass,
-        },
-        tls: {
-          rejectUnauthorized: process.env.NODE_ENV !== 'development'
-        }
-      });
+      const transporter = await this.getEmailTransporter(config);
 
       await transporter.sendMail({
-        from: `"YATO" <${emailConfig.user}>`,
+        from: `"YATO" <${config?.user || (await this.getSetting('EMAIL_CONFIG'))?.user}>`,
         to,
         subject,
         text,
@@ -128,13 +140,11 @@ export class NotificationService {
     }
   }
 
-  // WhatsApp logic (WAHA)
   async sendWhatsApp(to: string, message: string, config?: any) {
     try {
       const waConfig = config || await this.getSetting('WHATSAPP_CONFIG');
       if (!waConfig) throw new Error('WhatsApp configuration not found');
 
-      // Normalize phone number: keep only digits
       let cleanPhone = to.replace(/\D/g, '');
       if (cleanPhone.startsWith('0')) {
         cleanPhone = '62' + cleanPhone.substring(1);
@@ -155,7 +165,6 @@ export class NotificationService {
     }
   }
 
-  // Telegram logic
   async sendTelegram(chatId: string, message: string, config?: any) {
     try {
       const tgConfig = config || await this.getSetting('TELEGRAM_CONFIG');
@@ -164,7 +173,6 @@ export class NotificationService {
       const botToken = tgConfig.botToken;
       const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
-      // Helper to escape HTML characters for Telegram
       const sanitizeHtmlForTelegram = (html: string): string => {
         if (!html) return '';
         let processed = html;
@@ -180,7 +188,6 @@ export class NotificationService {
           { regex: /<\/em>/gi, token: '___EM_CLOSE___' },
         ];
 
-        // Protect <a> tags with href
         const aTagRegex = /<a\s+(?:[^>]*?\s+)?href="([^"]*)"[^>]*>(.*?)<\/a>/gi;
         const aTagMatches: { token: string, href: string, text: string }[] = [];
         processed = processed.replace(aTagRegex, (match, href, text) => {
@@ -255,23 +262,19 @@ export class NotificationService {
 
     const fullMessage = `<b>${title}</b>\n\n${message}`;
 
-    // 1. Try Telegram if ID exists (snoozed if on leave)
     if (user.telegramId && !isOnLeave) {
       await this.sendTelegram(user.telegramId, fullMessage);
     }
 
-    // 2. Try WhatsApp if phone exists (snoozed if on leave)
     if (user.phoneNumber && !isOnLeave) {
       await this.sendWhatsApp(user.phoneNumber, fullMessage);
     }
 
-    // 3. Try Email if email exists (snoozed if on leave)
     if (user.email && !isOnLeave) {
       const plainMessage = message.replace(/<[^>]*>/g, '');
       await this.sendEmail(user.email, title, plainMessage);
     }
 
-    // Automatically extract link from message if present
     let extractedLink = undefined;
     if (message) {
       const linkMatch = message.match(/Link:\s*(https?:\/\/[^\s<]+|\/[^\s<]+)/i);
@@ -280,7 +283,6 @@ export class NotificationService {
       }
     }
 
-    // 4. Always create internal notification
     await this.create(userId, title, message, extractedLink ? 'TICKET_UPDATE' : 'INFO', extractedLink);
   }
 
@@ -293,28 +295,24 @@ export class NotificationService {
 
     const isOnLeave = await this.isUserOnLeave(userId);
     if (isOnLeave) {
-      this.logger.log(`[sendToUserQueue] User ${user.fullName} (${userId}) is currently ON LEAVE. Auto-snoozing external queued alerts.`);
+      this.logger.log(`[sendToUserQueue] User ${user.fullName} (${userId}) is currently ON LEAVE.`);
     }
 
     const plainMessage = message.replace(/<[^>]*>/g, '');
     let queuedCount = 0;
 
-    // 1. Queue Telegram if ID exists (snoozed if on leave)
     if (user.telegramId && !isOnLeave) {
-      this.logger.log(`[sendToUserQueue] Queuing Telegram notification for user ${user.id} (${user.telegramId})`);
       this.eventEmitter.emit('notification.trigger', {
         userId: user.id,
         type: 'TELEGRAM',
         title,
-        message, // HTML message supported by Telegram
+        message,
         recipient: user.telegramId
       });
       queuedCount++;
     }
 
-    // 2. Queue WhatsApp if phone exists (snoozed if on leave)
     if (user.phoneNumber && !isOnLeave) {
-      this.logger.log(`[sendToUserQueue] Queuing WhatsApp notification for user ${user.id} (${user.phoneNumber})`);
       this.eventEmitter.emit('notification.trigger', {
         userId: user.id,
         type: 'WHATSAPP',
@@ -325,9 +323,7 @@ export class NotificationService {
       queuedCount++;
     }
 
-    // 3. Queue Email if email exists (snoozed if on leave)
     if (user.email && !isOnLeave) {
-      this.logger.log(`[sendToUserQueue] Queuing Email notification for user ${user.id} (${user.email})`);
       this.eventEmitter.emit('notification.trigger', {
         userId: user.id,
         type: 'EMAIL',
@@ -340,13 +336,12 @@ export class NotificationService {
 
     if (queuedCount === 0) {
       if (isOnLeave) {
-        this.logger.log(`[sendToUserQueue] No notification channels queued for user ${user.fullName} (${user.id}) because they are on leave.`);
+        this.logger.log(`[sendToUserQueue] No channels queued for ${user.fullName} (${user.id}) - on leave.`);
       } else {
-        this.logger.warn(`[sendToUserQueue] No notification channels configured for user ${user.fullName} (${user.id}). (Email: ${user.email ? 'yes' : 'no'}, Phone: ${user.phoneNumber ? 'yes' : 'no'}, Telegram: ${user.telegramId ? 'yes' : 'no'})`);
+        this.logger.warn(`[sendToUserQueue] No channels configured for ${user.fullName} (${user.id}).`);
       }
     }
 
-    // Automatically extract link from message if not explicitly provided
     let finalLink = link;
     if (!finalLink && message) {
       const linkMatch = message.match(/Link:\s*(https?:\/\/[^\s<]+|\/[^\s<]+)/i);
@@ -355,7 +350,6 @@ export class NotificationService {
       }
     }
 
-    // 4. Always create internal notification immediately
     await this.create(userId, title, message, type || (finalLink ? 'TICKET_UPDATE' : 'INFO'), finalLink);
   }
 
@@ -368,7 +362,6 @@ export class NotificationService {
   }): Promise<any[]> {
     const { type, category = 'GENERAL', priority = 'NORMAL', excludeUserId } = params;
 
-    // 1. Fetch system routing rules from SystemSetting
     let rules: any[] = [];
     try {
       const rulesSetting = await this.prisma.systemSetting.findUnique({
@@ -377,7 +370,6 @@ export class NotificationService {
       if (rulesSetting && rulesSetting.value) {
         rules = rulesSetting.value as any[];
       } else {
-        // Provide standard intelligent default rules
         rules = [
           {
             name: "Network Team Route",
@@ -401,7 +393,6 @@ export class NotificationService {
             targetRoles: ["ADMIN_DATABASE", "DBA_ADMIN"]
           }
         ];
-        // Create the setting with default value so it persists in DB
         await this.prisma.systemSetting.upsert({
           where: { key: 'NOTIFICATION_ROUTING_RULES' },
           update: {},
@@ -415,7 +406,6 @@ export class NotificationService {
       this.logger.error(`Error loading routing rules: ${e.message}`);
     }
 
-    // 2. Find matching rules
     const upperCategory = category.toUpperCase();
     const upperPriority = priority.toUpperCase();
 
@@ -437,7 +427,6 @@ export class NotificationService {
       }
     }
 
-    // 3. Query target users
     let targetUsers: any[] = [];
 
     if (matchedRoles.size > 0) {
@@ -457,9 +446,8 @@ export class NotificationService {
       });
     }
 
-    // 4. Fallback if no matching rules found or no users found with matched roles
     if (targetUsers.length === 0) {
-      this.logger.log(`No specific routing rules matched or target users empty. Falling back to all users with ADMIN or TICKETING_ADMIN roles.`);
+      this.logger.log(`No specific routing rules matched. Falling back to ADMIN/TICKETING_ADMIN.`);
       targetUsers = await this.prisma.user.findMany({
         where: {
           roles: {
@@ -475,7 +463,6 @@ export class NotificationService {
       });
     }
 
-    // 5. Exclude requester/updater if requested
     if (excludeUserId) {
       targetUsers = targetUsers.filter(u => u.id !== excludeUserId);
     }
@@ -504,46 +491,41 @@ export class NotificationService {
       }
     });
 
-    const results = [];
-
-    for (const user of users) {
+    const results = await Promise.allSettled(users.map(async (user) => {
       const userResult = {
         userId: user.id,
         fullName: user.fullName,
         channels: {} as Record<string, { success: boolean; message: string }>
       };
 
-      // 1. WhatsApp
+      const channelPromises: Promise<void>[] = [];
+
       if (channels.includes('WHATSAPP')) {
-        if (user.phoneNumber) {
-          const res = await this.sendWhatsApp(user.phoneNumber, chatMessage);
-          userResult.channels['WHATSAPP'] = res;
-        } else {
-          userResult.channels['WHATSAPP'] = { success: false, message: 'No phone number configured' };
-        }
+        channelPromises.push(
+          user.phoneNumber
+            ? this.sendWhatsApp(user.phoneNumber, chatMessage).then(r => { userResult.channels['WHATSAPP'] = r; })
+            : Promise.resolve().then(() => { userResult.channels['WHATSAPP'] = { success: false, message: 'No phone number configured' }; })
+        );
       }
 
-      // 2. Telegram
       if (channels.includes('TELEGRAM')) {
-        if (user.telegramId) {
-          const res = await this.sendTelegram(user.telegramId, chatMessage);
-          userResult.channels['TELEGRAM'] = res;
-        } else {
-          userResult.channels['TELEGRAM'] = { success: false, message: 'No Telegram Chat ID configured' };
-        }
+        channelPromises.push(
+          user.telegramId
+            ? this.sendTelegram(user.telegramId, chatMessage).then(r => { userResult.channels['TELEGRAM'] = r; })
+            : Promise.resolve().then(() => { userResult.channels['TELEGRAM'] = { success: false, message: 'No Telegram Chat ID configured' }; })
+        );
       }
 
-      // 3. Email
       if (channels.includes('EMAIL')) {
-        if (user.email) {
-          const res = await this.sendEmail(user.email, emailSubject || 'YATO Broadcast', emailMessage || chatMessage);
-          userResult.channels['EMAIL'] = res;
-        } else {
-          userResult.channels['EMAIL'] = { success: false, message: 'No email configured' };
-        }
+        channelPromises.push(
+          user.email
+            ? this.sendEmail(user.email, emailSubject || 'YATO Broadcast', emailMessage || chatMessage).then(r => { userResult.channels['EMAIL'] = r; })
+            : Promise.resolve().then(() => { userResult.channels['EMAIL'] = { success: false, message: 'No email configured' }; })
+        );
       }
 
-      // 4. Internal Notification logs
+      await Promise.allSettled(channelPromises);
+
       try {
         await this.create(
           user.id,
@@ -555,18 +537,39 @@ export class NotificationService {
         this.logger.error(`Failed to create internal broadcast log for user ${user.id}: ${err.message}`);
       }
 
-      results.push(userResult);
-    }
+      return userResult;
+    }));
+
+    const successfulResults = results
+      .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+      .map(r => r.value);
 
     return {
       success: true,
-      processed: results.length,
-      details: results
+      processed: successfulResults.length,
+      details: successfulResults
     };
   }
 
   async getSetting(key: string) {
     const setting = await this.prisma.systemSetting.findUnique({ where: { key } });
     return setting?.value;
+  }
+
+  async getFrontendUrl(): Promise<string> {
+    const now = Date.now();
+    if (this.platformUrlCache && now - this.platformUrlCacheTime < 3600000) {
+      return this.platformUrlCache;
+    }
+    try {
+      const platformUrlSetting = await this.prisma.systemSetting.findUnique({
+        where: { key: 'PLATFORM_URL' }
+      });
+      this.platformUrlCache = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+      this.platformUrlCacheTime = now;
+    } catch {
+      this.platformUrlCache = process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+    }
+    return this.platformUrlCache;
   }
 }

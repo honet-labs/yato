@@ -236,10 +236,7 @@ export class TaskSchedulerService {
 
           // Trigger immediate notifications for the generated tasks
           try {
-            const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-              where: { key: 'PLATFORM_URL' }
-            });
-            const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+            const frontendUrl = await this.notificationService.getFrontendUrl();
             
             for (const task of generatedTasks) {
               const taskUrl = task.projectId 
@@ -319,10 +316,7 @@ export class TaskSchedulerService {
 
       this.logger.log(`Found ${tasks.length} active tasks (NOT_STARTED/IN_PROGRESS) to process.`);
 
-      const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-        where: { key: 'PLATFORM_URL' }
-      });
-      const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+      const frontendUrl = await this.notificationService.getFrontendUrl();
 
       // Load reminder config limit
       const reminderConfigSetting = await this.prisma.systemSetting.findUnique({
