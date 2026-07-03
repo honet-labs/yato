@@ -15,6 +15,7 @@ model User {
   email             String         @unique
   username          String?        @unique
   password          String
+  previousPasswords String?        // JSON array of last N password hashes for history check
   fullName          String
   phoneNumber       String?
   personalEmail     String?
@@ -233,21 +234,23 @@ model ServiceInventory {
 }
 
 model Credential {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   userId      String?
-  user        User?    @relation("UserCredentials", fields: [userId], references: [id])
+  user        User?     @relation("UserCredentials", fields: [userId], references: [id])
   name        String
-  type        String   // SSH, DB, API_KEY
-  address     String?  // IP, Domain, or Service Name
+  type        String    // SSH, DB, API_KEY
+  address     String?   // IP, Domain, or Service Name
   username    String?
-  password    String?  // AES-256 Encrypted
+  password    String?   // AES-256-GCM Encrypted
   description String?
-  tags        String[] // Array of tagging
-  metadata    Json?    // Stores custom field values
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  tags        String[]  // Array of tagging
+  metadata    Json?     // Stores custom field values
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([userId])
+  @@index([deletedAt])
 }
 
 model AuditLog {

@@ -1,14 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, MinLength, IsString, IsOptional } from 'class-validator';
+import { IsEmail, IsNotEmpty, MinLength, IsString, IsOptional, Matches } from 'class-validator';
 
 export class LoginDto {
   @ApiProperty({ example: 'admin@yato.com' })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'password123' })
+  @ApiProperty({ example: 'Password123!' })
   @IsNotEmpty()
-  @MinLength(6)
+  @MinLength(8)
   password: string;
 
   @ApiProperty({ required: false, example: '123456' })
@@ -32,9 +32,12 @@ export class RegisterDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'password123' })
+  @ApiProperty({ example: 'Password123!' })
   @IsNotEmpty()
-  @MinLength(8)
+  @MinLength(12)
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{12,}$/, {
+    message: 'Password must be at least 12 characters and contain uppercase, lowercase, number, and special character',
+  })
   password: string;
 
   @ApiProperty({ example: '+628123456789' })
@@ -126,10 +129,47 @@ export class ResetPasswordDto {
   @IsString()
   code: string;
 
-  @ApiProperty({ example: 'newpassword123' })
+  @ApiProperty({ example: 'NewPassword123!' })
   @IsNotEmpty()
-  @MinLength(8)
+  @MinLength(12)
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{12,}$/, {
+    message: 'Password must be at least 12 characters and contain uppercase, lowercase, number, and special character',
+  })
   newPassword: string;
+}
+
+export class UpdateProfileDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  fullName?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  phoneNumber?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  telegramId?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  username?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  emailNotificationEnabled?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  whatsappNotificationEnabled?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  telegramNotificationEnabled?: boolean;
 }
 
 export class MfaSetupResponseDto {

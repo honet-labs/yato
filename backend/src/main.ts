@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -65,8 +66,9 @@ async function bootstrap() {
 
   // Global Interceptors & Filters
   const auditContextService = app.get(AuditContextService);
+  const configService = app.get(ConfigService);
   app.useGlobalInterceptors(new LoggingInterceptor(), new AuditInterceptor(auditContextService));
-  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalFilters(new HttpExceptionFilter(configService));
 
   // Validation
   app.useGlobalPipes(

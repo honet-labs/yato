@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EncryptionService } from '../../common/utils/encryption.service';
 import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class CredentialService {
+  private readonly logger = new Logger(CredentialService.name);
+
   constructor(
     private prisma: PrismaService,
     private encryptionService: EncryptionService,
@@ -26,7 +28,7 @@ export class CredentialService {
   }
 
   async findAll(userId: string, hasAccessToAll: boolean) {
-    const where = hasAccessToAll ? {} : { userId };
+    const where = hasAccessToAll ? { deletedAt: null } : { userId, deletedAt: null };
     const credentials = await this.prisma.credential.findMany({ where });
     return credentials.map((c) => this.maskCredential(c));
   }
@@ -34,6 +36,7 @@ export class CredentialService {
   async findAllTags() {
     const credentials = await this.prisma.credential.findMany({
       select: { tags: true },
+      where: { deletedAt: null },
     });
     const allTags = credentials.flatMap(c => c.tags);
     return [...new Set(allTags)];
@@ -41,7 +44,7 @@ export class CredentialService {
 
   async findOne(id: string, userId: string) {
     const credential = await this.prisma.credential.findUnique({ where: { id } });
-    if (!credential) throw new NotFoundException('Credential not found');
+    if (!credential || credential.deletedAt) throw new NotFoundException('Credential not found');
 
     if (credential.userId !== userId) {
       throw new NotFoundException('Credential not found');
@@ -61,7 +64,7 @@ export class CredentialService {
 
   async revealSecret(id: string, userId: string) {
     const credential = await this.prisma.credential.findUnique({ where: { id } });
-    if (!credential) throw new NotFoundException('Credential not found');
+    if (!credential || credential.deletedAt) throw new NotFoundException('Credential not found');
 
     if (credential.userId !== userId) {
       throw new NotFoundException('Credential not found');
@@ -81,7 +84,7 @@ export class CredentialService {
 
   async update(id: string, data: any, userId: string) {
     const existing = await this.prisma.credential.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException('Credential not found');
+    if (!existing || existing.deletedAt) throw new NotFoundException('Credential not found');
 
     if (existing.userId !== userId) {
       throw new ForbiddenException('You can only update your own credentials');
@@ -105,13 +108,16 @@ export class CredentialService {
 
   async delete(id: string, userId: string) {
     const existing = await this.prisma.credential.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException('Credential not found');
+    if (!existing || existing.deletedAt) throw new NotFoundException('Credential not found');
 
     if (existing.userId !== userId) {
       throw new ForbiddenException('You can only delete your own credentials');
     }
 
-    await this.prisma.credential.delete({ where: { id } });
+    await this.prisma.credential.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
     await this.auditService.log(userId, 'DELETE_CREDENTIAL', 'Credential', id);
     return { success: true };
   }

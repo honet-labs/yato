@@ -18,6 +18,7 @@ import { OtpService } from './otp.service';
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly BCRYPT_ROUNDS = 12;
+  private readonly PASSWORD_HISTORY_COUNT = 5;
 
   constructor(
     private prisma: PrismaService,
@@ -28,7 +29,6 @@ export class AuthService {
   ) {}
 
   async checkEmail(email: string) {
-    // Return generic message to prevent user enumeration
     return { success: true, message: 'If this email is registered, you will receive an OTP.' };
   }
 
@@ -81,10 +81,26 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (!user) throw new BadRequestException('User not found');
 
+    // Check password history
+    await this.checkPasswordHistory(user.id, dto.newPassword, user.previousPasswords);
+
     const hashedPassword = await bcrypt.hash(dto.newPassword, this.BCRYPT_ROUNDS);
+    
+    // Update password history
+    const history = this.getPasswordHistoryArray(user.previousPasswords);
+    history.push(user.password);
+    if (history.length > this.PASSWORD_HISTORY_COUNT) {
+      history.splice(0, history.length - this.PASSWORD_HISTORY_COUNT);
+    }
+
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { password: hashedPassword, failedLoginAttempts: 0, lockoutUntil: null }
+      data: { 
+        password: hashedPassword, 
+        previousPasswords: JSON.stringify(history),
+        failedLoginAttempts: 0, 
+        lockoutUntil: null 
+      }
     });
 
     await this.auditService.log(user.id, 'PASSWORD_RESET', 'User', user.id);
@@ -110,6 +126,7 @@ export class AuthService {
       email: dto.email,
       username: dto.username || dto.email.split('@')[0],
       password: hashedPassword,
+      previousPasswords: JSON.stringify([hashedPassword]),
       fullName: dto.fullName,
       phoneNumber: dto.phoneNumber,
       personalEmail: dto.personalEmail,
@@ -201,7 +218,6 @@ export class AuthService {
       const cleanToken = dto.mfaToken.replace(/\s+/g, '').trim();
 
       let isMfaValid = false;
-      let usedRecoveryCode = false;
 
       if (cleanToken.startsWith('YATO-RC-') && user.mfaRecoveryCodes) {
         const storedHashedCodes = user.mfaRecoveryCodes.split(',');
@@ -217,7 +233,6 @@ export class AuthService {
 
         if (matchingIndex !== -1) {
           isMfaValid = true;
-          usedRecoveryCode = true;
           this.logger.warn(`User ${user.email} logged in using recovery code.`);
 
           storedHashedCodes.splice(matchingIndex, 1);
@@ -462,5 +477,25 @@ export class AuthService {
         telegramNotificationEnabled: true
       }
     });
+  }
+
+  private getPasswordHistoryArray(previousPasswords?: string | null): string[] {
+    if (!previousPasswords) return [];
+    try {
+      const parsed = JSON.parse(previousPasswords);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private async checkPasswordHistory(userId: string, newPassword: string, previousPasswords?: string | null): Promise<void> {
+    const history = this.getPasswordHistoryArray(previousPasswords);
+    for (const oldHash of history) {
+      const isReused = await bcrypt.compare(newPassword, oldHash);
+      if (isReused) {
+        throw new BadRequestException(`Password cannot be one of your last ${this.PASSWORD_HISTORY_COUNT} passwords`);
+      }
+    }
   }
 }
