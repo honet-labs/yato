@@ -4,11 +4,15 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { AuthService } from '../auth/auth.service';
 
 @Controller('vm-inventory')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class VmInventoryController {
-  constructor(private vmInventoryService: VmInventoryService) {}
+  constructor(
+    private vmInventoryService: VmInventoryService,
+    private authService: AuthService,
+  ) {}
 
   @Post()
   @Permissions('PROVISION_VM')
@@ -34,6 +38,16 @@ export class VmInventoryController {
   @Put(':id/config')
   async updateConfig(@Param('id') id: string, @Body() data: any) {
     return this.vmInventoryService.updateConfig(id, data);
+  }
+
+  @Post(':id/reveal')
+  async revealSecret(
+    @Param('id') id: string,
+    @Body('password') password: string,
+    @Req() req: any,
+  ) {
+    await this.authService.verifyPassword(req.user.id || req.user.sub, password);
+    return this.vmInventoryService.revealSecret(id, req.user.id || req.user.sub);
   }
 }
 

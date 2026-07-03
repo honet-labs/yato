@@ -30,7 +30,10 @@ import {
   Zap,
   Activity,
   Download,
-  Lock
+  Lock,
+  Eye,
+  EyeOff,
+  ShieldCheck
 } from "lucide-react";
 import { exportToCSV } from "@/lib/csvHelper";
 import { motion, AnimatePresence } from "framer-motion";
@@ -67,6 +70,17 @@ export default function VmInventoryPage() {
   const [showConsole, setShowConsole] = useState(null as VM | null);
   const [isCopied, setIsCopied] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  
+  // Password verification states
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+  const [verifyPassword, setVerifyPassword] = useState("");
+  const [verifyError, setVerifyError] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [failedVerifyAttempts, setFailedVerifyAttempts] = useState(0);
+  const [verifyPurpose, setVerifyPurpose] = useState("REVEAL" as "REVEAL" | "COPY");
+  const [pendingRevealVm, setPendingRevealVm] = useState(null as VM | null);
+  const [revealedPasswords, setRevealedPasswords] = useState({} as Record<string, string>);
+  const [showPassInConsole, setShowPassInConsole] = useState(false);
   
   const [addFormData, setAddFormData] = useState({
     hostname: "",
@@ -168,6 +182,22 @@ export default function VmInventoryPage() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  const handleRevealVmPassword = async (vm: VM, purpose: "REVEAL" | "COPY") => {
+    if (revealedPasswords[vm.id]) {
+      if (purpose === "REVEAL") {
+        setShowPassInConsole(!showPassInConsole);
+      } else {
+        copyToClipboard(revealedPasswords[vm.id]);
+      }
+    } else {
+      setPendingRevealVm(vm);
+      setVerifyPurpose(purpose);
+      setVerifyPassword("");
+      setVerifyError("");
+      setIsVerifyModalOpen(true);
+    }
+  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -467,10 +497,31 @@ export default function VmInventoryPage() {
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Password</p>
                       <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                        <span className="text-[13px] font-bold text-white">••••••••••••</span>
-                        <button onClick={() => copyToClipboard(showConsole.sshPassword || '')} className="text-white/20 hover:text-white">
-                          <Copy className="w-3.5 h-3.5" />
-                        </button>
+                        <span className="text-[13px] font-mono text-white">
+                          {revealedPasswords[showConsole.id] && showPassInConsole
+                            ? revealedPasswords[showConsole.id]
+                            : "••••••••••••"}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => handleRevealVmPassword(showConsole, "REVEAL")} 
+                            className="text-white/20 hover:text-white"
+                            title="Reveal Password"
+                          >
+                            {revealedPasswords[showConsole.id] && showPassInConsole ? (
+                              <EyeOff className="w-4 h-4" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
+                          </button>
+                          <button 
+                            onClick={() => handleRevealVmPassword(showConsole, "COPY")} 
+                            className="text-white/20 hover:text-white"
+                            title="Copy Password"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -501,7 +552,113 @@ export default function VmInventoryPage() {
         )}
       </AnimatePresence>
 
+      {/* Identity Verification Modal */}
+      <AnimatePresence>
+        {isVerifyModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[200]">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-slate-100 relative"
+            >
+              <button 
+                onClick={() => { setIsVerifyModalOpen(false); setVerifyPassword(""); }}
+                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-5">
+                  <ShieldCheck className="w-8 h-8 text-amber-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-1">Identity Verification</h3>
+                <p className="text-[11px] font-medium text-slate-400 mb-6">
+                  {verifyPurpose === "COPY" 
+                    ? "Enter your password to copy this secret key" 
+                    : "Enter your account password to reveal this secret"}
+                </p>
+                
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!verifyPassword.trim()) return;
+                  if (!pendingRevealVm) return;
+
+                  setIsVerifying(true);
+                  setVerifyError("");
+                  try {
+                    const res = await api.post(`/vm-inventory/${pendingRevealVm.id}/reveal`, { password: verifyPassword });
+                    
+                    setRevealedPasswords(prev => ({
+                      ...prev,
+                      [pendingRevealVm.id]: res.data.sshPassword
+                    }));
+                    setIsVerifyModalOpen(false);
+                    setVerifyPassword("");
+                    setFailedVerifyAttempts(0);
+                    
+                    if (verifyPurpose === "REVEAL") {
+                      setShowPassInConsole(true);
+                    } else {
+                      copyToClipboard(res.data.sshPassword || '');
+                    }
+                  } catch (err: any) {
+                    const nextAttempts = failedVerifyAttempts + 1;
+                    setFailedVerifyAttempts(nextAttempts);
+                    
+                    if (nextAttempts >= 3) {
+                      setFailedVerifyAttempts(0);
+                      setIsVerifyModalOpen(false);
+                      localStorage.removeItem("yato_token");
+                      window.location.href = "/login";
+                    } else {
+                      const attemptsRemaining = 3 - nextAttempts;
+                      setVerifyError(`Invalid password. ${attemptsRemaining} attempt${attemptsRemaining > 1 ? 's' : ''} remaining before logout.`);
+                    }
+                  } finally {
+                    setIsVerifying(false);
+                  }
+                }}>
+                  <div className="space-y-4 mb-6">
+                    <input 
+                      type="password"
+                      placeholder="••••••••"
+                      value={verifyPassword}
+                      onChange={(e) => setVerifyPassword(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-center text-sm font-semibold tracking-widest bg-slate-50"
+                      autoFocus
+                    />
+                    {verifyError && (
+                      <p className="text-[10px] font-bold text-rose-500 leading-normal bg-rose-50 p-3 rounded-xl border border-rose-100">
+                        {verifyError}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button 
+                      type="button"
+                      onClick={() => { setIsVerifyModalOpen(false); setVerifyPassword(""); }}
+                      className="flex-1 py-3 border border-slate-200 text-slate-500 rounded-xl text-xs font-bold uppercase transition-all hover:bg-slate-50"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit"
+                      disabled={isVerifying || !verifyPassword.trim()}
+                      className="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold uppercase transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-amber-600/10"
+                    >
+                      {isVerifying && <Loader2 className="w-4 h-4 animate-spin" />}
+                      Verify
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {isAddModalOpen && (
