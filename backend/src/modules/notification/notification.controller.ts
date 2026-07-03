@@ -20,8 +20,8 @@ export class NotificationController {
 
   @Post(':id/read')
   @ApiOperation({ summary: 'Mark notification as read' })
-  markAsRead(@Param('id') id: string) {
-    return this.notificationService.markAsRead(id);
+  async markAsRead(@Param('id') id: string, @Req() req: any) {
+    return this.notificationService.markAsRead(id, req.user.id);
   }
 
   @Post('read-all')

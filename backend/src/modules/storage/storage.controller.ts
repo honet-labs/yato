@@ -61,8 +61,8 @@ export class StorageController {
     return this.storageService.deleteFile(id);
   }
 
-  // PUBLIC STREAMING DOWNLOAD GATEWAY
   @Get('download/:id')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Secure proxy download gateway for S3/Drive/NAS/Database' })
   async download(@Param('id') id: string, @Res() res: Response) {
     try {

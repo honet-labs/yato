@@ -15,7 +15,7 @@ export class OtpService {
 
   async generateOtp(dto: RequestOtpDto) {
     const code = crypto.randomInt(100000, 999999).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     await this.prisma.otp.create({
       data: {
@@ -28,11 +28,9 @@ export class OtpService {
       },
     });
 
-    // Actual sending logic
-    const message = `Your YATO verification code is: *${code}*.\n\nExpires in 10 minutes.`;
+    const message = `Your YATO verification code is: *${code}*.\n\nExpires in 5 minutes.`;
     
-    // EMERGENCY LOG: Always print the code to the backend console so the admin can bypass broken notification configs.
-    this.logger.log(`[EMERGENCY OTP] User requested code: ${code} for ${dto.channel} (${dto.email || dto.phone || dto.telegram})`);
+    this.logger.log(`OTP generated for ${dto.channel} (${dto.email || dto.phone || dto.telegram})`);
     
     try {
       if (dto.channel === 'WHATSAPP' && dto.phone) {
@@ -50,7 +48,7 @@ export class OtpService {
         if (!res.success) throw new Error(res.message);
       }
       
-      this.logger.log(`[OTP] Sent ${code} to ${dto.channel}: ${dto.email || dto.phone || dto.telegram}`);
+      this.logger.log(`OTP sent via ${dto.channel} to ${dto.email || dto.phone || dto.telegram}`);
       return { success: true, message: `OTP sent via ${dto.channel}` };
     } catch (error) {
       this.logger.error(`Failed to send OTP via ${dto.channel}: ${error.message}`);

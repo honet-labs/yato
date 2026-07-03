@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EncryptionService } from '../../common/utils/encryption.service';
 import { AuditService } from '../audit/audit.service';
@@ -25,20 +25,6 @@ export class CredentialService {
     return this.maskCredential(credential);
   }
 
-  async dbDebug() {
-    return this.prisma.credential.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true
-          }
-        }
-      }
-    });
-  }
-
   async findAll(userId: string, hasAccessToAll: boolean) {
     const where = hasAccessToAll ? {} : { userId };
     const credentials = await this.prisma.credential.findMany({ where });
@@ -50,37 +36,33 @@ export class CredentialService {
       select: { tags: true },
     });
     const allTags = credentials.flatMap(c => c.tags);
-    return [...new Set(allTags)]; // Return unique tags
+    return [...new Set(allTags)];
   }
 
   async findOne(id: string, userId: string) {
-    try {
-      const credential = await this.prisma.credential.findUnique({ where: { id } });
-      if (!credential) throw new NotFoundException('Credential not found');
+    const credential = await this.prisma.credential.findUnique({ where: { id } });
+    if (!credential) throw new NotFoundException('Credential not found');
 
-      try {
-        await this.auditService.log(userId, 'ACCESS_CREDENTIAL', 'Credential', id);
-      } catch (auditError) {
-        console.error('Failed to log audit:', auditError.message);
-        // Continue even if audit fails to not block user access
-      }
-
-      return {
-        ...credential,
-        password: credential.password ? '••••••••••••••••••••••••' : null,
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) throw error;
-      console.error(`Error in findOne for credential ${id}:`, error.message);
-      throw error;
+    if (credential.userId !== userId) {
+      throw new NotFoundException('Credential not found');
     }
+
+    try {
+      await this.auditService.log(userId, 'ACCESS_CREDENTIAL', 'Credential', id);
+    } catch (auditError) {
+      // Continue even if audit fails
+    }
+
+    return {
+      ...credential,
+      password: credential.password ? '••••••••••••••••••••••••' : null,
+    };
   }
 
   async revealSecret(id: string, userId: string) {
     const credential = await this.prisma.credential.findUnique({ where: { id } });
     if (!credential) throw new NotFoundException('Credential not found');
 
-    // Ownership check
     if (credential.userId !== userId) {
       throw new NotFoundException('Credential not found');
     }
@@ -88,7 +70,7 @@ export class CredentialService {
     try {
       await this.auditService.log(userId, 'REVEAL_CREDENTIAL_SECRET', 'Credential', id);
     } catch (auditError) {
-      console.error('Failed to log audit:', auditError.message);
+      // Continue
     }
 
     return {
@@ -100,6 +82,10 @@ export class CredentialService {
   async update(id: string, data: any, userId: string) {
     const existing = await this.prisma.credential.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Credential not found');
+
+    if (existing.userId !== userId) {
+      throw new ForbiddenException('You can only update your own credentials');
+    }
 
     const updateData = { ...data };
     if (data.password && data.password !== '****************') {
@@ -118,6 +104,13 @@ export class CredentialService {
   }
 
   async delete(id: string, userId: string) {
+    const existing = await this.prisma.credential.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Credential not found');
+
+    if (existing.userId !== userId) {
+      throw new ForbiddenException('You can only delete your own credentials');
+    }
+
     await this.prisma.credential.delete({ where: { id } });
     await this.auditService.log(userId, 'DELETE_CREDENTIAL', 'Credential', id);
     return { success: true };

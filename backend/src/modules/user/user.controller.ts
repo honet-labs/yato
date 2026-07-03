@@ -22,7 +22,7 @@ export class UserController {
 
   @Patch(':id')
   @Permissions('MANAGE_USERS')
-  async update(@Param('id') id: string, @Body() data: any) {
+  async update(@Param('id') id: string, @Body() data: Record<string, any>) {
     return this.userService.update(id, data);
   }
 

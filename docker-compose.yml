@@ -40,7 +40,7 @@ services:
       TZ: ${TZ:-UTC}
     ports:
       - "127.0.0.1:${HOST_REDIS_PORT:-6380}:6379"
-    command: redis-server --maxmemory 256mb --maxmemory-policy noeviction
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -57,7 +57,9 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       NODE_OPTIONS: "--max-old-space-size=512"
       DOCKER_HOST_URL: "http://docker-proxy:2375"
       TZ: ${TZ:-UTC}

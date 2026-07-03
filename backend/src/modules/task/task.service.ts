@@ -653,17 +653,22 @@ export class TaskService {
     return deletedTask;
   }
 
-  private async syncSubtasksStatus(taskId: string, status: string) {
+  private async syncSubtasksStatus(taskId: string, status: string, depth: number = 0) {
+    if (depth > 10) return; // Prevent infinite recursion
+
     const subtasks = await this.prisma.task.findMany({
       where: { parentId: taskId },
       select: { id: true },
     });
+    if (subtasks.length === 0) return;
+
+    await this.prisma.task.updateMany({
+      where: { id: { in: subtasks.map(s => s.id) } },
+      data: { status },
+    });
+
     for (const subtask of subtasks) {
-      await this.prisma.task.update({
-        where: { id: subtask.id },
-        data: { status },
-      });
-      await this.syncSubtasksStatus(subtask.id, status);
+      await this.syncSubtasksStatus(subtask.id, status, depth + 1);
     }
   }
 
@@ -908,9 +913,7 @@ export class TaskService {
   }
 
   async createTemplate(dto: CreateTaskTemplateDto, creatorId: string) {
-    console.log(`[TaskService.createTemplate] Triggered by creatorId: ${creatorId}. DTO:`, JSON.stringify(dto));
     if (!dto.projectIds || dto.projectIds.length === 0) {
-      console.warn(`[TaskService.createTemplate] Validation failed: projectIds array is empty.`);
       throw new BadRequestException('At least one project/workspace must be associated with the template');
     }
     const template = await this.prisma.taskTemplate.create({
@@ -932,7 +935,6 @@ export class TaskService {
           : undefined,
       },
     });
-    console.log(`[TaskService.createTemplate] Successfully created template ID: ${template.id}`);
     try {
       await this.auditService.log(creatorId, 'CREATE_TEMPLATE', 'TaskTemplate', template.id, {
         templateName: template.templateName,
@@ -944,7 +946,6 @@ export class TaskService {
   }
 
   async updateTemplate(id: string, dto: UpdateTaskTemplateDto, userId: string) {
-    console.log(`[TaskService.updateTemplate] Triggered for template ID: ${id} by userId: ${userId}. DTO:`, JSON.stringify(dto));
     await this.findOneTemplate(id, userId);
 
     const data: any = {};
@@ -961,7 +962,6 @@ export class TaskService {
     if (dto.repeatDayOfMonth !== undefined) data.repeatDayOfMonth = dto.repeatDayOfMonth !== null ? Number(dto.repeatDayOfMonth) : null;
     if (dto.projectIds !== undefined) {
       if (!dto.projectIds || dto.projectIds.length === 0) {
-        console.warn(`[TaskService.updateTemplate] Validation failed: projectIds array is empty.`);
         throw new BadRequestException('At least one project/workspace must be associated with the template');
       }
       data.projects = {
@@ -969,12 +969,10 @@ export class TaskService {
       };
     }
 
-    console.log(`[TaskService.updateTemplate] Prisma update data payload:`, JSON.stringify(data));
     const template = await this.prisma.taskTemplate.update({
       where: { id },
       data,
     });
-    console.log(`[TaskService.updateTemplate] Successfully updated template ID: ${id}`);
     try {
       await this.auditService.log(userId, 'UPDATE_TEMPLATE', 'TaskTemplate', id, {
         templateName: template.templateName,

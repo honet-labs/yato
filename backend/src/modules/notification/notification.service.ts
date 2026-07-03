@@ -79,9 +79,11 @@ export class NotificationService {
     };
   }
 
-  async markAsRead(id: string) {
+  async markAsRead(id: string, userId?: string) {
+    const where: any = { id };
+    if (userId) where.userId = userId;
     return this.prisma.notification.update({
-      where: { id },
+      where,
       data: { isRead: true },
     });
   }
@@ -108,7 +110,7 @@ export class NotificationService {
           pass: emailConfig.pass,
         },
         tls: {
-          rejectUnauthorized: false
+          rejectUnauthorized: process.env.NODE_ENV !== 'development'
         }
       });
 

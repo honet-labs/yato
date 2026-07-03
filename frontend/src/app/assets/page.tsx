@@ -266,11 +266,24 @@ export default function AssetsPage() {
     exportToExcel(sheets, `YATO_Asset_Registry${filenameSuffix}`);
   };
 
-  const printLabel = (id: string) => {
+  const printLabel = async (id: string) => {
     const token = localStorage.getItem("yato_token") || "";
-    const printWindow = window.open(`/api/assets/${id}/print?token=${token}`, '_blank', 'width=600,height=400');
-    if (printWindow) {
-      printWindow.onload = () => printWindow.print();
+    try {
+      const res = await fetch(`/api/assets/${id}/print`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch label");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const printWindow = window.open(url, '_blank', 'width=600,height=400');
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+          URL.revokeObjectURL(url);
+        };
+      }
+    } catch (err) {
+      console.error("Print failed:", err);
     }
   };
 

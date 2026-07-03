@@ -22,7 +22,22 @@ export class UserService {
 
   async findAll() {
     return this.prisma.user.findMany({
-      include: { roles: { include: { role: true } } },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        fullName: true,
+        phoneNumber: true,
+        personalEmail: true,
+        telegramId: true,
+        isMfaEnabled: true,
+        lastLogin: true,
+        createdAt: true,
+        emailNotificationEnabled: true,
+        whatsappNotificationEnabled: true,
+        telegramNotificationEnabled: true,
+        roles: { include: { role: true } },
+      },
     });
   }
 
@@ -34,7 +49,6 @@ export class UserService {
   }
 
   async update(id: string, data: any) {
-    console.log('[DEBUG] Update User Body:', JSON.stringify(data));
     const updateData: any = {};
     const allowedFields = ['email', 'username', 'fullName', 'phoneNumber', 'personalEmail', 'telegramId', 'isMfaEnabled', 'emailNotificationEnabled', 'whatsappNotificationEnabled', 'telegramNotificationEnabled'];
     
@@ -49,16 +63,14 @@ export class UserService {
     }
 
     if (data.password) {
-      updateData.password = await bcrypt.hash(data.password, 10);
+      updateData.password = await bcrypt.hash(data.password, 12);
     }
 
     if (data.roleIds !== undefined) {
-      // First delete existing roles
       await this.prisma.userRole.deleteMany({
         where: { userId: id }
       });
       
-      // If there are roles to assign
       if (data.roleIds.length > 0) {
         updateData.roles = {
           create: data.roleIds.map((roleId: string) => ({
@@ -71,6 +83,19 @@ export class UserService {
     return this.prisma.user.update({
       where: { id },
       data: updateData,
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        fullName: true,
+        phoneNumber: true,
+        personalEmail: true,
+        telegramId: true,
+        isMfaEnabled: true,
+        lastLogin: true,
+        createdAt: true,
+        roles: { include: { role: true } },
+      },
     });
   }
 

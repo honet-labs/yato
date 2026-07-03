@@ -17,6 +17,7 @@ import { OtpService } from './otp.service';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private readonly BCRYPT_ROUNDS = 12;
 
   constructor(
     private prisma: PrismaService,
@@ -27,11 +28,8 @@ export class AuthService {
   ) {}
 
   async checkEmail(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      throw new BadRequestException('Email not registered in the system');
-    }
-    return { success: true, email: user.email };
+    // Return generic message to prevent user enumeration
+    return { success: true, message: 'If this email is registered, you will receive an OTP.' };
   }
 
   async requestOtp(dto: RequestOtpDto) {
@@ -39,7 +37,6 @@ export class AuthService {
       const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
       if (!user) throw new BadRequestException('User not found');
       
-      // Auto-populate recovery contact info from DB
       if (!dto.phone && user.phoneNumber) {
         dto.phone = user.phoneNumber;
       }
@@ -84,7 +81,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (!user) throw new BadRequestException('User not found');
 
-    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+    const hashedPassword = await bcrypt.hash(dto.newPassword, this.BCRYPT_ROUNDS);
     await this.prisma.user.update({
       where: { id: user.id },
       data: { password: hashedPassword, failedLoginAttempts: 0, lockoutUntil: null }
@@ -108,7 +105,7 @@ export class AuthService {
       throw new BadRequestException('Username already taken');
     }
 
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const hashedPassword = await bcrypt.hash(dto.password, this.BCRYPT_ROUNDS);
     const createData: any = {
       email: dto.email,
       username: dto.username || dto.email.split('@')[0],
@@ -161,7 +158,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Check Lockout
     if (user.lockoutUntil && user.lockoutUntil > new Date()) {
       await this.auditService.log(
         user.id,
@@ -191,23 +187,19 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Reset failed attempts
     await this.prisma.user.update({
       where: { id: user.id },
       data: { failedLoginAttempts: 0, lockoutUntil: null },
     });
 
-    // Check MFA
     if (user.isMfaEnabled) {
       if (!dto.mfaToken) {
         return { mfaRequired: true, userId: user.id };
       }
       
-      // Massive time window tolerance to combat Docker time drift (20 steps = 10 minutes)
-      authenticator.options = { window: 20 };
+      authenticator.options = { window: 1 };
       const cleanToken = dto.mfaToken.replace(/\s+/g, '').trim();
 
-      // Emergency Recovery Codes Validation
       let isMfaValid = false;
       let usedRecoveryCode = false;
 
@@ -226,9 +218,8 @@ export class AuthService {
         if (matchingIndex !== -1) {
           isMfaValid = true;
           usedRecoveryCode = true;
-          this.logger.warn(`User ${user.email} successfully logged in using emergency recovery code.`);
+          this.logger.warn(`User ${user.email} logged in using recovery code.`);
 
-          // Consume the used recovery code
           storedHashedCodes.splice(matchingIndex, 1);
           await this.prisma.user.update({
             where: { id: user.id },
@@ -253,13 +244,11 @@ export class AuthService {
       }
     }
 
-    // Update lastLogin timestamp
     await this.prisma.user.update({
       where: { id: user.id },
       data: { lastLogin: new Date() },
     });
 
-    // Record Login History
     await this.prisma.loginHistory.create({
       data: {
         userId: user.id,
@@ -278,7 +267,7 @@ export class AuthService {
     let lockoutUntil = null;
 
     if (attempts >= 5) {
-      lockoutUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes lockout
+      lockoutUntil = new Date(Date.now() + 15 * 60 * 1000);
       this.logger.warn(`Account locked for user ${userId} after 5 failed attempts`);
     }
 
@@ -291,7 +280,6 @@ export class AuthService {
   async generateTokens(userId: string, email: string) {
     const payload = { sub: userId, email };
     
-    // Fetch custom session timeout from system settings
     let sessionTimeout = '15m';
     try {
       const setting = await this.prisma.systemSetting.findUnique({
@@ -326,14 +314,16 @@ export class AuthService {
     if (!user) throw new BadRequestException('User not found');
     
     const payload = { sub: userId, email: user.email, isPat: true };
-    const expiresIn = durationInDays === 0 ? '9999d' : `${durationInDays}d`;
+    const maxDays = 365;
+    const effectiveDays = durationInDays === 0 ? maxDays : Math.min(durationInDays, maxDays);
+    const expiresIn = `${effectiveDays}d`;
     
     const token = this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_SECRET'),
       expiresIn: expiresIn,
     });
     
-    const expiresAt = durationInDays === 0 ? 'Never' : new Date(Date.now() + durationInDays * 24 * 60 * 60 * 1000).toISOString();
+    const expiresAt = new Date(Date.now() + effectiveDays * 24 * 60 * 60 * 1000).toISOString();
     return { token, expiresAt };
   }
 
@@ -359,24 +349,15 @@ export class AuthService {
   async verifyAndEnableMfa(userId: string, token: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     
-    // Massive time window tolerance to combat Docker time drift (20 steps = 10 minutes)
-    authenticator.options = { window: 20 };
+    authenticator.options = { window: 1 };
     const cleanToken = token.replace(/\s+/g, '').trim();
 
-    // Debugging: What is the server generating vs what is provided
-    const expectedCurrentToken = authenticator.generate(user.mfaSecret);
-    this.logger.log(`[MFA DEBUG] Server Time: ${new Date().toISOString()}`);
-    this.logger.log(`[MFA DEBUG] Provided Token: ${cleanToken}, Expected Token (Current): ${expectedCurrentToken}`);
-
-    // Try verifying using standard check which respects global options more robustly in some versions
     const isValid = authenticator.check(cleanToken, user.mfaSecret);
 
     if (!isValid) {
-      this.logger.error(`[MFA DEBUG] Token rejected even with 10-minute window!`);
       throw new BadRequestException('Invalid MFA token. Please ensure your device time is synced.');
     }
 
-    // Generate 5 emergency recovery codes
     const recoveryCodes: string[] = [];
     for (let i = 0; i < 5; i++) {
       const part1 = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -384,9 +365,8 @@ export class AuthService {
       recoveryCodes.push(`YATO-RC-${part1}-${part2}`);
     }
 
-    // Hash codes with bcrypt for secure storage
     const hashedCodes = await Promise.all(
-      recoveryCodes.map((code) => bcrypt.hash(code, 10))
+      recoveryCodes.map((code) => bcrypt.hash(code, this.BCRYPT_ROUNDS))
     );
 
     await this.prisma.user.update({
@@ -397,7 +377,7 @@ export class AuthService {
       },
     });
 
-    this.logger.log(`MFA enabled for user ${userId}. Generated 5 emergency recovery codes.`);
+    this.logger.log(`MFA enabled for user ${userId}. Generated 5 recovery codes.`);
     return { success: true, recoveryCodes };
   }
 
@@ -451,7 +431,6 @@ export class AuthService {
     if (dto.username !== undefined && dto.username !== null && dto.username.trim() !== '') {
       const cleanUsername = dto.username.toLowerCase().replace(/[^a-z0-9_]/g, '');
       
-      // Check if username is already taken by another user
       const existingUser = await this.prisma.user.findFirst({
         where: {
           username: cleanUsername,

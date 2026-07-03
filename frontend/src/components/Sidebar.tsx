@@ -573,7 +573,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                                   <p className="text-[14px] font-bold text-slate-900 leading-tight">{n.title}</p>
                                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">{formatNotificationTime(n.createdAt)}</span>
                                 </div>
-                                <p className="text-[13px] text-slate-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: cleanMsg }} />
+                                <p className="text-[13px] text-slate-600 leading-relaxed">{cleanMsg}</p>
                               </div>
                             </div>
                           </div>
