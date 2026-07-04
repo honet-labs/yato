@@ -181,18 +181,12 @@ export default function CredentialsPage() {
   };
 
   const handleView = (cred: Credential) => {
-    if (cred.password) {
-      setPendingRevealCredId(cred.id);
-      setVerifyPassword("");
-      setVerifyError("");
-      setVerifyPurpose("REVEAL");
-      setIsVerifyModalOpen(true);
-    } else {
-      setSelectedCred(cred);
-      setShowPassInDetail(false);
-      setSecretVerified(false);
-      setIsDetailOpen(true);
-    }
+    setPendingRevealCredId(cred.id);
+    setSelectedCred(cred);
+    setVerifyPassword("");
+    setVerifyError("");
+    setVerifyPurpose("REVEAL");
+    setIsVerifyModalOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -494,7 +488,7 @@ export default function CredentialsPage() {
                         <button 
                           onClick={() => handleView(cred)}
                           className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                          title={cred.password ? "View Secret" : "View Details"}
+                          title="Verify & View"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
