@@ -119,6 +119,8 @@ export default function ServiceInventoryPage() {
         serviceName: "",
         version: "1.0.0",
         environment: "Production",
+        category: "",
+        tags: [],
         endpoint: "",
         address: "",
         port: 3306,
