@@ -35,6 +35,7 @@ export class ServiceInventoryService {
       port: item.port,
       username: item.username,
       password: item.password ? '••••••••••••' : null,
+      notes: item.request.notes,
       status: item.status,
       requestedBy: item.request.user.fullName,
       createdAt: item.createdAt,
@@ -60,6 +61,7 @@ export class ServiceInventoryService {
       port: item.port,
       username: item.username,
       password: item.password ? '••••••••••••' : null,
+      notes: item.request.notes,
       status: item.status,
       createdAt: item.createdAt,
     };
@@ -69,13 +71,14 @@ export class ServiceInventoryService {
     const item = await this.prisma.serviceInventory.findUnique({ where: { id } });
     if (!item) throw new NotFoundException('Service inventory item not found');
 
-    // Update related ServiceRequest for category and tags
-    if (data.category !== undefined || data.tags !== undefined) {
+    // Update related ServiceRequest for category, tags, and notes
+    if (data.category !== undefined || data.tags !== undefined || data.notes !== undefined) {
       await this.prisma.serviceRequest.update({
         where: { id: item.requestId },
         data: {
           ...(data.category !== undefined && { category: data.category || null }),
           ...(data.tags !== undefined && { tags: data.tags || [] }),
+          ...(data.notes !== undefined && { notes: data.notes || null }),
         },
       });
     }
@@ -127,7 +130,13 @@ export class ServiceInventoryService {
         requestedBy: userId,
         status: 'APPROVED',
         approvedBy: userId,
-        approvedAt: new Date()
+        approvedAt: new Date(),
+        endpoint: data.endpoint || null,
+        address: data.address || null,
+        port: data.port ? parseInt(data.port) : null,
+        username: data.username || null,
+        password: data.password ? this.encryptionService.encrypt(data.password) : null,
+        notes: data.notes || null,
       }
     });
 

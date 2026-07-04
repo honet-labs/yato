@@ -208,6 +208,7 @@ model ServiceRequest {
   port         Int?
   username     String?
   password     String?
+  notes        String?
 
   requestedBy  String
   user         User     @relation("UserServiceRequests", fields: [requestedBy], references: [id])

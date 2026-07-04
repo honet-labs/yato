@@ -55,6 +55,7 @@ interface ServiceInventory {
   port?: number;
   username?: string;
   password?: string;
+  notes?: string;
   createdAt: string;
 }
 
@@ -85,7 +86,8 @@ export default function ServiceInventoryPage() {
     address: "",
     port: 3306,
     username: "",
-    password: ""
+    password: "",
+    notes: ""
   });
   
   const [editData, setEditData] = useState({
@@ -96,6 +98,7 @@ export default function ServiceInventoryPage() {
     password: "",
     category: "",
     tags: [] as string[],
+    notes: "",
     status: ""
   });
 
@@ -127,7 +130,8 @@ export default function ServiceInventoryPage() {
         address: "",
         port: 3306,
         username: "",
-        password: ""
+        password: "",
+        notes: ""
       });
     }
   });
@@ -294,6 +298,7 @@ export default function ServiceInventoryPage() {
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Port</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Environment</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Notes</th>
                 {isAdmin && <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Owner</th>}
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
               </tr>
@@ -419,6 +424,13 @@ export default function ServiceInventoryPage() {
                         {item.environment?.toUpperCase() === 'PRODUCTION' ? 'PRODUCTION (DC)' : (item.environment || 'DEVELOPMENT')}
                       </span>
                     </td>
+                    <td className="px-6 py-4">
+                      {item.notes ? (
+                        <span className="text-[11px] text-slate-600 truncate max-w-[150px] block" title={item.notes}>{item.notes}</span>
+                      ) : (
+                        <span className="text-slate-400 text-[11px]">N/A</span>
+                      )}
+                    </td>
                     {isAdmin && (
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -451,6 +463,7 @@ export default function ServiceInventoryPage() {
                                     password: item.password || "",
                                     category: item.category || "",
                                     tags: item.tags || [],
+                                    notes: item.notes || "",
                                     status: item.status
                                   });
                                 }}
@@ -621,6 +634,17 @@ export default function ServiceInventoryPage() {
                           onChange={e => setEditData({...editData, password: e.target.value})}
                         />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Notes</label>
+                      <textarea 
+                        rows={3}
+                        className="input-field w-full py-3 bg-slate-50 border-slate-200 text-sm resize-none" 
+                        placeholder="Configuration notes or business purpose..."
+                        value={editData.notes}
+                        onChange={e => setEditData({...editData, notes: e.target.value})}
+                      />
                     </div>
                   </div>
 
@@ -793,6 +817,17 @@ export default function ServiceInventoryPage() {
                         onChange={e => setAddFormData({...addFormData, password: e.target.value})}
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Notes</label>
+                    <textarea 
+                      rows={3}
+                      className="input-field w-full py-2.5 text-sm resize-none" 
+                      placeholder="Configuration notes or business purpose..."
+                      value={addFormData.notes}
+                      onChange={e => setAddFormData({...addFormData, notes: e.target.value})}
+                    />
                   </div>
 
                   <div className="pt-6 border-t border-slate-50 flex gap-4">
