@@ -47,11 +47,11 @@ const staticPermissionGroups = [
   },
   { 
     group: "VM Inventory", 
-    perms: ["VIEW_VM_INVENTORY", "PROVISION_VM", "MANAGE_VM_INVENTORY"] 
+    perms: ["VIEW_VM_INVENTORY", "EDIT_VM_INVENTORY", "PROVISION_VM", "MANAGE_VM_INVENTORY"] 
   },
   { 
     group: "Service Inventory", 
-    perms: ["VIEW_SERVICE_INVENTORY", "PROVISION_SERVICE", "MANAGE_SERVICE_INVENTORY"] 
+    perms: ["VIEW_SERVICE_INVENTORY", "EDIT_SERVICE_INVENTORY", "PROVISION_SERVICE", "MANAGE_SERVICE_INVENTORY"] 
   },
   { 
     group: "Credential Vault", 

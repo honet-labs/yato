@@ -107,6 +107,7 @@ export default function VmInventoryPage() {
 
   const { isAdmin, permissions, isLoading: isAuthLoading } = useIsAdmin();
   const canView = isAdmin || permissions.includes("VIEW_VM_INVENTORY") || permissions.includes("MANAGE_VM_INVENTORY");
+  const canEdit = isAdmin || permissions.includes("EDIT_VM_INVENTORY") || permissions.includes("MANAGE_VM_INVENTORY");
   const canAddVm = isAdmin || permissions.includes("PROVISION_VM");
 
   const { data: osTemplates } = useQuery({
@@ -413,18 +414,20 @@ export default function VmInventoryPage() {
                                 </button>
 
                                 <div className="h-px bg-slate-50 my-1" />
-                                <button 
-                                  onClick={() => {
-                                    if (confirm(`Are you sure you want to TERMINATE ${vm.hostname}?`)) {
-                                      terminateMutation.mutate(vm.id);
-                                    }
-                                  }}
-                                  disabled={terminateMutation.isPending}
-                                  className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 rounded-lg transition-all disabled:opacity-50"
-                                >
-                                  {terminateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                                  TERMINATE
-                                </button>
+                                {canEdit && (
+                                  <button 
+                                    onClick={() => {
+                                      if (confirm(`Are you sure you want to TERMINATE ${vm.hostname}?`)) {
+                                        terminateMutation.mutate(vm.id);
+                                      }
+                                    }}
+                                    disabled={terminateMutation.isPending}
+                                    className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 rounded-lg transition-all disabled:opacity-50"
+                                  >
+                                    {terminateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                    TERMINATE
+                                  </button>
+                                )}
                               </motion.div>
                             )}
                           </AnimatePresence>

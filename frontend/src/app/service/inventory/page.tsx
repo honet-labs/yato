@@ -99,6 +99,7 @@ export default function ServiceInventoryPage() {
 
   const { isAdmin, permissions, isLoading: isAuthLoading } = useIsAdmin();
   const canView = isAdmin || permissions.includes("VIEW_SERVICE_INVENTORY") || permissions.includes("MANAGE_SERVICE_INVENTORY");
+  const canEdit = isAdmin || permissions.includes("EDIT_SERVICE_INVENTORY") || permissions.includes("MANAGE_SERVICE_INVENTORY");
   const canAddService = isAdmin || permissions.includes("PROVISION_SERVICE");
 
   const { data: serviceTypes } = useQuery({
@@ -433,7 +434,7 @@ export default function ServiceInventoryPage() {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          {isAdmin && (
+                          {canEdit && (
                             <>
                               <button 
                                 onClick={() => {
