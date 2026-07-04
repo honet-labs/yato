@@ -31,6 +31,8 @@ export default function NewServiceRequestPage() {
     type: "",
     plan: "Standard",
     environment: "Production",
+    category: "",
+    tags: [] as string[],
     endpoint: "",
     address: "",
     port: "",
@@ -152,6 +154,31 @@ export default function NewServiceRequestPage() {
                     </div>
                   </div>
 
+                  {/* Category */}
+                  <div className="space-y-2">
+                    <label className="text-slate-500 font-bold uppercase tracking-wider text-xs">Category (Optional)</label>
+                    <div className="relative group">
+                      <Package className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                      <select 
+                        className="input-field pl-12 w-full appearance-none bg-white pr-10 font-bold"
+                        value={formData.category}
+                        onChange={e => setFormData({...formData, category: e.target.value})}
+                      >
+                        <option value="">Select Category</option>
+                        <option value="DATABASE">Database</option>
+                        <option value="WEB_SERVER">Web Server</option>
+                        <option value="MONITORING">Monitoring</option>
+                        <option value="CONTAINER">Container</option>
+                        <option value="CACHE">Cache</option>
+                        <option value="MESSAGE_QUEUE">Message Queue</option>
+                        <option value="STORAGE">Storage</option>
+                        <option value="NETWORK">Network</option>
+                        <option value="OTHER">Other</option>
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+
                   {/* IP Address / Host */}
                   <div className="space-y-2">
                     <label className="text-slate-500 font-bold uppercase tracking-wider text-xs">IP Address / Host (Optional)</label>
@@ -211,6 +238,21 @@ export default function NewServiceRequestPage() {
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* Tags - Full Width */}
+                <div className="space-y-2">
+                  <label className="text-slate-500 font-bold uppercase tracking-wider text-xs">Tags (Optional)</label>
+                  <input 
+                    type="text" 
+                    className="input-field w-full bg-white" 
+                    placeholder="Comma-separated tags (e.g. production, critical, pci)"
+                    value={formData.tags.join(', ')}
+                    onChange={e => {
+                      const tags = e.target.value.split(',').map(t => t.trim()).filter(t => t);
+                      setFormData({...formData, tags});
+                    }}
+                  />
                 </div>
 
                 {/* Notes Section - Full Width */}
