@@ -197,6 +197,8 @@ model ServiceRequest {
   serviceName  String
   version      String
   environment  String
+  category     String?  // e.g., DATABASE, WEB_SERVER, MONITORING, CONTAINER
+  tags         String[]
   config       Json?
   status       String   @default("PENDING")
   attachments  String[]

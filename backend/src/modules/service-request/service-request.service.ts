@@ -42,6 +42,8 @@ export class ServiceRequestService {
         serviceName: dto.serviceName,
         environment: dto.environment,
         version: dto.type,
+        category: (dto as any).category || null,
+        tags: (dto as any).tags || [],
         config: dto.config || {},
         requestedBy: userId,
         status: 'PENDING',

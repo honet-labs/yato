@@ -45,6 +45,8 @@ interface ServiceInventory {
   serviceName: string;
   version: string;
   environment: string;
+  category?: string;
+  tags?: string[];
   endpoint: string;
   status: string;
   requestedBy?: string;
@@ -77,6 +79,8 @@ export default function ServiceInventoryPage() {
     serviceName: "",
     version: "1.0.0",
     environment: "Production",
+    category: "",
+    tags: [] as string[],
     endpoint: "",
     address: "",
     port: 3306,
@@ -279,6 +283,8 @@ export default function ServiceInventoryPage() {
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Service Name</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Category</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tags</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">IP Address</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Port</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL</th>
@@ -292,6 +298,8 @@ export default function ServiceInventoryPage() {
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-32" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-20" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-24" /></td>
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-24" /></td>
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-16" /></td>
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-40" /></td>
@@ -302,7 +310,7 @@ export default function ServiceInventoryPage() {
                 ))
               ) : paginatedItems?.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 8 : 7} className="py-24 text-center">
+                  <td colSpan={isAdmin ? 9 : 8} className="py-24 text-center">
                     <Box className="w-12 h-12 text-slate-100 mx-auto mb-4" />
                     <p className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">No provisioned services found</p>
                   </td>
@@ -319,6 +327,31 @@ export default function ServiceInventoryPage() {
                           <p className="text-[13px] font-semibold text-slate-900">{item.serviceName}</p>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {item.category ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                          {item.category}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-[11px]">N/A</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {item.tags && item.tags.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {item.tags.slice(0, 3).map((tag, idx) => (
+                            <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
+                              {tag}
+                            </span>
+                          ))}
+                          {item.tags.length > 3 && (
+                            <span className="text-[10px] text-slate-400">+{item.tags.length - 3}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 text-[11px]">N/A</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {item.address ? (
@@ -597,6 +630,42 @@ export default function ServiceInventoryPage() {
                         <option value="Staging">Staging</option>
                         <option value="Development">Development</option>
                       </select>
+                    </div>
+
+                    {/* Category */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Category</label>
+                      <select 
+                        className="input-field w-full py-2.5 text-sm font-bold"
+                        value={addFormData.category}
+                        onChange={e => setAddFormData({...addFormData, category: e.target.value})}
+                      >
+                        <option value="">Select Category</option>
+                        <option value="DATABASE">Database</option>
+                        <option value="WEB_SERVER">Web Server</option>
+                        <option value="MONITORING">Monitoring</option>
+                        <option value="CONTAINER">Container</option>
+                        <option value="CACHE">Cache</option>
+                        <option value="MESSAGE_QUEUE">Message Queue</option>
+                        <option value="STORAGE">Storage</option>
+                        <option value="NETWORK">Network</option>
+                        <option value="OTHER">Other</option>
+                      </select>
+                    </div>
+
+                    {/* Tags */}
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tags</label>
+                      <input 
+                        type="text" 
+                        className="input-field w-full py-2.5 text-sm" 
+                        placeholder="Comma-separated tags (e.g. production, critical, pci)"
+                        value={addFormData.tags.join(', ')}
+                        onChange={e => {
+                          const tags = e.target.value.split(',').map(t => t.trim()).filter(t => t);
+                          setAddFormData({...addFormData, tags});
+                        }}
+                      />
                     </div>
 
 
