@@ -94,6 +94,8 @@ export default function ServiceInventoryPage() {
     port: 22,
     username: "",
     password: "",
+    category: "",
+    tags: [] as string[],
     status: ""
   });
 
@@ -447,6 +449,8 @@ export default function ServiceInventoryPage() {
                                     port: item.port || 22,
                                     username: item.username || "",
                                     password: item.password || "",
+                                    category: item.category || "",
+                                    tags: item.tags || [],
                                     status: item.status
                                   });
                                 }}
@@ -511,13 +515,61 @@ export default function ServiceInventoryPage() {
 
                 <div className="p-8 space-y-6">
                   <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Category</label>
+                        <select 
+                          className="input-field w-full py-3 bg-slate-50 border-slate-200 font-bold text-sm"
+                          value={editData.category}
+                          onChange={e => setEditData({...editData, category: e.target.value})}
+                        >
+                          <option value="">Select Category</option>
+                          <option value="DATABASE">Database</option>
+                          <option value="WEB_SERVER">Web Server</option>
+                          <option value="MONITORING">Monitoring</option>
+                          <option value="CONTAINER">Container</option>
+                          <option value="CACHE">Cache</option>
+                          <option value="MESSAGE_QUEUE">Message Queue</option>
+                          <option value="STORAGE">Storage</option>
+                          <option value="NETWORK">Network</option>
+                          <option value="OTHER">Other</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Status</label>
+                        <select 
+                          className="input-field w-full py-3 bg-slate-50 border-slate-200 font-bold text-sm"
+                          value={editData.status}
+                          onChange={e => setEditData({...editData, status: e.target.value})}
+                        >
+                          <option value="PROVISIONING">PROVISIONING</option>
+                          <option value="COMPLETED">COMPLETED / ACTIVE</option>
+                          <option value="DECOMMISSIONED">DECOMMISSIONED</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Tags</label>
+                      <input 
+                        type="text" 
+                        className="input-field w-full py-3 bg-slate-50 border-slate-200 text-sm" 
+                        placeholder="Comma-separated tags (e.g. production, critical, pci)"
+                        value={editData.tags.join(', ')}
+                        onChange={e => {
+                          const tags = e.target.value.split(',').map(t => t.trim()).filter(t => t);
+                          setEditData({...editData, tags});
+                        }}
+                      />
+                    </div>
+
                     <div className="space-y-2">
                       <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">URL</label>
                       <div className="relative group">
                         <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
                         <input 
                           type="text" 
-                          className="input-field pl-12 w-full py-4 bg-slate-50 border-slate-200" 
+                          className="input-field pl-12 w-full py-3 bg-slate-50 border-slate-200 text-sm" 
                           placeholder="e.g. http://10.10.1.50:5678"
                           value={editData.endpoint}
                           onChange={e => setEditData({...editData, endpoint: e.target.value})}
@@ -530,7 +582,7 @@ export default function ServiceInventoryPage() {
                         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">IP Address</label>
                         <input 
                           type="text" 
-                          className="input-field w-full py-4 bg-slate-50 border-slate-200" 
+                          className="input-field w-full py-3 bg-slate-50 border-slate-200 text-sm" 
                           placeholder="10.10.1.50"
                           value={editData.address}
                           onChange={e => setEditData({...editData, address: e.target.value})}
@@ -540,7 +592,7 @@ export default function ServiceInventoryPage() {
                         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Port</label>
                         <input 
                           type="number" 
-                          className="input-field w-full py-4 bg-slate-50 border-slate-200" 
+                          className="input-field w-full py-3 bg-slate-50 border-slate-200 text-sm" 
                           placeholder="5678"
                           value={editData.port}
                           onChange={e => setEditData({...editData, port: parseInt(e.target.value)})}
@@ -548,17 +600,27 @@ export default function ServiceInventoryPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Status Override</label>
-                      <select 
-                        className="input-field w-full py-4 bg-slate-50 border-slate-200 font-bold"
-                        value={editData.status}
-                        onChange={e => setEditData({...editData, status: e.target.value})}
-                      >
-                        <option value="PROVISIONING">PROVISIONING</option>
-                        <option value="COMPLETED">COMPLETED / ACTIVE</option>
-                        <option value="DECOMMISSIONED">DECOMMISSIONED</option>
-                      </select>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Username</label>
+                        <input 
+                          type="text" 
+                          className="input-field w-full py-3 bg-slate-50 border-slate-200 text-sm" 
+                          placeholder="e.g. admin"
+                          value={editData.username}
+                          onChange={e => setEditData({...editData, username: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Password</label>
+                        <input 
+                          type="password" 
+                          className="input-field w-full py-3 bg-slate-50 border-slate-200 text-sm" 
+                          placeholder="••••••••"
+                          value={editData.password}
+                          onChange={e => setEditData({...editData, password: e.target.value})}
+                        />
+                      </div>
                     </div>
                   </div>
 

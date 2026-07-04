@@ -69,6 +69,17 @@ export class ServiceInventoryService {
     const item = await this.prisma.serviceInventory.findUnique({ where: { id } });
     if (!item) throw new NotFoundException('Service inventory item not found');
 
+    // Update related ServiceRequest for category and tags
+    if (data.category !== undefined || data.tags !== undefined) {
+      await this.prisma.serviceRequest.update({
+        where: { id: item.requestId },
+        data: {
+          ...(data.category !== undefined && { category: data.category || null }),
+          ...(data.tags !== undefined && { tags: data.tags || [] }),
+        },
+      });
+    }
+
     return this.prisma.serviceInventory.update({
       where: { id },
       data: {
