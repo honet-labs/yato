@@ -123,6 +123,7 @@ model VMRequest {
   updatedAt    DateTime @updatedAt
   
   rejectionReason String?
+  deletedAt   DateTime?
   vmInventory  VMInventory?
   comments     TicketComment[]
   followers    User[]          @relation("VMRequestFollowers")
@@ -130,6 +131,7 @@ model VMRequest {
   @@index([status])
   @@index([requestedBy])
   @@index([ticketId])
+  @@index([deletedAt])
 }
 
 model SupportTicket {
@@ -151,10 +153,12 @@ model SupportTicket {
   
   comments    TicketComment[]
   followers   User[]   @relation("SupportTicketFollowers")
+  deletedAt   DateTime?
 
   @@index([status])
   @@index([requestedBy])
   @@index([createdAt])
+  @@index([deletedAt])
 }
 
 model Notification {
@@ -169,6 +173,8 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
 }
 
 model VMInventory {
@@ -207,6 +213,7 @@ model ServiceRequest {
   updatedAt    DateTime @default(now()) @updatedAt
   
   rejectionReason String?
+  deletedAt   DateTime?
   
   approvedBy   String?
   admin        User?    @relation("AdminServiceApprovals", fields: [approvedBy], references: [id])
@@ -219,6 +226,7 @@ model ServiceRequest {
   @@index([status])
   @@index([requestedBy])
   @@index([ticketId])
+  @@index([deletedAt])
 }
 
 model ServiceInventory {
@@ -358,6 +366,7 @@ model TicketComment {
   @@index([serviceRequestId])
   @@index([supportTicketId])
   @@index([parentId])
+  @@index([createdAt])
 }
 
 model Otp {
@@ -485,6 +494,7 @@ model Task {
   @@index([parentId])
   @@index([createdAt])
   @@index([createdById, createdAt])
+  @@index([dueDate])
 }
 
 model TaskComment {

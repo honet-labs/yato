@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { EncryptionService } from '../../common/utils/encryption.service';
 
 @Injectable()
 export class ServiceInventoryService {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
+    private encryptionService: EncryptionService,
   ) {}
 
   async findAll(userId?: string) {
@@ -69,7 +71,7 @@ export class ServiceInventoryService {
         address: data.address,
         port: data.port ? parseInt(data.port) : null,
         username: data.username,
-        password: data.password,
+        password: data.password ? this.encryptionService.encrypt(data.password) : undefined,
         endpoint: data.endpoint,
         status: data.status || 'COMPLETED',
       },
@@ -119,7 +121,7 @@ export class ServiceInventoryService {
         address: data.address || null,
         port: data.port ? parseInt(data.port) : null,
         username: data.username || null,
-        password: data.password || null,
+        password: data.password ? this.encryptionService.encrypt(data.password) : null,
         status: 'COMPLETED'
       }
     });
@@ -140,7 +142,7 @@ export class ServiceInventoryService {
 
     return {
       id: item.id,
-      password: item.password,
+      password: item.password ? this.encryptionService.decrypt(item.password) : null,
     };
   }
 }
