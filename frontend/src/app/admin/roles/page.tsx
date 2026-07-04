@@ -38,23 +38,23 @@ interface Role {
 
 const staticPermissionGroups = [
   { 
-    group: "Main & Dashboard", 
+    group: "Main Menu", 
     perms: ["VIEW_DASHBOARD", "VIEW_COMMUNITY"] 
   },
   { 
-    group: "Support Ticketing", 
+    group: "Support Tickets", 
     perms: ["VIEW_SUPPORT_TICKETS", "MANAGE_SUPPORT_TICKETS", "APPROVE_REQUESTS"] 
   },
   { 
-    group: "Infrastructure (VM)", 
+    group: "VM Inventory", 
     perms: ["VIEW_VM_INVENTORY", "PROVISION_VM", "MANAGE_VM_INVENTORY"] 
   },
   { 
-    group: "Infrastructure (Service)", 
+    group: "Service Inventory", 
     perms: ["VIEW_SERVICE_INVENTORY", "PROVISION_SERVICE", "MANAGE_SERVICE_INVENTORY"] 
   },
   { 
-    group: "Security & Secrets", 
+    group: "Credential Vault", 
     perms: ["VIEW_CREDENTIALS", "MANAGE_CREDENTIALS"] 
   },
   { 
@@ -66,11 +66,11 @@ const staticPermissionGroups = [
     perms: ["VIEW_TASKS", "MANAGE_TASKS"] 
   },
   { 
-    group: "File Manager & Storage", 
+    group: "File Manager", 
     perms: ["VIEW_FILES", "MANAGE_FILES"] 
   },
   { 
-    group: "Human Resource Management", 
+    group: "Attendance & Timesheet", 
     perms: [
       "VIEW_HRM", 
       "MANAGE_HRM", 
@@ -87,16 +87,36 @@ const staticPermissionGroups = [
     perms: ["VIEW_NOTES", "MANAGE_NOTES"] 
   },
   { 
-    group: "PMO Calendar & Timeline", 
+    group: "PMO Calendar", 
     perms: ["VIEW_PMO_CALENDAR", "MANAGE_PMO_CALENDAR"] 
   },
   { 
-    group: "Integrations & Broadcast", 
-    perms: ["VIEW_INTEGRATIONS", "VIEW_BROADCAST"] 
+    group: "Integration Hub", 
+    perms: ["VIEW_INTEGRATIONS"] 
   },
   { 
-    group: "System & Governance", 
-    perms: ["VIEW_AUDIT_LOGS", "VIEW_SYSTEM_STATUS", "MANAGE_USERS", "MANAGE_ROLES", "MANAGE_CONFIG"] 
+    group: "Broadcast Message", 
+    perms: ["VIEW_BROADCAST"] 
+  },
+  { 
+    group: "System Status", 
+    perms: ["VIEW_SYSTEM_STATUS"] 
+  },
+  { 
+    group: "Log Activity", 
+    perms: ["VIEW_AUDIT_LOGS"] 
+  },
+  { 
+    group: "User Management", 
+    perms: ["MANAGE_USERS"] 
+  },
+  { 
+    group: "Access Control", 
+    perms: ["MANAGE_ROLES"] 
+  },
+  { 
+    group: "Platform Settings", 
+    perms: ["MANAGE_CONFIG"] 
   }
 ];
 
