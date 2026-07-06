@@ -540,8 +540,8 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                       </div>
                     ) : (
                       displayNotifications?.map((n: any) => {
-                        // Strip "Link: ..." text from message to keep it clean and simple
-                        const cleanMsg = (n.message || "").split("Link:")[0].trim();
+                        // Strip "Link: ..." text and HTML tags from message to keep it clean and simple
+                        const cleanMsg = (n.message || "").split("Link:")[0].replace(/<[^>]*>/g, "").trim();
                         
                         // Parse absolute link URLs to relative paths for fast Next.js client-side navigation
                         let targetLink = n.link;

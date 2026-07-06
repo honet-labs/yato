@@ -71,16 +71,14 @@ function toTimezoneDateTimeLocal(dateString: string, timezone: string): string {
   if (isNaN(date.getTime())) return "";
 
   try {
-    const formatter = new Intl.DateTimeFormat("sv-SE", {
-      timeZone: timezone || "Asia/Jakarta",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23"
-    });
-    return formatter.format(date).replace(" ", "T");
+    // The <input type="datetime-local"> always renders in browser-local timezone.
+    // Convert the UTC date to browser-local time for display.
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hour = String(date.getHours()).padStart(2, "0");
+    const minute = String(date.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hour}:${minute}`;
   } catch (e) {
     return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   }
@@ -92,34 +90,12 @@ function fromTimezoneDateTimeLocal(localString: string, timezone: string): strin
   if (!datePart || !timePart) return new Date(localString).toISOString();
   
   try {
+    // The <input type="datetime-local"> always shows browser-local time.
+    // Convert directly from browser-local to UTC — no intermediate timezone needed.
     const [year, month, day] = datePart.split("-").map(Number);
     const [hour, minute] = timePart.split(":").map(Number);
-    
-    const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
-    const tzParts = new Intl.DateTimeFormat("en-US", {
-      timeZone: timezone || "Asia/Jakarta",
-      year: "numeric",
-      month: "numeric",
-      day: "numeric",
-      hour: "numeric",
-      minute: "numeric",
-      second: "numeric",
-      hourCycle: "h23"
-    }).formatToParts(utcDate);
-    
-    const getPart = (type: string) => Number(tzParts.find(p => p.type === type)?.value || 0);
-    
-    const tzYear = getPart("year");
-    const tzMonth = getPart("month") - 1;
-    const tzDay = getPart("day");
-    const tzHour = getPart("hour") % 24;
-    const tzMin = getPart("minute");
-    
-    const localEpoch = Date.UTC(year, month - 1, day, hour, minute);
-    const tzEpoch = Date.UTC(tzYear, tzMonth, tzDay, tzHour, tzMin);
-    
-    const diff = localEpoch - tzEpoch;
-    return new Date(utcDate.getTime() + diff).toISOString();
+    const localDate = new Date(year, month - 1, day, hour, minute);
+    return localDate.toISOString();
   } catch (e) {
     return new Date(localString).toISOString();
   }
@@ -491,14 +467,12 @@ export default function NotesPage() {
   const handleCalendarCellClick = (date: Date) => {
     if (!date) return;
     try {
-      const formatter = new Intl.DateTimeFormat("sv-SE", {
-        timeZone: appTimezone || "Asia/Jakarta",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
-      });
-      const formattedDate = formatter.format(date); // YYYY-MM-DD
-      setNewReminderAt(`${formattedDate}T09:00`); // default to 09:00 AM in setup timezone
+      // Use browser-local time for the datetime-local input
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const formattedDate = `${year}-${month}-${day}`;
+      setNewReminderAt(`${formattedDate}T09:00`); // default to 09:00 AM in browser timezone
     } catch (e) {
       const formattedDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
         .toISOString()
@@ -1069,8 +1043,7 @@ function NoteCard({
     day: "numeric",
     month: "short",
     hour: "2-digit",
-    minute: "2-digit",
-    timeZone: appTimezone || "Asia/Jakarta"
+    minute: "2-digit"
   }) : "";
 
   return (
