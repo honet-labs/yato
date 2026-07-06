@@ -274,7 +274,11 @@ export class AuthService {
     
     await this.auditService.log(user.id, 'LOGIN', 'User', user.id, { ipAddress, userAgent }, ipAddress, userAgent);
 
-    return this.generateTokens(user.id, user.email);
+    const tokens = await this.generateTokens(user.id, user.email);
+    return {
+      ...tokens,
+      forcePasswordChange: user.forcePasswordChange,
+    };
   }
 
   private async handleFailedLogin(userId: string, currentAttempts: number) {
@@ -434,6 +438,42 @@ export class AuthService {
   async logout(userId: string) {
     await this.auditService.log(userId, 'LOGOUT', 'User', userId);
     return { success: true };
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    const isCurrentValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentValid) throw new BadRequestException('Current password is incorrect');
+
+    // Validate password complexity
+    if (newPassword.length < 12) {
+      throw new BadRequestException('Password must be at least 12 characters');
+    }
+    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      throw new BadRequestException('Password must include uppercase, lowercase, number, and special character');
+    }
+
+    // Check password history
+    await this.checkPasswordHistory(userId, newPassword, user.previousPasswords);
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+    const history = this.getPasswordHistoryArray(user.previousPasswords);
+    history.unshift(user.password);
+    if (history.length > this.PASSWORD_HISTORY_COUNT) history.length = this.PASSWORD_HISTORY_COUNT;
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: newHash,
+        previousPasswords: JSON.stringify(history),
+        forcePasswordChange: false,
+      },
+    });
+
+    await this.auditService.log(userId, 'CHANGE_PASSWORD', 'User', userId);
+    return { success: true, message: 'Password changed successfully' };
   }
 
   async updateProfile(userId: string, dto: any) {

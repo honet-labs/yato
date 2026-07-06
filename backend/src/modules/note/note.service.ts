@@ -211,7 +211,11 @@ export class NoteService {
           // If recurring, calculate next reminder time and reset sent status
           if (note.repeatInterval && note.repeatInterval !== 'NONE') {
             const nextReminder = new Date(note.reminderAt);
-            if (note.repeatInterval === 'DAILY') {
+            if (note.repeatInterval === 'MINUTELY') {
+              nextReminder.setMinutes(nextReminder.getMinutes() + 1);
+            } else if (note.repeatInterval === 'HOURLY') {
+              nextReminder.setHours(nextReminder.getHours() + 1);
+            } else if (note.repeatInterval === 'DAILY') {
               nextReminder.setDate(nextReminder.getDate() + 1);
             } else if (note.repeatInterval === 'WEEKLY') {
               nextReminder.setDate(nextReminder.getDate() + 7);
@@ -221,7 +225,11 @@ export class NoteService {
             
             // To prevent potential infinite loops if a reminder was somehow delayed, catch it up to the future.
             while (nextReminder <= now) {
-              if (note.repeatInterval === 'DAILY') {
+              if (note.repeatInterval === 'MINUTELY') {
+                nextReminder.setMinutes(nextReminder.getMinutes() + 1);
+              } else if (note.repeatInterval === 'HOURLY') {
+                nextReminder.setHours(nextReminder.getHours() + 1);
+              } else if (note.repeatInterval === 'DAILY') {
                 nextReminder.setDate(nextReminder.getDate() + 1);
               } else if (note.repeatInterval === 'WEEKLY') {
                 nextReminder.setDate(nextReminder.getDate() + 7);

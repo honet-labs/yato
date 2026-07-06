@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
-import api from "@/lib/api";
+import api, { getFileDownloadUrl } from "@/lib/api";
 import { useLanguage } from "@/context/language-context";
 import { Pagination } from "@/components/Pagination";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -422,7 +422,7 @@ export default function FileManagerPage() {
                                   ) : category === "IMAGE" ? (
                                     // Proxy download URL to render image
                                     <img 
-                                      src={`/api/storage/download/${file.id}`} 
+                                      src={getFileDownloadUrl(file.id)} 
                                       alt={file.filename}
                                       className="w-full h-full object-cover"
                                       onError={(e) => {
@@ -473,7 +473,7 @@ export default function FileManagerPage() {
 
                                 <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                                   <a
-                                    href={`/api/storage/download/${file.id}`}
+                                    href={getFileDownloadUrl(file.id)}
                                     download={file.filename}
                                     className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg border border-transparent hover:border-blue-100 transition-all"
                                     title="Download File"
@@ -907,7 +907,7 @@ export default function FileManagerPage() {
                   <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center justify-center max-h-[350px] overflow-hidden relative">
                     {getFileCategory(selectedFile.mimeType) === "IMAGE" ? (
                       <img 
-                        src={selectedFile.driver === "DATABASE" ? selectedFile.path : `/api/storage/download/${selectedFile.id}`} 
+                        src={selectedFile.driver === "DATABASE" ? selectedFile.path : getFileDownloadUrl(selectedFile.id)} 
                         alt={selectedFile.filename}
                         className="max-h-[300px] object-contain rounded-lg shadow-sm"
                       />
@@ -979,7 +979,7 @@ export default function FileManagerPage() {
                   </button>
                   
                   <a 
-                    href={`/api/storage/download/${selectedFile.id}`}
+                    href={getFileDownloadUrl(selectedFile.id)}
                     download={selectedFile.filename}
                     className="btn-primary flex items-center gap-1.5"
                   >

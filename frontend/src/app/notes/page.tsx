@@ -628,6 +628,8 @@ export default function NotesPage() {
                             className="bg-transparent border-none outline-none text-xs text-slate-700 font-bold cursor-pointer"
                           >
                             <option value="NONE">{lang === "EN" ? "Does not repeat" : "Tidak berulang"}</option>
+                            <option value="MINUTELY">{lang === "EN" ? "Every Minute" : "Setiap Menit"}</option>
+                            <option value="HOURLY">{lang === "EN" ? "Hourly" : "Per Jam"}</option>
                             <option value="DAILY">{lang === "EN" ? "Daily" : "Harian"}</option>
                             <option value="WEEKLY">{lang === "EN" ? "Weekly" : "Mingguan"}</option>
                             <option value="MONTHLY">{lang === "EN" ? "Monthly" : "Bulanan"}</option>
@@ -968,6 +970,8 @@ export default function NotesPage() {
                         className="bg-transparent border-none outline-none text-xs text-slate-700 font-bold cursor-pointer"
                       >
                         <option value="NONE">{lang === "EN" ? "Does not repeat" : "Tidak berulang"}</option>
+                        <option value="MINUTELY">{lang === "EN" ? "Every Minute" : "Setiap Menit"}</option>
+                        <option value="HOURLY">{lang === "EN" ? "Hourly" : "Per Jam"}</option>
                         <option value="DAILY">{lang === "EN" ? "Daily" : "Harian"}</option>
                         <option value="WEEKLY">{lang === "EN" ? "Weekly" : "Mingguan"}</option>
                         <option value="MONTHLY">{lang === "EN" ? "Monthly" : "Bulanan"}</option>

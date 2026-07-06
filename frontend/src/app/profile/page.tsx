@@ -16,7 +16,9 @@ import {
   Save, 
   CheckCircle2,
   AlertCircle,
-  AtSign
+  AtSign,
+  Lock,
+  Key
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -26,6 +28,13 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [fetchError, setFetchError] = useState("");
+  
+  // Force password change state
+  const [forcePasswordChange, setForcePasswordChange] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [passwordError, setPasswordError] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -40,6 +49,10 @@ export default function ProfilePage() {
 
   useEffect(() => {
     fetchProfile();
+    // Check if force password change is required
+    if (typeof window !== "undefined" && localStorage.getItem("yato_force_password_change") === "true") {
+      setForcePasswordChange(true);
+    }
   }, []);
 
   const fetchProfile = async () => {
@@ -55,8 +68,9 @@ export default function ProfilePage() {
         whatsappNotificationEnabled: response.data.whatsappNotificationEnabled ?? true,
         telegramNotificationEnabled: response.data.telegramNotificationEnabled ?? true
       });
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Failed to load profile:", err);
+      setFetchError(err.response?.data?.message || "Failed to load profile. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -78,6 +92,40 @@ export default function ProfilePage() {
     }
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError("");
+    
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError("New passwords do not match");
+      return;
+    }
+    if (passwordForm.newPassword.length < 12) {
+      setPasswordError("Password must be at least 12 characters");
+      return;
+    }
+    if (!/[A-Z]/.test(passwordForm.newPassword) || !/[a-z]/.test(passwordForm.newPassword) || !/[0-9]/.test(passwordForm.newPassword) || !/[!@#$%^&*(),.?":{}|<>]/.test(passwordForm.newPassword)) {
+      setPasswordError("Password must include uppercase, lowercase, number, and special character");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await api.post("/auth/change-password", {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      localStorage.removeItem("yato_force_password_change");
+      setForcePasswordChange(false);
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setMessage({ type: "success", text: "Password changed successfully!" });
+    } catch (err: any) {
+      setPasswordError(err.response?.data?.message || "Failed to change password");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   const showWhatsappWarning = formData.whatsappNotificationEnabled && !formData.phoneNumber.trim();
   const showTelegramWarning = formData.telegramNotificationEnabled && !formData.telegramId.trim();
 
@@ -85,6 +133,34 @@ export default function ProfilePage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex h-screen bg-white font-sans text-slate-600">
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <MobileNav />
+          <main className="flex-1 p-8 overflow-y-auto pt-24 lg:pt-8 bg-slate-50/30">
+            <div className="max-w-2xl">
+              <header className="mb-10">
+                <h1 className="page-title">Account Settings</h1>
+              </header>
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 text-center">
+                <AlertCircle className="w-12 h-12 text-rose-400 mx-auto mb-4" />
+                <p className="text-sm font-bold text-slate-600 mb-4">{fetchError}</p>
+                <button 
+                  onClick={() => { setFetchError(""); setIsLoading(true); fetchProfile(); }}
+                  className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          </main>
+        </div>
       </div>
     );
   }
@@ -308,6 +384,87 @@ export default function ProfilePage() {
           </div>
         </main>
       </div>
+
+      {/* Force Password Change Modal */}
+      {forcePasswordChange && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-slate-100 p-8"
+          >
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-4">
+                <Key className="w-8 h-8 text-amber-600" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 mb-1">Password Change Required</h2>
+              <p className="text-sm text-slate-500">
+                This is your first login with a default password. You must change it to continue.
+              </p>
+            </div>
+
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              {passwordError && (
+                <div className="p-3 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 text-sm font-bold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  {passwordError}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Password</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input 
+                    type="password" required
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                    className="w-full bg-slate-50/50 border border-slate-100 rounded-xl pl-11 pr-4 py-3 text-sm font-bold text-slate-700 focus:bg-white focus:border-blue-500 outline-none transition-all"
+                    placeholder="Enter current password"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">New Password</label>
+                <div className="relative">
+                  <Key className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input 
+                    type="password" required
+                    value={passwordForm.newPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                    className="w-full bg-slate-50/50 border border-slate-100 rounded-xl pl-11 pr-4 py-3 text-sm font-bold text-slate-700 focus:bg-white focus:border-blue-500 outline-none transition-all"
+                    placeholder="Min 12 chars, mixed case, number, symbol"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Confirm New Password</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input 
+                    type="password" required
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                    className="w-full bg-slate-50/50 border border-slate-100 rounded-xl pl-11 pr-4 py-3 text-sm font-bold text-slate-700 focus:bg-white focus:border-blue-500 outline-none transition-all"
+                    placeholder="Repeat new password"
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="submit"
+                disabled={isChangingPassword || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+                className="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-bold text-sm shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isChangingPassword ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5" />}
+                Change Password & Continue
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

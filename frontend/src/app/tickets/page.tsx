@@ -157,6 +157,27 @@ function TicketsContent() {
     }
   }, []);
 
+  // Mark ticket-related notifications as read when visiting the tickets page
+  useEffect(() => {
+    const markTicketNotificationsRead = async () => {
+      try {
+        const res = await api.get("/notifications?limit=100");
+        const ticketNotifications = (res.data?.data || res.data || []).filter(
+          (n: any) => !n.isRead && n.link?.includes("/tickets")
+        );
+        for (const n of ticketNotifications) {
+          await api.post(`/notifications/${n.id}/read`);
+        }
+        if (ticketNotifications.length > 0) {
+          queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        }
+      } catch (e) {
+        // Silently fail - badge will remain but is non-critical
+      }
+    };
+    markTicketNotificationsRead();
+  }, []);
+
   const handleOpenTicket = (ticket: UnifiedTicket) => {
     setSelectedTicketForDetail(ticket);
     const now = Date.now();

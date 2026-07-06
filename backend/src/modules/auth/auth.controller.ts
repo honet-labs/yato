@@ -119,6 +119,14 @@ export class AuthController {
     return this.authService.verifyPassword(req.user.id || req.user.sub, password);
   }
 
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Change current user password (requires current password)' })
+  changePassword(@Req() req: any, @Body() dto: { currentPassword: string; newPassword: string }) {
+    return this.authService.changePassword(req.user.id, dto.currentPassword, dto.newPassword);
+  }
+
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

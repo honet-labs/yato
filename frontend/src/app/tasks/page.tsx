@@ -9,7 +9,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
-import api from "@/lib/api";
+import api, { getFileDownloadUrl } from "@/lib/api";
 import { useSearchParams, useRouter } from "next/navigation";
 import { 
   Plus, 
@@ -283,9 +283,14 @@ function TasksPageContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      showToast("Tracker deleted successfully!", "success");
       if (projectIdParam) {
         router.push("/tasks");
       }
+    },
+    onError: (error: any) => {
+      const errMsg = error.response?.data?.message || "Failed to delete tracker";
+      showToast(errMsg, "error");
     }
   });
 
@@ -406,7 +411,7 @@ function TasksPageContent() {
     if (file.driver === "DATABASE" && file.path) {
       return file.path;
     }
-    return `/api/storage/download/${file.id}`;
+    return getFileDownloadUrl(file.id);
   };
 
   // Premium Mentions States
@@ -1122,6 +1127,7 @@ function TasksPageContent() {
                                 >
                                   <Edit className="w-3.5 h-3.5" />
                                 </button>
+                                {isAdmin && (
                                 <button
                                   onClick={(e) => handleDeleteProject(project.id, e)}
                                   className="p-1 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
@@ -1129,6 +1135,7 @@ function TasksPageContent() {
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
+                                )}
                               </div>
                             </div>
 
@@ -1193,6 +1200,7 @@ function TasksPageContent() {
                       >
                         <Edit className="w-3.5 h-3.5" />
                       </button>
+                      {isAdmin && (
                       <button
                         onClick={(e) => activeProject && handleDeleteProject(activeProject.id, e)}
                         className="p-1 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
@@ -1200,6 +1208,7 @@ function TasksPageContent() {
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
+                      )}
                     </div>
                   </div>
                   <p className="text-xs text-slate-400 font-medium">{activeProject?.description || "No description provided."}</p>
