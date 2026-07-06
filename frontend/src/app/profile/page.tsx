@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
-import { Footer } from "@/components/Footer";
+
 import api from "@/lib/api";
 import { 
   User, 
@@ -20,7 +20,7 @@ import {
   Lock,
   Key
 } from "lucide-react";
-import { motion } from "framer-motion";
+
 import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
@@ -178,10 +178,8 @@ export default function ProfilePage() {
               <p className="text-slate-400 text-[13px] font-bold uppercase tracking-widest mt-1">Manage your identity and contact information</p>
             </header>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10"
+            <div 
+              className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 animate-[fadeInUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]"
             >
               <form onSubmit={handleUpdate} className="space-y-8">
                 {message.text && (
@@ -380,7 +378,7 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </form>
-            </motion.div>
+            </div>
           </div>
         </main>
       </div>
@@ -388,10 +386,8 @@ export default function ProfilePage() {
       {/* Force Password Change Modal */}
       {forcePasswordChange && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-slate-100 p-8"
+          <div 
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-slate-100 p-8 animate-[fadeInUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]"
           >
             <div className="text-center mb-6">
               <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-4">
@@ -462,7 +458,7 @@ export default function ProfilePage() {
                 Change Password & Continue
               </button>
             </form>
-          </motion.div>
+          </div>
         </div>
       )}
     </div>
