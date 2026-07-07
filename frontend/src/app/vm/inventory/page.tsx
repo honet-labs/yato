@@ -188,8 +188,12 @@ export default function VmInventoryPage() {
   const handleRevealVmPassword = async (vm: VM, purpose: "REVEAL" | "COPY" | "COPY_USER") => {
     if (revealedPasswords[vm.id]) {
       if (purpose === "REVEAL") {
-        setShowPassInConsole(true);
-        setShowConsole(vm);
+        if (showConsole?.id === vm.id) {
+          setShowPassInConsole(!showPassInConsole);
+        } else {
+          setShowPassInConsole(true);
+          setShowConsole(vm);
+        }
       } else if (purpose === "COPY_USER") {
         copyToClipboard(vm.sshUser || 'root');
       } else {

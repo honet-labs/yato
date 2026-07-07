@@ -60,6 +60,7 @@ export default function CredentialsPage() {
   const [showPassInForm, setShowPassInForm] = useState(false);
   const [showPassInDetail, setShowPassInDetail] = useState(false);
   const [copiedField, setCopiedField] = useState(null as string | null);
+  const [revealedPasswords, setRevealedPasswords] = useState({} as Record<string, string>);
   
   // Password verification state for revealing secrets
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
@@ -882,7 +883,10 @@ export default function CredentialsPage() {
                       <div className="flex-1">
                         <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Secure Secret / Password</p>
                         <p className="text-sm font-mono font-bold text-slate-900 break-all pr-4">
-                          {showPassInDetail ? selectedCred.password : "••••••••••••••••••••••••"}
+                          {(() => {
+                            const actualPassword = revealedPasswords[selectedCred.id] || selectedCred.password;
+                            return showPassInDetail ? actualPassword : "••••••••••••••••••••••••";
+                          })()}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -893,7 +897,7 @@ export default function CredentialsPage() {
                           {showPassInDetail ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                         </button>
                         <button 
-                          onClick={() => handleCopy(selectedCred.password || "", 'password')}
+                          onClick={() => handleCopy(revealedPasswords[selectedCred.id] || selectedCred.password || "", 'password')}
                           className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-white rounded-xl transition-all shadow-sm"
                         >
                           {copiedField === 'password' ? <Check className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
@@ -972,6 +976,10 @@ export default function CredentialsPage() {
                     } else {
                       // Verify password then reveal secret
                       const res = await api.post(`/credentials/${pendingRevealCredId}/reveal`, { password: verifyPassword });
+                      setRevealedPasswords(prev => ({
+                        ...prev,
+                        [pendingRevealCredId as string]: res.data.password || ""
+                      }));
                       setSelectedCred(res.data);
                       setSecretVerified(true);
                       setShowPassInDetail(true);
