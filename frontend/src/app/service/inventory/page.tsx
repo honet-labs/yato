@@ -184,7 +184,7 @@ export default function ServiceInventoryPage() {
         ...item,
         password: revealedPasswords[item.id]
       });
-      setShowPassInDetail(false);
+      setShowPassInDetail(true);
     } else {
       setPendingRevealService(item);
       setVerifyPassword("");

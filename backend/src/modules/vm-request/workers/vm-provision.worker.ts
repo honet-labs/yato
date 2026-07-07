@@ -3,6 +3,7 @@ import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IntegrationService } from '../../integration/integration.service';
+import { EncryptionService } from '../../../common/utils/encryption.service';
 import axios from 'axios';
 import * as https from 'https';
 
@@ -99,6 +100,7 @@ export class VmProvisionWorker extends WorkerHost {
   constructor(
     private prisma: PrismaService,
     private integrationService: IntegrationService,
+    private encryptionService: EncryptionService,
   ) {
     super();
   }
@@ -338,7 +340,7 @@ export class VmProvisionWorker extends WorkerHost {
         data: {
           ipAddress,
           sshUser,
-          sshPassword,
+          sshPassword: sshPassword ? this.encryptionService.encrypt(sshPassword) : null,
           sshPort,
           status: 'RUNNING',
         },

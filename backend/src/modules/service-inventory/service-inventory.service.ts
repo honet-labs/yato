@@ -83,16 +83,21 @@ export class ServiceInventoryService {
       });
     }
 
+    const updateData: any = {
+      address: data.address,
+      port: data.port ? parseInt(data.port) : null,
+      username: data.username,
+      endpoint: data.endpoint,
+      status: data.status || 'COMPLETED',
+    };
+
+    if (data.password && data.password !== '••••••••' && data.password !== '••••••••••••' && data.password !== '********' && data.password !== '****************') {
+      updateData.password = this.encryptionService.encrypt(data.password);
+    }
+
     return this.prisma.serviceInventory.update({
       where: { id },
-      data: {
-        address: data.address,
-        port: data.port ? parseInt(data.port) : null,
-        username: data.username,
-        password: data.password ? this.encryptionService.encrypt(data.password) : undefined,
-        endpoint: data.endpoint,
-        status: data.status || 'COMPLETED',
-      },
+      data: updateData,
     });
   }
 

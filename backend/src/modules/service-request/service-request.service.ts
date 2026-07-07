@@ -208,8 +208,14 @@ export class ServiceRequestService {
     const address = dto?.address || request.address;
     const port = dto?.port ? parseInt(dto.port as any) : (request.port || null);
     const username = dto?.username || request.username;
-    const password = dto?.password || request.password;
     const endpoint = request.endpoint;
+
+    let finalPassword = null;
+    if (dto?.password && dto.password !== '••••••••' && dto.password !== '••••••••••••' && dto.password !== '********' && dto.password !== '****************') {
+      finalPassword = this.encryptionService.encrypt(dto.password);
+    } else if (request.password) {
+      finalPassword = request.password;
+    }
 
     // Create Inventory Entry
     await this.prisma.serviceInventory.create({
@@ -219,7 +225,7 @@ export class ServiceRequestService {
         address: address || null,
         port: port,
         username: username || null,
-        password: password ? this.encryptionService.encrypt(password) : null,
+        password: finalPassword,
         status: address ? 'COMPLETED' : (isAutoEnabled ? 'PROVISIONING' : 'AWAITING_CONFIG')
       }
     });

@@ -156,7 +156,7 @@ export class VmInventoryService {
         requestId: request.id,
         ipAddress: data.ipAddress || null,
         sshUser: data.sshUser || null,
-        sshPassword: data.sshPassword || null,
+        sshPassword: data.sshPassword ? this.encryptionService.encrypt(data.sshPassword) : null,
         sshPort: data.sshPort ? parseInt(data.sshPort) : 22,
         status: 'RUNNING'
       }

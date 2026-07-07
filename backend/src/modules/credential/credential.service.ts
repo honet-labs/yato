@@ -91,7 +91,14 @@ export class CredentialService {
     }
 
     const updateData = { ...data };
-    if (data.password && data.password !== '****************') {
+    if (
+      data.password &&
+      data.password !== '****************' &&
+      data.password !== '••••••••••••••••••••••••' &&
+      data.password !== '••••••••' &&
+      data.password !== '••••••••••••' &&
+      data.password !== '********'
+    ) {
       updateData.password = this.encryptionService.encrypt(data.password);
     } else {
       delete updateData.password;
