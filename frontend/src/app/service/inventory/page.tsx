@@ -938,9 +938,13 @@ export default function ServiceInventoryPage() {
                           <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Password</span>
                             <span className="text-sm font-mono text-slate-900">
-                              {viewingDetails.password 
-                                ? (showPassInDetail ? viewingDetails.password : '••••••••') 
-                                : '---'}
+                              {(() => {
+                                const actualPassword = (viewingDetails.id && revealedPasswords[viewingDetails.id]) 
+                                  ? revealedPasswords[viewingDetails.id] 
+                                  : viewingDetails.password;
+                                if (!actualPassword) return '---';
+                                return showPassInDetail ? actualPassword : '••••••••';
+                              })()}
                             </span>
                           </div>
                         </div>
@@ -953,7 +957,7 @@ export default function ServiceInventoryPage() {
                             {showPassInDetail ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                           </button>
                           <button 
-                            onClick={() => handleCopy(viewingDetails.password || '', 'detail-pass')}
+                            onClick={() => handleCopy((viewingDetails.id && revealedPasswords[viewingDetails.id]) || viewingDetails.password || '', 'detail-pass')}
                             className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all"
                             title="Copy Password"
                           >
