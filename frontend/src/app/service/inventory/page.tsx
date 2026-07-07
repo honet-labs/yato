@@ -1016,7 +1016,7 @@ export default function ServiceInventoryPage() {
                         ...pendingRevealService,
                         password: res.data.password
                       });
-                      setShowPassInDetail(false);
+                      setShowPassInDetail(true);
                     } catch (err: any) {
                       const nextAttempts = failedVerifyAttempts + 1;
                       setFailedVerifyAttempts(nextAttempts);

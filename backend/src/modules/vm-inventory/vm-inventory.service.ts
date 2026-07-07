@@ -176,7 +176,7 @@ export class VmInventoryService {
 
     return {
       id: item.id,
-      sshPassword: item.sshPassword,
+      sshPassword: item.sshPassword ? this.encryptionService.decrypt(item.sshPassword) : null,
     };
   }
 }
