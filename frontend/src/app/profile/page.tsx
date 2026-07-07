@@ -171,7 +171,7 @@ export default function ProfilePage() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <MobileNav />
         
-        <main className="flex-1 p-8 overflow-y-auto pt-24 lg:pt-8 bg-slate-50/30">
+        <main className="page-container overflow-y-auto custom-scrollbar">
           <div className="max-w-2xl">
             <header className="mb-10">
               <h1 className="page-title">Account Settings</h1>
