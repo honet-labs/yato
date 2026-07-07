@@ -143,7 +143,7 @@ export default function ProfilePage() {
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <MobileNav />
-          <main className="flex-1 p-8 overflow-y-auto pt-24 lg:pt-8 bg-slate-50/30">
+        <main className="page-container overflow-y-auto custom-scrollbar">
             <div className="max-w-2xl">
               <header className="mb-10">
                 <h1 className="page-title">Account Settings</h1>
@@ -179,7 +179,7 @@ export default function ProfilePage() {
             </header>
 
             <div 
-              className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 animate-[fadeInUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+              className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10"
             >
               <form onSubmit={handleUpdate} className="space-y-8">
                 {message.text && (
@@ -387,7 +387,7 @@ export default function ProfilePage() {
       {forcePasswordChange && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div 
-            className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-slate-100 p-8 animate-[fadeInUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-slate-100 p-8"
           >
             <div className="text-center mb-6">
               <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-4">

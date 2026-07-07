@@ -112,11 +112,27 @@ export class EncryptionService implements OnModuleInit {
 
   private decryptWithKek(text: string): string {
     const textParts = text.split(':');
-    const iv = Buffer.from(textParts.shift()!, 'hex');
-    const authTag = Buffer.from(textParts.shift()!, 'hex');
-    const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-    const decipher = crypto.createDecipheriv(this.algorithm, this.masterKey, iv);
-    decipher.setAuthTag(authTag);
+
+    // Try GCM format first: iv:authTag:ciphertext (3+ parts)
+    if (textParts.length >= 3) {
+      try {
+        const iv = Buffer.from(textParts[0], 'hex');
+        const authTag = Buffer.from(textParts[1], 'hex');
+        const encryptedText = Buffer.from(textParts.slice(2).join(':'), 'hex');
+        const decipher = crypto.createDecipheriv(this.algorithm, this.masterKey, iv);
+        decipher.setAuthTag(authTag);
+        let decrypted = decipher.update(encryptedText);
+        decrypted = Buffer.concat([decrypted, decipher.final()]);
+        return decrypted.toString();
+      } catch {
+        // Fall through to legacy CBC
+      }
+    }
+
+    // Legacy CBC format: iv:ciphertext (2 parts)
+    const iv = Buffer.from(textParts[0], 'hex');
+    const encryptedText = Buffer.from(textParts.slice(1).join(':'), 'hex');
+    const decipher = crypto.createDecipheriv(this.legacyAlgorithm, this.masterKey, iv);
     let decrypted = decipher.update(encryptedText);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
