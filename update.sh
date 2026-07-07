@@ -8,6 +8,15 @@ YELLOW='\033[1-33m'
 NC='\033[0m'
 RED='\033[0-31m'
 
+SKIP_PULL=false
+for arg in "$@"; do
+  case $arg in
+    --skip-pull|-s)
+      SKIP_PULL=true
+      ;;
+  esac
+done
+
 # Check Prerequisites
 check_dependency() {
     if ! command -v $1 >/dev/null 2>&1; then
@@ -34,9 +43,11 @@ fi
 echo -e "${GREEN}🔄 Updating YATO...${NC}"
 
 # Step 1: Pull changes (if using Git)
-if [ -d ".git" ]; then
+if [ "$SKIP_PULL" = "true" ]; then
+  echo -e "${GREEN}   • Skipped git pull via parameter.${NC}"
+elif [ -d ".git" ]; then
   echo -e "${YELLOW}📥 Pulling latest changes from repository...${NC}"
-  git pull || echo -e "${RED}Warning: git pull failed, continuing...${NC}"
+  GIT_TERMINAL_PROMPT=0 git pull || echo -e "${RED}Warning: git pull failed, continuing...${NC}"
 else
   echo "   • Not a git repository, skipping pull."
 fi
