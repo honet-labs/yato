@@ -8,6 +8,7 @@ import { MobileNav } from "@/components/MobileNav";
 import { Pagination } from "@/components/Pagination";
 import { ConfirmationModal } from "@/components/ConfirmationModal";
 import { PageHeader } from "@/components/PageHeader";
+import { SecurePasswordDisplay } from "@/components/SecurePasswordDisplay";
 import { 
   Key, 
   Plus, 
@@ -182,12 +183,17 @@ export default function CredentialsPage() {
   };
 
   const handleView = (cred: Credential) => {
-    setPendingRevealCredId(cred.id);
     setSelectedCred(cred);
-    setVerifyPassword("");
-    setVerifyError("");
-    setVerifyPurpose("REVEAL");
-    setIsVerifyModalOpen(true);
+    if (revealedPasswords[cred.id]) {
+      setShowPassInDetail(true);
+      setIsDetailOpen(true);
+    } else {
+      setPendingRevealCredId(cred.id);
+      setVerifyPassword("");
+      setVerifyError("");
+      setVerifyPurpose("REVEAL");
+      setIsVerifyModalOpen(true);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -880,28 +886,17 @@ export default function CredentialsPage() {
 
                   {selectedCred.password && (
                     <div className="flex items-center justify-between p-5 bg-indigo-50/30 rounded-2xl border border-indigo-100 group">
-                      <div className="flex-1">
-                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Secure Secret / Password</p>
-                        <p className="text-sm font-mono font-bold text-slate-900 break-all pr-4">
-                          {(() => {
-                            const actualPassword = revealedPasswords[selectedCred.id] || selectedCred.password;
-                            return showPassInDetail ? actualPassword : "••••••••••••••••••••••••";
-                          })()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => setShowPassInDetail(!showPassInDetail)}
-                          className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm"
-                        >
-                          {showPassInDetail ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                        </button>
-                        <button 
-                          onClick={() => handleCopy(revealedPasswords[selectedCred.id] || selectedCred.password || "", 'password')}
-                          className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-white rounded-xl transition-all shadow-sm"
-                        >
-                          {copiedField === 'password' ? <Check className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
-                        </button>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2">Secure Secret / Password</p>
+                        <SecurePasswordDisplay
+                          itemId={selectedCred.id}
+                          maskedPlaceholder={selectedCred.password}
+                          revealedPassword={revealedPasswords[selectedCred.id]}
+                          isVisible={showPassInDetail}
+                          onToggleVisibility={() => setShowPassInDetail(!showPassInDetail)}
+                          onRevealRequest={() => handleView(selectedCred)}
+                          onCopySuccess={() => setCopiedField('password')}
+                        />
                       </div>
                     </div>
                   )}

@@ -1,5 +1,6 @@
 "use client";
 import { PageHeader } from "@/components/PageHeader";
+import { SecurePasswordDisplay } from "@/components/SecurePasswordDisplay";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
@@ -932,37 +933,25 @@ export default function ServiceInventoryPage() {
 
                       <div className="h-px bg-slate-200/50 mx-[-1.25rem]" />
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Lock className="w-4 h-4 text-slate-400" />
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Password</span>
-                            <span className="text-sm font-mono text-slate-900">
-                              {(() => {
-                                const actualPassword = (viewingDetails.id && revealedPasswords[viewingDetails.id]) 
-                                  ? revealedPasswords[viewingDetails.id] 
-                                  : viewingDetails.password;
-                                if (!actualPassword) return '---';
-                                return showPassInDetail ? actualPassword : '••••••••';
-                              })()}
-                            </span>
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3 flex-1">
+                          <Lock className="w-4 h-4 text-slate-400 shrink-0" />
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Password</span>
+                            {viewingDetails.password ? (
+                              <SecurePasswordDisplay
+                                itemId={viewingDetails.id}
+                                maskedPlaceholder={viewingDetails.password}
+                                revealedPassword={revealedPasswords[viewingDetails.id]}
+                                isVisible={showPassInDetail}
+                                onToggleVisibility={() => setShowPassInDetail(!showPassInDetail)}
+                                onRevealRequest={() => handleViewServiceCredentials(viewingDetails)}
+                                onCopySuccess={() => setCopiedId('detail-pass')}
+                              />
+                            ) : (
+                              <span className="text-sm font-mono text-slate-900">---</span>
+                            )}
                           </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button 
-                            onClick={() => setShowPassInDetail(!showPassInDetail)}
-                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all"
-                            title={showPassInDetail ? "Hide Password" : "Show Password"}
-                          >
-                            {showPassInDetail ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                          </button>
-                          <button 
-                            onClick={() => handleCopy((viewingDetails.id && revealedPasswords[viewingDetails.id]) || viewingDetails.password || '', 'detail-pass')}
-                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all"
-                            title="Copy Password"
-                          >
-                            {copiedId === 'detail-pass' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                          </button>
                         </div>
                       </div>
                     </div>

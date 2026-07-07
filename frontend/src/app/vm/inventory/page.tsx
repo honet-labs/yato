@@ -1,5 +1,6 @@
 "use client";
 import { PageHeader } from "@/components/PageHeader";
+import { SecurePasswordDisplay } from "@/components/SecurePasswordDisplay";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
@@ -523,33 +524,17 @@ export default function VmInventoryPage() {
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Password</p>
-                      <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                        <span className="text-[13px] font-mono text-white">
-                          {revealedPasswords[showConsole.id] && showPassInConsole
-                            ? revealedPasswords[showConsole.id]
-                            : "••••••••••••"}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => handleRevealVmPassword(showConsole, "REVEAL")} 
-                            className="text-white/20 hover:text-white"
-                            title="Reveal Password"
-                          >
-                            {revealedPasswords[showConsole.id] && showPassInConsole ? (
-                              <EyeOff className="w-4 h-4" />
-                            ) : (
-                              <Eye className="w-4 h-4" />
-                            )}
-                          </button>
-                          <button 
-                            onClick={() => handleRevealVmPassword(showConsole, "COPY")} 
-                            className="text-white/20 hover:text-white"
-                            title="Copy Password"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                      <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">Password</p>
+                      <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                        <SecurePasswordDisplay
+                          itemId={showConsole.id}
+                          maskedPlaceholder="••••••••••••"
+                          revealedPassword={revealedPasswords[showConsole.id]}
+                          isVisible={showPassInConsole}
+                          onToggleVisibility={() => setShowPassInConsole(!showPassInConsole)}
+                          onRevealRequest={() => handleRevealVmPassword(showConsole, "REVEAL")}
+                          theme="dark"
+                        />
                       </div>
                     </div>
                   </div>
