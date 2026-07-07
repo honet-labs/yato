@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { EncryptionService } from '../../common/utils/encryption.service';
 
 @Injectable()
 export class VmInventoryService {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
+    private encryptionService: EncryptionService,
   ) {}
 
   async findAll(userId?: string) {
