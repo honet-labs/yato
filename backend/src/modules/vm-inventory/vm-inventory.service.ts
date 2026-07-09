@@ -173,12 +173,20 @@ export class VmInventoryService {
     try {
       await this.auditService.log(userId, 'REVEAL_VM_SECRET', 'VMInventory', id);
     } catch (auditError) {
-      console.error('Failed to log audit:', auditError.message);
+      // Continue
     }
 
+    let decryptedPassword: string | null = null;
+    if (item.sshPassword) {
+      try {
+        decryptedPassword = this.encryptionService.decrypt(item.sshPassword);
+      } catch (e) {
+        decryptedPassword = null;
+      }
+    }
     return {
       id: item.id,
-      sshPassword: item.sshPassword ? this.encryptionService.decrypt(item.sshPassword) : null,
+      sshPassword: decryptedPassword,
     };
   }
 }

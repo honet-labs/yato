@@ -168,12 +168,20 @@ export class ServiceInventoryService {
     try {
       await this.auditService.log(userId, 'REVEAL_SERVICE_SECRET', 'ServiceInventory', id);
     } catch (auditError) {
-      console.error('Failed to log audit:', auditError.message);
+      // Continue
     }
 
+    let decryptedPassword: string | null = null;
+    if (item.password) {
+      try {
+        decryptedPassword = this.encryptionService.decrypt(item.password);
+      } catch (e) {
+        decryptedPassword = null;
+      }
+    }
     return {
       id: item.id,
-      password: item.password ? this.encryptionService.decrypt(item.password) : null,
+      password: decryptedPassword,
     };
   }
 }

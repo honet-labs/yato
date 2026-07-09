@@ -158,7 +158,7 @@ export class EncryptionService implements OnModuleInit {
   decrypt(text: string): string {
     if (!text) {
       this.logger.warn('Attempted to decrypt empty/null text');
-      return '********';
+      return null;
     }
 
     try {
@@ -166,7 +166,7 @@ export class EncryptionService implements OnModuleInit {
         const parts = text.split(':');
         if (parts.length < 5) {
           this.logger.warn('Invalid Vault encryption format: missing parts');
-          return '********';
+          throw new Error('Invalid encryption format');
         }
         
         const dekId = parts[1];
@@ -177,7 +177,7 @@ export class EncryptionService implements OnModuleInit {
         const key = this.deksCache.get(dekId);
         if (!key) {
           this.logger.error(`DEK ${dekId} not found in key history cache. Decryption impossible.`);
-          return '********';
+          throw new Error(`DEK ${dekId} not found`);
         }
 
         const iv = Buffer.from(ivHex, 'hex');
@@ -193,13 +193,13 @@ export class EncryptionService implements OnModuleInit {
       // Legacy format support: iv:authTag:ciphertext (GCM) or iv:ciphertext (CBC)
       if (typeof text !== 'string' || !text.includes(':')) {
         this.logger.warn(`Invalid encryption format: ${typeof text}`);
-        return '********';
+        throw new Error('Invalid encryption format: no colon delimiter');
       }
       
       const textParts = text.split(':');
       if (textParts.length < 2) {
         this.logger.warn('Invalid encryption format: missing parts');
-        return '********';
+        throw new Error('Invalid encryption format: missing parts');
       }
 
       // Try GCM format first (iv:authTag:ciphertext)
@@ -227,7 +227,7 @@ export class EncryptionService implements OnModuleInit {
       return decrypted.toString();
     } catch (error) {
       this.logger.error(`Decryption failed: ${error.message}`);
-      return '********'; 
+      throw new Error(`Decryption failed: ${error.message}`);
     }
   }
 
@@ -291,9 +291,6 @@ export class EncryptionService implements OnModuleInit {
     for (const cred of credentials) {
       try {
         const plainPassword = this.decrypt(cred.password);
-        if (plainPassword === '********') {
-          throw new Error('Could not decrypt original password');
-        }
 
         const reEncryptedPassword = this.encrypt(plainPassword);
 
