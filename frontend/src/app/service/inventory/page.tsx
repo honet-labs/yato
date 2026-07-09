@@ -874,7 +874,7 @@ export default function ServiceInventoryPage() {
                       <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">{viewingDetails.serviceName}</p>
                     </div>
                   </div>
-                  <button onClick={() => setViewingDetails(null)} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm">
+                  <button onClick={() => { setViewingDetails(null); setShowPassInDetail(false); }} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm">
                     <X className="w-6 h-6 text-slate-400" />
                   </button>
                 </div>
@@ -997,11 +997,14 @@ export default function ServiceInventoryPage() {
                     try {
                       const res = await api.post(`/service-inventory/${pendingRevealService.id}/reveal`, { password: verifyPassword });
                       
-                      setRevealedPasswords(prev => ({
-                        ...prev,
-                        [pendingRevealService.id]: res.data.password
-                      }));
+                      if (res.data.password) {
+                        setRevealedPasswords(prev => ({
+                          ...prev,
+                          [pendingRevealService.id]: res.data.password
+                        }));
+                      }
                       setIsVerifyModalOpen(false);
+                      setPendingRevealService(null);
                       setVerifyPassword("");
                       setFailedVerifyAttempts(0);
                       

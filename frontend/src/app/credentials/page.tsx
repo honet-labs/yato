@@ -71,7 +71,6 @@ export default function CredentialsPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [pendingRevealCredId, setPendingRevealCredId] = useState(null as string | null);
   const [pendingEditCred, setPendingEditCred] = useState(null as Credential | null);
-  const [secretVerified, setSecretVerified] = useState(false);
   const [failedVerifyAttempts, setFailedVerifyAttempts] = useState(0);
   
   const [tagInput, setTagInput] = useState("");
@@ -798,7 +797,6 @@ const handleView = (cred: Credential) => {
                   onClick={() => {
                     setIsDetailOpen(false);
                     setShowPassInDetail(false);
-                    setSecretVerified(false);
                   }} 
                   className="absolute top-8 right-8 p-3 bg-white/10 hover:bg-white/20 rounded-2xl transition-all"
                 >
@@ -971,17 +969,19 @@ const handleView = (cred: Credential) => {
                     } else {
                       // Verify password then reveal secret
                       const res = await api.post(`/credentials/${pendingRevealCredId}/reveal`, { password: verifyPassword });
-                      setRevealedPasswords(prev => ({
-                        ...prev,
-                        [pendingRevealCredId as string]: res.data.password
-                      }));
+                      if (res.data.password) {
+                        setRevealedPasswords(prev => ({
+                          ...prev,
+                          [pendingRevealCredId as string]: res.data.password
+                        }));
+                      }
                       setSelectedCred((prev: any) => prev ? { ...prev, ...res.data, password: res.data.password ?? prev.password } : res.data);
-                      setSecretVerified(true);
                       setShowPassInDetail(true);
                       setIsVerifyModalOpen(false);
+                      setPendingRevealCredId(null);
                       setVerifyPassword("");
-                      setFailedVerifyAttempts(0); // Reset attempts on success
-                      setIsDetailOpen(true); // Open the detail modal after verification
+                      setFailedVerifyAttempts(0);
+                      setIsDetailOpen(true);
                     }
                   } catch (err: any) {
                     const nextAttempts = failedVerifyAttempts + 1;

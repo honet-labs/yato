@@ -468,7 +468,7 @@ export default function VmInventoryPage() {
                   <Terminal className="w-5 h-5 text-emerald-400" />
                   <span className="text-xs font-bold text-white uppercase tracking-widest">Interactive Console Session — {showConsole.hostname}</span>
                 </div>
-                <button onClick={() => setShowConsole(null)} className="text-white/40 hover:text-white transition-colors">
+                <button onClick={() => { setShowConsole(null); setShowPassInConsole(false); }} className="text-white/40 hover:text-white transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -594,11 +594,14 @@ export default function VmInventoryPage() {
                   try {
                     const res = await api.post(`/vm-inventory/${pendingRevealVm.id}/reveal`, { password: verifyPassword });
                     
-                    setRevealedPasswords(prev => ({
-                      ...prev,
-                      [pendingRevealVm.id]: res.data.sshPassword
-                    }));
+                    if (res.data.sshPassword) {
+                      setRevealedPasswords(prev => ({
+                        ...prev,
+                        [pendingRevealVm.id]: res.data.sshPassword
+                      }));
+                    }
                     setIsVerifyModalOpen(false);
+                    setPendingRevealVm(null);
                     setVerifyPassword("");
                     setFailedVerifyAttempts(0);
                     
