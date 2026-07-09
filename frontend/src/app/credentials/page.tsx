@@ -182,19 +182,19 @@ export default function CredentialsPage() {
     setIsModalOpen(true);
   };
 
-  const handleView = (cred: Credential) => {
-    setSelectedCred(cred);
-    if (revealedPasswords[cred.id]) {
-      setShowPassInDetail(true);
-      setIsDetailOpen(true);
-    } else {
-      setPendingRevealCredId(cred.id);
-      setVerifyPassword("");
-      setVerifyError("");
-      setVerifyPurpose("REVEAL");
-      setIsVerifyModalOpen(true);
-    }
-  };
+const handleView = (cred: Credential) => {
+  setSelectedCred(cred);
+  if (cred.id in revealedPasswords) {
+    setShowPassInDetail(true);
+    setIsDetailOpen(true);
+  } else {
+    setPendingRevealCredId(cred.id);
+    setVerifyPassword("");
+    setVerifyError("");
+    setVerifyPurpose("REVEAL");
+    setIsVerifyModalOpen(true);
+  }
+};
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -973,9 +973,9 @@ export default function CredentialsPage() {
                       const res = await api.post(`/credentials/${pendingRevealCredId}/reveal`, { password: verifyPassword });
                       setRevealedPasswords(prev => ({
                         ...prev,
-                        [pendingRevealCredId as string]: res.data.password || ""
+                        [pendingRevealCredId as string]: res.data.password
                       }));
-                      setSelectedCred(res.data);
+                      setSelectedCred((prev: any) => prev ? { ...prev, ...res.data, password: res.data.password ?? prev.password } : res.data);
                       setSecretVerified(true);
                       setShowPassInDetail(true);
                       setIsVerifyModalOpen(false);

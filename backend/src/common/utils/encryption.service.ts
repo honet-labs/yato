@@ -166,7 +166,7 @@ export class EncryptionService implements OnModuleInit {
         const parts = text.split(':');
         if (parts.length < 5) {
           this.logger.warn('Invalid Vault encryption format: missing parts');
-          throw new Error('Invalid encryption format');
+          return null;
         }
         
         const dekId = parts[1];
@@ -177,7 +177,7 @@ export class EncryptionService implements OnModuleInit {
         const key = this.deksCache.get(dekId);
         if (!key) {
           this.logger.error(`DEK ${dekId} not found in key history cache. Decryption impossible.`);
-          throw new Error(`DEK ${dekId} not found`);
+          return null;
         }
 
         const iv = Buffer.from(ivHex, 'hex');
@@ -193,13 +193,13 @@ export class EncryptionService implements OnModuleInit {
       // Legacy format support: iv:authTag:ciphertext (GCM) or iv:ciphertext (CBC)
       if (typeof text !== 'string' || !text.includes(':')) {
         this.logger.warn(`Invalid encryption format: ${typeof text}`);
-        throw new Error('Invalid encryption format: no colon delimiter');
+        return null;
       }
       
       const textParts = text.split(':');
       if (textParts.length < 2) {
         this.logger.warn('Invalid encryption format: missing parts');
-        throw new Error('Invalid encryption format: missing parts');
+        return null;
       }
 
       // Try GCM format first (iv:authTag:ciphertext)
@@ -227,7 +227,7 @@ export class EncryptionService implements OnModuleInit {
       return decrypted.toString();
     } catch (error) {
       this.logger.error(`Decryption failed: ${error.message}`);
-      throw new Error(`Decryption failed: ${error.message}`);
+      return null;
     }
   }
 

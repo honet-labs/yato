@@ -171,14 +171,7 @@ export class ServiceInventoryService {
       // Continue
     }
 
-    let decryptedPassword: string | null = null;
-    if (item.password) {
-      try {
-        decryptedPassword = this.encryptionService.decrypt(item.password);
-      } catch (e) {
-        decryptedPassword = null;
-      }
-    }
+    const decryptedPassword = item.password ? this.encryptionService.decrypt(item.password) : null;
     return {
       id: item.id,
       password: decryptedPassword,

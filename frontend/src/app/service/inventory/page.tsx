@@ -180,7 +180,7 @@ export default function ServiceInventoryPage() {
   const itemsPerPage = 30;
 
   const handleViewServiceCredentials = (item: ServiceInventory) => {
-    if (revealedPasswords[item.id]) {
+    if (item.id in revealedPasswords) {
       setViewingDetails({
         ...item,
         password: revealedPasswords[item.id]
@@ -1005,10 +1005,7 @@ export default function ServiceInventoryPage() {
                       setVerifyPassword("");
                       setFailedVerifyAttempts(0);
                       
-                      setViewingDetails({
-                        ...pendingRevealService,
-                        password: res.data.password
-                      });
+                      setViewingDetails((prev: any) => prev ? { ...prev, ...res.data, password: res.data.password ?? prev.password } : { ...pendingRevealService, password: res.data.password });
                       setShowPassInDetail(true);
                     } catch (err: any) {
                       const nextAttempts = failedVerifyAttempts + 1;

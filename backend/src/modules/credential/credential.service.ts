@@ -76,14 +76,7 @@ export class CredentialService {
       // Continue
     }
 
-    let decryptedPassword: string | null = null;
-    if (credential.password) {
-      try {
-        decryptedPassword = this.encryptionService.decrypt(credential.password);
-      } catch (e) {
-        decryptedPassword = null;
-      }
-    }
+    const decryptedPassword = credential.password ? this.encryptionService.decrypt(credential.password) : null;
     return {
       ...credential,
       password: decryptedPassword,

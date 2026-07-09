@@ -187,7 +187,7 @@ export default function VmInventoryPage() {
   );
 
   const handleRevealVmPassword = async (vm: VM, purpose: "REVEAL" | "COPY" | "COPY_USER") => {
-    if (revealedPasswords[vm.id]) {
+    if (vm.id in revealedPasswords) {
       if (purpose === "REVEAL") {
         if (showConsole?.id === vm.id) {
           setShowPassInConsole(!showPassInConsole);

@@ -176,14 +176,7 @@ export class VmInventoryService {
       // Continue
     }
 
-    let decryptedPassword: string | null = null;
-    if (item.sshPassword) {
-      try {
-        decryptedPassword = this.encryptionService.decrypt(item.sshPassword);
-      } catch (e) {
-        decryptedPassword = null;
-      }
-    }
+    const decryptedPassword = item.sshPassword ? this.encryptionService.decrypt(item.sshPassword) : null;
     return {
       id: item.id,
       sshPassword: decryptedPassword,
