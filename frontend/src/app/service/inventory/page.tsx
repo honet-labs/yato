@@ -183,7 +183,7 @@ export default function ServiceInventoryPage() {
     if (item.id in revealedPasswords) {
       setViewingDetails({
         ...item,
-        password: revealedPasswords[item.id]
+        password: revealedPasswords[item.id] || item.password || '••••••••'
       });
       setShowPassInDetail(true);
     } else {
