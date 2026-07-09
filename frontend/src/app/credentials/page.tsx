@@ -905,7 +905,6 @@ const handleView = (cred: Credential) => {
                     onClick={() => {
                       setIsDetailOpen(false);
                       setShowPassInDetail(false);
-                      setSecretVerified(false);
                     }}
                     className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-slate-800 transition-all"
                   >
