@@ -882,22 +882,6 @@ const handleView = (cred: Credential) => {
                     </div>
                   )}
 
-                  {selectedCred.password && (
-                    <div className="flex items-center justify-between p-5 bg-indigo-50/30 rounded-2xl border border-indigo-100 group">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2">Secure Secret / Password</p>
-                        <SecurePasswordDisplay
-                          itemId={selectedCred.id}
-                          maskedPlaceholder={selectedCred.password}
-                          revealedPassword={revealedPasswords[selectedCred.id]}
-                          isVisible={showPassInDetail}
-                          onToggleVisibility={() => setShowPassInDetail(!showPassInDetail)}
-                          onRevealRequest={() => handleView(selectedCred)}
-                          onCopySuccess={() => setCopiedField('password')}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
                 
                 <div className="pt-4">

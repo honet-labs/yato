@@ -997,10 +997,11 @@ export default function ServiceInventoryPage() {
                     try {
                       const res = await api.post(`/service-inventory/${pendingRevealService.id}/reveal`, { password: verifyPassword });
                       
+                      const svcForAction = pendingRevealService;
                       if (res.data.password) {
                         setRevealedPasswords(prev => ({
                           ...prev,
-                          [pendingRevealService.id]: res.data.password
+                          [svcForAction.id]: res.data.password
                         }));
                       }
                       setIsVerifyModalOpen(false);
@@ -1008,7 +1009,7 @@ export default function ServiceInventoryPage() {
                       setVerifyPassword("");
                       setFailedVerifyAttempts(0);
                       
-                      setViewingDetails((prev: any) => prev ? { ...prev, ...res.data, password: res.data.password ?? prev.password } : { ...pendingRevealService, password: res.data.password });
+                      setViewingDetails((prev: any) => prev ? { ...prev, ...res.data, password: res.data.password ?? prev.password } : { ...svcForAction, password: res.data.password });
                       setShowPassInDetail(true);
                     } catch (err: any) {
                       const nextAttempts = failedVerifyAttempts + 1;

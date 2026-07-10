@@ -594,10 +594,11 @@ export default function VmInventoryPage() {
                   try {
                     const res = await api.post(`/vm-inventory/${pendingRevealVm.id}/reveal`, { password: verifyPassword });
                     
+                    const vmForAction = pendingRevealVm;
                     if (res.data.sshPassword) {
                       setRevealedPasswords(prev => ({
                         ...prev,
-                        [pendingRevealVm.id]: res.data.sshPassword
+                        [vmForAction.id]: res.data.sshPassword
                       }));
                     }
                     setIsVerifyModalOpen(false);
@@ -607,9 +608,9 @@ export default function VmInventoryPage() {
                     
                     if (verifyPurpose === "REVEAL") {
                       setShowPassInConsole(true);
-                      setShowConsole(pendingRevealVm);
+                      setShowConsole(vmForAction);
                     } else if (verifyPurpose === "COPY_USER") {
-                      copyToClipboard(pendingRevealVm.sshUser || 'root');
+                      copyToClipboard(vmForAction.sshUser || 'root');
                     } else {
                       copyToClipboard(res.data.sshPassword || '');
                     }
