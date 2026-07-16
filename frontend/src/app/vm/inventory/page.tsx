@@ -187,7 +187,8 @@ export default function VmInventoryPage() {
   );
 
   const handleRevealVmPassword = async (vm: VM, purpose: "REVEAL" | "COPY" | "COPY_USER") => {
-    if (vm.id in revealedPasswords) {
+    const revealed = revealedPasswords[vm.id];
+    if (revealed) {
       if (purpose === "REVEAL") {
         if (showConsole?.id === vm.id) {
           setShowPassInConsole(!showPassInConsole);
@@ -198,7 +199,7 @@ export default function VmInventoryPage() {
       } else if (purpose === "COPY_USER") {
         copyToClipboard(vm.sshUser || 'root');
       } else {
-        copyToClipboard(revealedPasswords[vm.id]);
+        copyToClipboard(revealed);
       }
     } else {
       setPendingRevealVm(vm);
@@ -595,12 +596,10 @@ export default function VmInventoryPage() {
                     const res = await api.post(`/vm-inventory/${pendingRevealVm.id}/reveal`, { password: verifyPassword });
                     
                     const vmForAction = pendingRevealVm;
-                    if (res.data.sshPassword) {
-                      setRevealedPasswords(prev => ({
-                        ...prev,
-                        [vmForAction.id]: res.data.sshPassword
-                      }));
-                    }
+                    setRevealedPasswords(prev => ({
+                      ...prev,
+                      [vmForAction.id]: res.data.sshPassword || null
+                    }));
                     setIsVerifyModalOpen(false);
                     setPendingRevealVm(null);
                     setVerifyPassword("");

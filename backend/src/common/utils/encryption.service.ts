@@ -161,6 +161,11 @@ export class EncryptionService implements OnModuleInit {
       return null;
     }
 
+    // If doesn't look like encrypted data, return as plaintext (old records)
+    if (!text.startsWith('yv1:') && !/^[0-9a-f]+:/i.test(text)) {
+      return text;
+    }
+
     try {
       if (text.startsWith('yv1:')) {
         const parts = text.split(':');

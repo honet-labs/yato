@@ -180,10 +180,11 @@ export default function ServiceInventoryPage() {
   const itemsPerPage = 30;
 
   const handleViewServiceCredentials = (item: ServiceInventory) => {
-    if (item.id in revealedPasswords) {
+    const revealed = revealedPasswords[item.id];
+    if (revealed) {
       setViewingDetails({
         ...item,
-        password: revealedPasswords[item.id] || item.password || '••••••••'
+        password: revealed || item.password || '••••••••'
       });
       setShowPassInDetail(true);
     } else {
@@ -938,19 +939,15 @@ export default function ServiceInventoryPage() {
                           <Lock className="w-4 h-4 text-slate-400 shrink-0" />
                           <div className="flex flex-col flex-1 min-w-0">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Password</span>
-                            {viewingDetails.password ? (
-                              <SecurePasswordDisplay
-                                itemId={viewingDetails.id}
-                                maskedPlaceholder={viewingDetails.password}
-                                revealedPassword={revealedPasswords[viewingDetails.id]}
-                                isVisible={showPassInDetail}
-                                onToggleVisibility={() => setShowPassInDetail(!showPassInDetail)}
-                                onRevealRequest={() => handleViewServiceCredentials(viewingDetails)}
-                                onCopySuccess={() => setCopiedId('detail-pass')}
-                              />
-                            ) : (
-                              <span className="text-sm font-mono text-slate-900">---</span>
-                            )}
+                            <SecurePasswordDisplay
+                              itemId={viewingDetails.id}
+                              maskedPlaceholder={viewingDetails.password || '••••••••'}
+                              revealedPassword={revealedPasswords[viewingDetails.id]}
+                              isVisible={showPassInDetail}
+                              onToggleVisibility={() => setShowPassInDetail(!showPassInDetail)}
+                              onRevealRequest={() => handleViewServiceCredentials(viewingDetails)}
+                              onCopySuccess={() => setCopiedId('detail-pass')}
+                            />
                           </div>
                         </div>
                       </div>
@@ -998,18 +995,16 @@ export default function ServiceInventoryPage() {
                       const res = await api.post(`/service-inventory/${pendingRevealService.id}/reveal`, { password: verifyPassword });
                       
                       const svcForAction = pendingRevealService;
-                      if (res.data.password) {
-                        setRevealedPasswords(prev => ({
-                          ...prev,
-                          [svcForAction.id]: res.data.password
-                        }));
-                      }
+                      setRevealedPasswords(prev => ({
+                        ...prev,
+                        [svcForAction.id]: res.data.password || null
+                      }));
                       setIsVerifyModalOpen(false);
                       setPendingRevealService(null);
                       setVerifyPassword("");
                       setFailedVerifyAttempts(0);
                       
-                      setViewingDetails((prev: any) => prev ? { ...prev, ...res.data, password: res.data.password ?? prev.password } : { ...svcForAction, password: res.data.password });
+                      setViewingDetails({ ...svcForAction, password: res.data.password || svcForAction.password || '••••••••' });
                       setShowPassInDetail(true);
                     } catch (err: any) {
                       const nextAttempts = failedVerifyAttempts + 1;
