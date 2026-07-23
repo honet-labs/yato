@@ -1004,7 +1004,7 @@ export default function ServiceInventoryPage() {
                       setVerifyPassword("");
                       setFailedVerifyAttempts(0);
                       
-                      setViewingDetails({ ...svcForAction, password: res.data.password || svcForAction.password || '••••••••' });
+                      setViewingDetails({ ...svcForAction, password: svcForAction.password || '••••••••••••' });
                       setShowPassInDetail(true);
                     } catch (err: any) {
                       const nextAttempts = failedVerifyAttempts + 1;

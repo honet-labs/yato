@@ -183,7 +183,8 @@ export default function CredentialsPage() {
 
 const handleView = (cred: Credential) => {
   setSelectedCred(cred);
-  if (cred.id in revealedPasswords) {
+  const revealed = revealedPasswords[cred.id];
+  if (revealed) {
     setShowPassInDetail(true);
     setIsDetailOpen(true);
   } else {
@@ -882,6 +883,23 @@ const handleView = (cred: Credential) => {
                     </div>
                   )}
 
+                  {selectedCred.password && (
+                    <div className="flex items-center justify-between p-5 bg-indigo-50/30 rounded-2xl border border-indigo-100 group">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2">Secure Secret / Password</p>
+                        <SecurePasswordDisplay
+                          itemId={selectedCred.id}
+                          maskedPlaceholder={selectedCred.password}
+                          revealedPassword={revealedPasswords[selectedCred.id]}
+                          isVisible={showPassInDetail}
+                          onToggleVisibility={() => setShowPassInDetail(!showPassInDetail)}
+                          onRevealRequest={() => handleView(selectedCred)}
+                          onCopySuccess={() => setCopiedField('password')}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                 </div>
                 
                 <div className="pt-4">
@@ -952,12 +970,11 @@ const handleView = (cred: Credential) => {
                     } else {
                       // Verify password then reveal secret
                       const res = await api.post(`/credentials/${pendingRevealCredId}/reveal`, { password: verifyPassword });
-                      if (res.data.password) {
-                        setRevealedPasswords(prev => ({
-                          ...prev,
-                          [pendingRevealCredId as string]: res.data.password
-                        }));
-                      }
+                      const credId = pendingRevealCredId as string;
+                      setRevealedPasswords(prev => ({
+                        ...prev,
+                        [credId]: res.data.password || null
+                      }));
                       setSelectedCred((prev: any) => prev ? { ...prev, ...res.data, password: res.data.password ?? prev.password } : res.data);
                       setShowPassInDetail(true);
                       setIsVerifyModalOpen(false);
