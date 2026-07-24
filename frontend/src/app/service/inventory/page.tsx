@@ -180,13 +180,13 @@ export default function ServiceInventoryPage() {
   const itemsPerPage = 30;
 
   const handleViewServiceCredentials = (item: ServiceInventory) => {
-    const revealed = revealedPasswords[item.id];
-    if (revealed) {
+    if (item.id in revealedPasswords) {
+      const revealed = revealedPasswords[item.id];
       setViewingDetails({
         ...item,
-        password: revealed || item.password || '••••••••'
+        password: revealed || item.password || '••••••••••••'
       });
-      setShowPassInDetail(true);
+      setShowPassInDetail(!!revealed);
     } else {
       setPendingRevealService(item);
       setVerifyPassword("");

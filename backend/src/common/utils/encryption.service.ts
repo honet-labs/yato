@@ -232,7 +232,7 @@ export class EncryptionService implements OnModuleInit {
       return decrypted.toString();
     } catch (error) {
       this.logger.error(`Decryption failed: ${error.message}`);
-      return null;
+      return text;
     }
   }
 

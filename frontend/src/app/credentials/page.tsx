@@ -183,9 +183,8 @@ export default function CredentialsPage() {
 
 const handleView = (cred: Credential) => {
   setSelectedCred(cred);
-  const revealed = revealedPasswords[cred.id];
-  if (revealed) {
-    setShowPassInDetail(true);
+  if (cred.id in revealedPasswords) {
+    setShowPassInDetail(!!revealedPasswords[cred.id]);
     setIsDetailOpen(true);
   } else {
     setPendingRevealCredId(cred.id);
