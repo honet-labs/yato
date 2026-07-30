@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useLanguage } from "@/context/language-context";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
@@ -983,10 +983,10 @@ function TasksPageContent() {
   };
 
   // Get all unique tags from active tasks
-  const uniqueTags = Array.from(new Set(tasks?.flatMap((t: any) => t.tags || []) || [])) as string[];
+  const uniqueTags = useMemo(() => Array.from(new Set(tasks?.flatMap((t: any) => t.tags || []) || [])) as string[], [tasks]);
 
   // Filtering tasks locally
-  const filteredTasks = tasks?.filter((task: any) => {
+  const filteredTasks = useMemo(() => tasks?.filter((task: any) => {
     if (projectIdParam && task.projectId !== projectIdParam) {
       return false;
     }
@@ -996,20 +996,20 @@ function TasksPageContent() {
     const matchesType = typeFilter === "ALL" || task.taskType === typeFilter;
     const matchesTag = tagFilter === "ALL" || (task.tags && task.tags.includes(tagFilter));
     return matchesSearch && matchesPriority && matchesType && matchesTag;
-  }) || [];
+  }) || [], [tasks, projectIdParam, searchQuery, priorityFilter, typeFilter, tagFilter]);
 
   // Helper to find immediate subtasks of a task
-  const getSubtasksOf = (taskId: string) => {
+  const getSubtasksOf = useCallback((taskId: string) => {
     return tasks?.filter((t: any) => t.parentId === taskId) || [];
-  };
+  }, [tasks]);
 
   // Helper to check recursively if a task or any of its descendants matches the filter
-  const taskOrDescendantMatches = (task: any): boolean => {
+  const taskOrDescendantMatches = useCallback((task: any): boolean => {
     const matchesThis = filteredTasks.some((ft: any) => ft.id === task.id);
     if (matchesThis) return true;
     const children = getSubtasksOf(task.id);
     return children.some((child: any) => taskOrDescendantMatches(child));
-  };
+  }, [filteredTasks, getSubtasksOf]);
   if (isAuthLoading) {
     return (
       <div className="flex min-h-screen bg-slate-50 items-center justify-center p-6">
@@ -1112,7 +1112,7 @@ function TasksPageContent() {
                                 {project.name}
                               </h3>
                               
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();

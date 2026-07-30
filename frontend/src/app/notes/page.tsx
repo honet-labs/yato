@@ -37,7 +37,8 @@ import {
   List,
   ListOrdered,
   Heading1,
-  Heading2
+  Heading2,
+  ImageIcon
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -110,6 +111,8 @@ interface RichTextEditorProps {
 
 function RichTextEditor({ value, onChange, placeholder, minHeight = "120px" }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Sync internal editor HTML when external value changes
   useEffect(() => {
@@ -136,6 +139,38 @@ function RichTextEditor({ value, onChange, placeholder, minHeight = "120px" }: R
     handleInput();
     if (editorRef.current) {
       editorRef.current.focus();
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploadingImage(true);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          try {
+            const res = await api.post("/storage/upload", {
+              base64Data: reader.result as string,
+              filename: file.name,
+              entityType: "Note",
+            });
+            if (res.data.success && editorRef.current) {
+              const img = `<img src="${res.data.downloadUrl}" alt="${file.name}" style="max-width:100%;border-radius:8px;margin:4px 0" />`;
+              document.execCommand("insertHTML", false, img);
+              handleInput();
+            }
+          } catch (err) {
+            console.error("Image upload failed", err);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    } finally {
+      setIsUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
     }
   };
 
@@ -271,6 +306,26 @@ function RichTextEditor({ value, onChange, placeholder, minHeight = "120px" }: R
             <option value="7">Huge</option>
           </select>
         </div>
+
+        <span className="w-[1px] h-4 bg-slate-200 mx-1" />
+
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleImageUpload}
+        />
+        <button
+          type="button"
+          onClick={() => imageInputRef.current?.click()}
+          disabled={isUploadingImage}
+          className="p-1 hover:bg-slate-200 rounded text-slate-600"
+          title="Insert Image"
+        >
+          {isUploadingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
+        </button>
       </div>
 
       {/* Editor Content Area */}
@@ -481,8 +536,6 @@ export default function NotesPage() {
     }
     setIsCreatorExpanded(true);
     setCurrentView("notes");
-    // Scroll smoothly to note creator
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (

@@ -201,7 +201,8 @@ export class NotificationService {
         }
 
         processed = processed
-          .replace(/&/g, '&amp;')
+          .replace(/&nbsp;/gi, ' ')
+          .replace(/&amp;/g, '&amp;')
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;');
 
@@ -271,7 +272,7 @@ export class NotificationService {
     }
 
     if (user.email && !isOnLeave) {
-      const plainMessage = message.replace(/<[^>]*>/g, '');
+    const plainMessage = message.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').trim();
       await this.sendEmail(user.email, title, plainMessage);
     }
 

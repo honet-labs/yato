@@ -36,7 +36,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
@@ -133,8 +133,8 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
       const response = await api.get("/notifications");
       return response.data;
     },
-    refetchInterval: 15000,
-    staleTime: 60000,
+    refetchInterval: 30000,
+    staleTime: 120000,
   });
 
   const markReadMutation = useMutation({
@@ -157,8 +157,8 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
         return [];
       }
     },
-    refetchInterval: 15000,
-    staleTime: 60000,
+    refetchInterval: 60000,
+    staleTime: 120000,
   });
 
   const { data: sidebarProjects } = useQuery({
@@ -171,8 +171,8 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
         return [];
       }
     },
-    refetchInterval: 30000,
-    staleTime: 120000,
+    refetchInterval: 120000,
+    staleTime: 300000,
   });
 
   const [pathnameQueryProjectId, setPathnameQueryProjectId] = useState<string | null>(null);
@@ -184,8 +184,8 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
     }
   }, [pathname]);
 
-  const unreadCount = (notifications?.data || []).filter((n: any) => !n.isRead).length || 0;
-  const ticketUnreadCount = (notifications?.data || []).filter((n: any) => !n.isRead && n.link?.includes("/tickets")).length || 0;
+  const unreadCount = useMemo(() => (notifications?.data || []).filter((n: any) => !n.isRead).length || 0, [notifications]);
+  const ticketUnreadCount = useMemo(() => (notifications?.data || []).filter((n: any) => !n.isRead && n.link?.includes("/tickets")).length || 0, [notifications]);
   const displayNotifications = notifications?.data || [];
 
   useEffect(() => {
@@ -573,7 +573,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                                   <p className="text-[14px] font-bold text-slate-900 leading-tight">{n.title}</p>
                                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">{formatNotificationTime(n.createdAt)}</span>
                                 </div>
-                                <p className="text-[13px] text-slate-600 leading-relaxed">{cleanMsg}</p>
+                                <p className="text-[13px] text-slate-600 leading-relaxed line-clamp-3 break-all">{cleanMsg}</p>
                               </div>
                             </div>
                           </div>

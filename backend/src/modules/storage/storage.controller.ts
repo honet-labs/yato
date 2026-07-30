@@ -59,6 +59,32 @@ export class StorageController {
     return this.storageService.saveConfig(dto);
   }
 
+  @Post('upload')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Upload a file (base64) and return file ID and download URL' })
+  async uploadFile(
+    @Body('base64Data') base64Data: string,
+    @Body('filename') filename: string,
+    @Body('entityType') entityType: string,
+    @Body('entityId') entityId: string,
+    @Request() req: any,
+  ) {
+    if (!base64Data) {
+      return { success: false, message: 'base64Data is required' };
+    }
+    const fileRecord = await this.storageService.uploadFile(
+      base64Data,
+      req.user.id,
+      entityId || undefined,
+      entityType || 'Note',
+    );
+    return {
+      success: true,
+      fileId: fileRecord.id,
+      downloadUrl: `/api/storage/download/${fileRecord.id}`,
+    };
+  }
+
   @Delete('files/:id')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('MANAGE_FILES')
