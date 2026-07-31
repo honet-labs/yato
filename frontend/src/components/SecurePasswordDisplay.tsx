@@ -28,7 +28,7 @@ export const SecurePasswordDisplay: React.FC<SecurePasswordDisplayProps> = ({
 
   const handleToggleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!revealedPassword && onRevealRequest) {
+    if (revealedPassword === undefined && onRevealRequest) {
       onRevealRequest();
     } else {
       onToggleVisibility();
@@ -37,7 +37,7 @@ export const SecurePasswordDisplay: React.FC<SecurePasswordDisplayProps> = ({
 
   const handleCopyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!revealedPassword && onRevealRequest) {
+    if (revealedPassword === undefined && onRevealRequest) {
       onRevealRequest();
       return;
     }

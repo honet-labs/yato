@@ -222,6 +222,19 @@
   white-space: normal;
 }
 
+.rich-note-content img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 4px 0;
+  cursor: pointer;
+  outline: 2px solid transparent;
+  transition: outline-color 0.2s;
+}
+
+.rich-note-content img:hover {
+  outline-color: #ef4444;
+}
+
 /* Rich text placeholder support */
 .rich-note-content:empty:before {
   content: attr(data-placeholder);

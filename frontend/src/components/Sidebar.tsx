@@ -85,6 +85,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
   const queryClient = useQueryClient();
   const { appName, appLogo } = useBranding();
   const { lang, setLang, t } = useLanguage();
+  const navRef = useRef<HTMLElement>(null);
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -106,7 +107,23 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
           setQuickAccess(JSON.parse(savedQuick));
         } catch (e) {}
       }
+      // Restore sidebar scroll position
+      const savedScroll = sessionStorage.getItem("yato_sidebar_scroll");
+      if (savedScroll && navRef.current) {
+        navRef.current.scrollTop = parseInt(savedScroll, 10);
+      }
     }
+  }, []);
+
+  // Save sidebar scroll position before unload
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const handleScroll = () => {
+      sessionStorage.setItem("yato_sidebar_scroll", nav.scrollTop.toString());
+    };
+    nav.addEventListener("scroll", handleScroll, { passive: true });
+    return () => nav.removeEventListener("scroll", handleScroll);
   }, []);
 
   const toggleSection = (title: string) => {
@@ -316,7 +333,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
         <span className="font-bold text-lg text-slate-900 tracking-tight">{appName}</span>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto custom-scrollbar">
+      <nav ref={navRef} className="flex-1 px-3 py-4 space-y-6 overflow-y-auto custom-scrollbar">
         {/* Quick Access Section */}
         {quickAccess.length > 0 && (
           <div className="space-y-1.5 pb-4 border-b border-slate-100/50">

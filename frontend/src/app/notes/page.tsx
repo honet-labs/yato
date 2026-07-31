@@ -174,6 +174,45 @@ function RichTextEditor({ value, onChange, placeholder, minHeight = "120px" }: R
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!editorRef.current) return;
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    
+    if (e.key === "Backspace" || e.key === "Delete") {
+      const node = range.startContainer;
+      const offset = range.startOffset;
+      
+      if (e.key === "Backspace" && node === editorRef.current && offset === 0) {
+        const firstChild = editorRef.current.firstChild;
+        if (firstChild && firstChild.nodeName === "IMG") {
+          e.preventDefault();
+          firstChild.remove();
+          handleInput();
+        }
+      }
+      
+      if (e.key === "Backspace" && node.nodeType === Node.TEXT_NODE && offset === 0) {
+        const prev = node.previousSibling;
+        if (prev && prev.nodeName === "IMG") {
+          e.preventDefault();
+          prev.remove();
+          handleInput();
+        }
+      }
+
+      if (e.key === "Delete" && node.nodeType === Node.TEXT_NODE && offset === node.textContent?.length) {
+        const next = node.nextSibling;
+        if (next && next.nodeName === "IMG") {
+          e.preventDefault();
+          next.remove();
+          handleInput();
+        }
+      }
+    }
+  };
+
   return (
     <div className="w-full border border-slate-200/60 rounded-xl overflow-hidden bg-slate-50/10">
       {/* Toolbar */}
@@ -333,6 +372,16 @@ function RichTextEditor({ value, onChange, placeholder, minHeight = "120px" }: R
         ref={editorRef}
         contentEditable
         onInput={handleInput}
+        onKeyDown={handleKeyDown}
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.tagName === "IMG") {
+            if (confirm("Delete this image?")) {
+              target.remove();
+              handleInput();
+            }
+          }
+        }}
         className="p-3.5 outline-none text-[13px] text-slate-700 bg-white overflow-y-auto rich-note-content"
         data-placeholder={placeholder}
         style={{ minHeight }}
