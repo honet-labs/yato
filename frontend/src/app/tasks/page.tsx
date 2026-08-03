@@ -1096,8 +1096,7 @@ function TasksPageContent() {
                     return (
                       <div
                         key={project.id}
-                        onClick={() => router.push(`/tasks?projectId=${project.id}`)}
-                        className="group relative flex flex-col justify-between bg-white border border-slate-100 hover:border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 min-h-[160px]"
+                        className="group relative flex flex-col justify-between bg-white border border-slate-100 hover:border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 min-h-[160px]"
                       >
                         {/* Top Indicator Line */}
                         <div 
@@ -1108,43 +1107,50 @@ function TasksPageContent() {
                         <div className="pl-2.5 flex-1 flex flex-col justify-between">
                           <div>
                             <div className="flex items-start justify-between gap-3 mb-2">
-                              <h3 className="text-sm font-bold text-slate-800 mb-0 group-hover:text-blue-600 transition-colors truncate">
+                              <h3 
+                                className="text-sm font-bold text-slate-800 mb-0 group-hover:text-blue-600 transition-colors truncate cursor-pointer"
+                                onClick={() => router.push(`/tasks?projectId=${project.id}`)}
+                              >
                                 {project.name}
                               </h3>
                               
-                              <div className="flex items-center gap-1 opacity-100 transition-opacity">
+                              <div className="flex items-center gap-1">
                                 <button
+                                  onPointerDown={(e) => e.stopPropagation()}
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    e.preventDefault();
                                     setEditingProjectId(project.id);
                                     setEditProjectName(project.name);
                                     setEditProjectDesc(project.description || "");
                                     setEditProjectColor(project.colorCode || "#4F46E5");
                                     setIsEditProjectOpen(true);
                                   }}
-                                  className="p-1 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-slate-700 transition-colors"
+                                  className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-colors"
                                   title="Rename Workspace"
                                 >
-                                  <Edit className="w-3.5 h-3.5" />
+                                  <Edit className="w-4 h-4" />
                                 </button>
-                                {isAdmin && (
                                 <button
+                                  onPointerDown={(e) => e.stopPropagation()}
                                   onClick={(e) => handleDeleteProject(project.id, e)}
-                                  className="p-1 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
+                                  className="p-1.5 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
                                   title="Delete Workspace"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
-                                )}
                               </div>
                             </div>
 
-                            <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4">
+                            <p 
+                              className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4 cursor-pointer"
+                              onClick={() => router.push(`/tasks?projectId=${project.id}`)}
+                            >
                               {project.description || "No description provided."}
                             </p>
                           </div>
 
-                          <div className="space-y-2 mt-auto">
+                          <div className="space-y-2 mt-auto cursor-pointer" onClick={() => router.push(`/tasks?projectId=${project.id}`)}>
                             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
                               <span>Tasks: {completedTasks}/{totalTasks}</span>
                               <span>{percentComplete}%</span>
