@@ -941,7 +941,7 @@ export default function ServiceInventoryPage() {
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Password</span>
                             <SecurePasswordDisplay
                               itemId={viewingDetails.id}
-                              maskedPlaceholder={viewingDetails.password || '••••••••'}
+                              maskedPlaceholder="••••••••••••"
                               revealedPassword={revealedPasswords[viewingDetails.id]}
                               isVisible={showPassInDetail}
                               onToggleVisibility={() => setShowPassInDetail(!showPassInDetail)}

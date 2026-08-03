@@ -888,7 +888,7 @@ const handleView = (cred: Credential) => {
                         <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2">Secure Secret / Password</p>
                         <SecurePasswordDisplay
                           itemId={selectedCred.id}
-                          maskedPlaceholder={selectedCred.password}
+                          maskedPlaceholder="••••••••••••"
                           revealedPassword={revealedPasswords[selectedCred.id]}
                           isVisible={showPassInDetail}
                           onToggleVisibility={() => setShowPassInDetail(!showPassInDetail)}
