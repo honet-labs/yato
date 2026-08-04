@@ -261,6 +261,10 @@ function TasksPageContent() {
       setNewProjectColor("#4F46E5");
       // Open the new project tracker immediately
       router.push(`/tasks?projectId=${data.id}`);
+    },
+    onError: (error: any) => {
+      const errMsg = error.response?.data?.message || "Failed to create tracker";
+      showToast(errMsg, "error");
     }
   });
 
