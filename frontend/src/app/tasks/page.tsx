@@ -1788,19 +1788,12 @@ function TasksPageContent() {
                   {/* Parent Task Selector */}
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Parent Task</label>
-                    <div className="relative">
-                      <select 
-                        value={newTaskParentId}
-                        onChange={(e) => setNewTaskParentId(e.target.value)}
-                        className="input-field pr-10 w-full bg-white cursor-pointer appearance-none"
-                      >
-                        <option value="">None (Root Task)</option>
-                        {tasks?.filter((t: any) => !t.parentId && (!projectIdParam || t.projectId === projectIdParam)).map((t: any) => (
-                          <option key={t.id} value={t.id}>{t.title}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                    </div>
+                    <ParentTaskSelector
+                      tasks={tasks || []}
+                      value={newTaskParentId}
+                      onChange={setNewTaskParentId}
+                      projectIdParam={projectIdParam}
+                    />
                   </div>
 
                   <div className="space-y-1.5">
@@ -2618,21 +2611,17 @@ function TasksPageContent() {
                     {/* Parent Task Input */}
                     <div className="grid grid-cols-3 items-center gap-4">
                       <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><CornerDownRight className="w-3.5 h-3.5" /> Parent Task</span>
-                      <div className="col-span-2 relative">
-                        <select 
+                      <div className="col-span-2">
+                        <ParentTaskSelector
+                          tasks={tasks || []}
                           value={detailParentId}
-                          onChange={(e) => {
-                            setDetailParentId(e.target.value);
-                            handleFieldUpdate("parentId", e.target.value || null);
+                          onChange={(id) => {
+                            setDetailParentId(id);
+                            handleFieldUpdate("parentId", id || null);
                           }}
-                          className="input-field pr-10 w-full bg-white cursor-pointer appearance-none !py-2"
-                        >
-                          <option value="">None (Root Task)</option>
-                          {tasks?.filter((t: any) => t.id !== taskDetail.id && !t.parentId && (!projectIdParam || t.projectId === projectIdParam)).map((t: any) => (
-                            <option key={t.id} value={t.id}>{t.title}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                          excludeTaskId={taskDetail?.id}
+                          projectIdParam={projectIdParam}
+                        />
                       </div>
                     </div>
 
@@ -3602,6 +3591,113 @@ function TasksPageContent() {
         
         </main>
       </div>
+    </div>
+  );
+}
+
+interface ParentTaskSelectorProps {
+  tasks: any[];
+  value: string;
+  onChange: (id: string) => void;
+  excludeTaskId?: string;
+  projectIdParam?: string;
+}
+
+function ParentTaskSelector({ tasks, value, onChange, excludeTaskId, projectIdParam }: ParentTaskSelectorProps) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const allowedStatuses = ["NOT_STARTED", "IN_PROGRESS", "HOLD_ON"];
+
+  const eligibleTasks = useMemo(() => {
+    return (tasks || []).filter((t: any) => {
+      if (excludeTaskId && t.id === excludeTaskId) return false;
+      if (t.parentId) return false;
+      if (projectIdParam && t.projectId !== projectIdParam) return false;
+      if (!allowedStatuses.includes(t.status)) return false;
+      return true;
+    });
+  }, [tasks, excludeTaskId, projectIdParam]);
+
+  const filteredTasks = useMemo(() => {
+    if (!search.trim()) return eligibleTasks;
+    const q = search.toLowerCase();
+    return eligibleTasks.filter((t: any) => t.title?.toLowerCase().includes(q));
+  }, [eligibleTasks, search]);
+
+  const selectedTask = eligibleTasks.find((t: any) => t.id === value);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setSearch("");
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => { setOpen(!open); setTimeout(() => inputRef.current?.focus(), 50); }}
+        className="input-field w-full bg-white cursor-pointer text-left flex items-center justify-between pr-3"
+      >
+        <span className={selectedTask ? "text-slate-800" : "text-slate-400"}>
+          {selectedTask ? selectedTask.title : "None (Root Task)"}
+        </span>
+        <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div className="absolute z-[200] mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-[280px] overflow-hidden flex flex-col">
+          <div className="p-2 border-b border-slate-100">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="Search tasks..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-400"
+              />
+            </div>
+          </div>
+          <div className="overflow-y-auto custom-scrollbar">
+            <button
+              type="button"
+              onClick={() => { onChange(""); setOpen(false); setSearch(""); }}
+              className={cn(
+                "w-full text-left px-3 py-2 text-xs hover:bg-slate-50 transition-colors border-b border-slate-50",
+                !value ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600"
+              )}
+            >
+              None (Root Task)
+            </button>
+            {filteredTasks.length === 0 ? (
+              <div className="px-3 py-4 text-center text-xs text-slate-400">No matching tasks</div>
+            ) : (
+              filteredTasks.map((t: any) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => { onChange(t.id); setOpen(false); setSearch(""); }}
+                  className={cn(
+                    "w-full text-left px-3 py-2 text-xs hover:bg-slate-50 transition-colors flex items-center gap-2",
+                    value === t.id ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-700"
+                  )}
+                >
+                  <span className="truncate">{t.title}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
