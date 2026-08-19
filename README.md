@@ -13,551 +13,323 @@
 
 ---
 
-## 🚀 Overview & Name Origin
+## Overview
 
-### ⛩️ Why YATO?
-The platform's name **YATO** is inspired by **Yato (夜ト)**, the stray god from the popular anime series ***Noragami***. In the anime, Yato is a minor, self-proclaimed deity who does odd jobs, resolves human troubles, and works tirelessly for a mere **5-yen coin** to build his grand shrine and earn devotees. 
+**YATO** is a unified IT Operations, Task Management, and Asset Registry platform built to streamline communications between development teams, helpdesk support, and system administrators.
 
-True to its namesake, the **YATO Platform** acts as the ultimate, dedicated "helper god" for IT Support, Project Management, and Infrastructure Operations. It works quietly and tirelessly behind the scenes—managing support tickets, tracking assets, resolving tasks, and securing your enterprise credentials with absolute reliability.
-
-**YATO** is a unified, highly secure IT Operations, Task Management, and Asset Registry platform built from the ground up to streamline communications and bridge the gap between development teams, helpdesk support, and system administrators.
+The name **YATO** is inspired by **Yato (夜ト)**, the stray god from the anime series ***Noragami***. True to its namesake, YATO acts as the dedicated "helper god" for IT Support, Project Management, and Infrastructure Operations.
 
 ---
 
-## ✨ Core Feature Set
+## Core Features
 
-### 🎫 1. Helpdesk Tickets & Nested Comment Threads
-* **Interactive Ticketing Portal:** Easily classify support tickets by categories (`GENERAL`, `INFRASTRUCTURE`, `BILLING`, etc.) and set SLA priorities.
-* **Threaded Comment Collaboration:** Interactive conversation feeds within tickets supporting deep nesting, file uploads, and `@mentions`.
-* **Multi-Gateway Notifications:** Automated real-time alerts via Email, WhatsApp, and Telegram keeping support agents and users instantly updated.
+### 1. Helpdesk Ticketing
+- Classify support tickets by category (`GENERAL`, `INFRASTRUCTURE`, `BILLING`, etc.)
+- Threaded comment collaboration with file uploads
+- Multi-channel notifications: Email, WhatsApp, Telegram
 
-### 📋 2. Comprehensive Task & Project Management
-* **Agile Task Tracking:** Track daily maintenance schedules, troubleshoot operations, and backup workflows across different priorities.
-* **Granular Checklists:** Break down tasks into interactive subtask checklists with live state synchronization.
-* **Interactive Comment Streams:** Hold dedicated discussions directly inside specific task cards, complete with multi-file attachment uploads.
+### 2. Task & Project Management
+- Kanban task tracking with priorities and checklists
+- Task templates for recurring automation
+- Comment threads with file attachments
 
-### 🔐 3. Hardened Encrypted Credential Vault
-* **AES-256 Envelope Cryptography:** Sensitive passwords, database connections, and SSH keys are encrypted via dynamic Data Encryption Keys (DEKs) wrapped by a Master Key Encrypting Key (KEK).
-* **On-the-Fly Key Rotation:** Dynamic key rotation utility that generates new DEKs and transparently re-encrypts all database credentials with zero downtime.
-* **Granular Audit Logging:** Every credential query generates an immutable access log tracking user, timestamp, IP address, and browser metadata.
+### 3. Encrypted Credential Vault
+- AES-256-GCM envelope encryption (DEK/KEK architecture)
+- On-the-fly key rotation with zero downtime
+- Immutable audit logging for every credential access
 
-### 📊 4. Enterprise Asset Registry & Rack Tracing
-* **Physical & Digital Inventories:** Catalog datacenters, servers, switches, routers, and company laptops with dynamic, custom metadata schemas.
-* **Datacenter Rack cabinet Mapping:** Model servers precisely inside physical rack layouts with vertical unit positions (`uPosition`) and rack zones.
-* **Asset Dependencies Graph:** Establish logical relations (e.g., `SERVER_TO_RACK`, `SWITCH_TO_DATACENTER`) to trace infrastructure topologies.
-* **Rapid Scan QR Codes:** Inline high-fidelity QR code generation for rapid physical audits and updates.
+### 4. Asset Registry & CMDB
+- Physical and digital asset inventory with QR codes
+- Datacenter rack mapping with unit positions
+- Asset dependency graph for infrastructure topology
 
-### 🛡️ 5. Identity, Access, & Security Operations
-* **Two-Factor Authentication (MFA/2FA):** Seamless dynamic Time-based One-Time Passwords (TOTP) utilizing authenticator apps (Google Authenticator, Authy, etc.).
-* **Role-Based Access Control (RBAC):** Strict NestJS controller guards implementing multi-tier permissions (`ADMIN`, `SUPPORT_AGENT`, etc.).
-* **Brute-Force & Lockout Guard:** Automated monitoring of failed login attempts that locks out compromised accounts after consecutive validation errors.
+### 5. Identity & Access Control
+- MFA/2FA with TOTP (Google Authenticator, Authy)
+- Role-Based Access Control (RBAC) with granular permissions
+- Brute-force protection with automatic account lockout
 
-### 🔒 6. Production-Grade Hardening & Security Optimizations
-* **Docker Socket Proxy Isolation:** Backend has **zero direct access** to host `/var/run/docker.sock`. All metrics checks are proxied via a secure, read-only API gateway (`tecnativa/docker-socket-proxy`) allowing only `GET /containers` to prevent privilege escalation.
-* **Non-Root Container Enforcement:** Both frontend and backend Docker containers run under the unprivileged `node` user instead of `root`.
-* **Private Network Isolation:** Databases (`PostgreSQL`, `Redis`) and app servers are bound to `127.0.0.1`, completely isolated from external traffic. Only Nginx is exposed.
-* **Rate Limiting & DDOS Prevention:** Dual-layered rate limits at both Nginx (`10r/s` with burst of 20) and application levels.
-* **Dynamic Credentials Generation:** Installer script dynamically generates secure random **32-character passwords** during deployment.
-* **Gzip & Resource Optimizations:** Enable Nginx Gzip compression, auto CPU worker scaling, Node memory heap limit (512MB), and Redis volatile-lru constraints.
+### 6. Production Hardening
+- Docker socket proxy isolation (zero direct Docker access)
+- Non-root containers, private network isolation
+- Dual-layer rate limiting (Nginx + Application)
 
 ---
 
-## 🛠️ Complete Technology Stack
+## Technology Stack
 
-| Tier | Component | Technology / Library | Purpose |
-| :--- | :--- | :--- | :--- |
-| **Frontend** | Framework | Next.js 14 (App Router) | High-performance React portal with optimized SEO and dynamic layout controls |
-| | CSS | Tailwind CSS | Sleek, modern, and highly-responsive user interface styling |
-| | State & Query | React Query (TanStack) | Declarative fetching, local caching, and synchronization |
-| **Backend** | Framework | NestJS (Node.js) & TypeScript | Strongly-typed, modular REST API architecture |
-| | ORM | Prisma ORM | Type-safe schema generator, database query builder, and migrations |
-| | Task Queue | BullMQ (via `@nestjs/bullmq`) | Background asynchronous jobs, queue management, and task concurrency |
-| | Sockets | Socket.IO (via `@nestjs/websockets`) | Real-time WebSocket terminal server and bi-directional communications |
-| | SSH Client | `ssh2` package | Dynamic virtual connection client for execution of VM provisioning pipelines |
-| **Database** | Primary | PostgreSQL 15 | Structured transactional storage, relational integrity, and indexation |
-| | Cache & Queue | Redis 7 | High-performance in-memory cache, session store, and BullMQ backend |
-| **Proxy** | Web Server | Nginx | Reverse proxy, secure SSL termination, and static assets server |
-| **Runtime** | Deployment | Docker / Docker Compose | Containerization and environment isolation |
+| Tier | Component | Technology | Purpose |
+|------|-----------|------------|---------|
+| Frontend | Framework | Next.js 14 (App Router) | React portal with SSR |
+| | Styling | Tailwind CSS | Responsive UI |
+| | State | React Query (TanStack) | Server state management |
+| Backend | Framework | NestJS + TypeScript | Modular REST API |
+| | ORM | Prisma | Type-safe database queries |
+| | Queue | BullMQ | Background job processing |
+| | Sockets | Socket.IO | Real-time WebSocket |
+| Database | Primary | PostgreSQL 15 | Relational storage |
+| | Cache | Redis 7 | Cache + queue backend |
+| Proxy | Web Server | Nginx | Reverse proxy + SSL |
 
 ---
 
-## 📐 Technical Architecture & Design Specifications
-
-### 🖥️ 1. System Architecture Design
-The YATO Platform uses a highly resilient, isolated, and proxy-secured multi-tier architecture to deliver instant support feeds, secure enterprise credentials, and map critical datacenter assets:
+## Architecture
 
 ```mermaid
 graph TD
-    %% Clients
-    User([👤 Administrator / Support Agent]) -->|Accesses Portal: Port 9090| Nginx[🔒 Nginx Gateway Proxy]
+    User([User]) -->|Port 9090| Nginx[Nginx Gateway]
 
-    %% Routing
-    subgraph "DMZ & Gateway Router"
-        Nginx -->|Routes static pages & UI| Frontend[🌐 Next.js Portal - Port 4001]
-        Nginx -->|Routes REST API & Websockets| Backend[🚀 NestJS Backend API - Port 4000]
+    subgraph "Gateway"
+        Nginx -->|Static| Frontend[Next.js :3000]
+        Nginx -->|API| Backend[NestJS :3000]
     end
 
-    %% Application Tier
-    subgraph "Application Logic & Middleware Services"
-        Backend -->|Access Control| Guards[🛡️ RBAC / MFA Guards]
-        Backend -->|Crypto Vault| Envelope[🔐 Envelope Cryptography Engine]
-        Backend -->|Audit Logs| Audit[📋 Immutable Audit Logger]
-        Backend -->|Task Scheduler| Queue[📦 BullMQ Job Queue]
+    subgraph "Application"
+        Backend --> Guards[RBAC / MFA]
+        Backend --> Vault[Encryption Engine]
+        Backend --> Audit[Audit Logger]
+        Backend --> Queue[BullMQ Queue]
     end
 
-    %% Infrastructure Tier
-    subgraph "Infrastructure & Cache State"
-        Database[(🗄️ PostgreSQL 15 - DB Store)]
-        Redis[(⚡ Redis 7 - Session & Queue Store)]
+    subgraph "Infrastructure"
+        DB[(PostgreSQL)]
+        Cache[(Redis)]
     end
 
-    %% Database integrations
-    Backend -->|Type-safe queries| Database
-    Queue <-->|Job tracking| Redis
-    Backend <-->|Cache / Queue triggers| Redis
+    Backend --> DB
+    Queue <--> Cache
+    Backend <--> Cache
 
-    %% External Gateways
-    subgraph "Integrations & Connectors"
-        WAHA[💬 WhatsApp WAHA Gateway]
-        SMTP[📧 SMTP Mail Server]
-        Telegram[✈️ Telegram API Bot]
+    subgraph "External"
+        WAHA[WhatsApp Gateway]
+        SMTP[Email Server]
+        Telegram[Telegram Bot]
     end
 
-    Backend -->|Notification dispatch| WAHA
-    Backend -->|System alerts / transactional mail| SMTP
-    Backend -->|Instant alert alerts| Telegram
+    Backend --> WAHA
+    Backend --> SMTP
+    Backend --> Telegram
 ```
 
 ---
 
-### 🗄️ 2. Database Design & Security Specifications
-To protect sensitive credentials and maintain transaction logs, YATO implements strict database design rules:
+## System Requirements
 
-#### A. AES-256 Envelope Cryptography (Vault Security)
-All credentials (passwords, tokens, SSH keys) inside the `Credential` table are never stored in raw text. They are protected using dynamic **Envelope Encryption**:
-1. **Master KEK:** A secure 32-character key generated during installation (`ENCRYPTION_KEY` in `.env`) acts as the Master Key Encrypting Key.
-2. **Dynamic DEKs:** Every time a credential is created, a unique, random Data Encryption Key (DEK) is generated. The credential data is encrypted using this DEK (AES-256-GCM).
-3. **Double wrapping:** The DEK itself is encrypted using the Master KEK and stored alongside the encrypted payload in the database.
-4. **Key Rotation:** Running the KEK rotation updates the keyring, decrypts all DEKs with the old KEK, and re-wraps them with the new KEK seamlessly.
+### Minimum (Development)
+- CPU: 2 vCPUs
+- RAM: 4 GB (8 GB recommended for Docker)
+- Disk: 20 GB SSD
+- OS: Ubuntu 20.04+, Debian 11+, Rocky Linux 8+, macOS, Windows WSL2
+- Docker: v24.0+ with Compose v2.20+
 
-#### B. Immutable Audit Trail & Lockouts
-* **`AuditLog`:** Logs every state mutation, authentication check, and credential access. Once created, these records are never updated or deleted by the application (enforced by NestJS interceptors).
-* **`LoginHistory`:** Captures successful and unsuccessful authentication events, mapping IP Addresses and client User-Agent headers.
-* **Lockout Mechanics:** When standard login validation fails continuously (limit of 5 consecutive times), the `failedLoginAttempts` counter increment triggers an automated lockout timestamp (`lockoutUntil`), blocking further requests for 15 minutes to defeat brute-force attempts.
+### Recommended (Production)
+- CPU: 4+ vCPUs
+- RAM: 8-16 GB
+- Disk: 50+ GB NVMe SSD
+- Network: Gigabit Ethernet with static IP
 
----
-
-### 🎨 3. Visual & UI Design Specifications
-YATO follows a premium, high-contrast, modern UI specification designed for optimal usability and legibility:
-
-* **Typography System:** Leverages the **Inter** font family (Google Fonts) for structure and tabular data, using varying font weights (`font-bold`, `font-semibold`) and clear sizes (`text-sm`, `text-[11px]`) to establish deep hierarchy.
-* **Color Contrast Standard (WCAG 2.1 Compliant):**
-  * **White Backgrounds:** Sub-text and table headers leverage `text-slate-600` and secondary tags use `text-slate-500` to guarantee a readability ratio exceeding `4.5:1` against white backgrounds (`bg-white` / `bg-slate-50`).
-  * **Accents:** Highlights and active navigation links use rich Cobalt Blue (`bg-blue-600` / `text-blue-600`) and Deep Purple (`text-indigo-600`).
-  * **Alerts & States:** Success states use Emerald green (`bg-emerald-50` / `text-emerald-600`), and pending or warned alerts use Amber orange (`bg-amber-50` / `text-amber-600`).
-* **Glassmorphism Panels:** Core dashboard panels utilize soft borders (`border-slate-100`), backing shadows (`shadow-sm`), and translucent gradients to deliver a lightweight, high-end visual workspace.
-
-## ⚙️ System Specifications & Requirements
-
-YATO can be deployed modularly on different systems depending on the production requirements.
-
-### 🖥️ 1. Minimum System Specifications (Development & Lite Testing)
-> [!NOTE]
-> Best for local developer sandboxes, staging environments, or small administrative networks (up to 10 active administrators).
-
-* **CPU:** Dual-Core (2 vCPUs)
-* **System RAM:** 4 GB (8 GB is highly recommended if running backend, frontend, PostgreSQL, and Redis concurrently in Docker)
-* **Available Disk Storage:** 20 GB SSD/NVMe
-* **Supported OS:** Ubuntu Server 20.04/22.04 LTS, Debian 11/12, Rocky Linux 8/9, macOS (Intel/Silicon), or Windows 10/11 with WSL2.
-* **Docker Engines:** Docker Engine v24.0+ and Docker Compose v2.20+
-
-### 🚀 2. Recommended Specifications (Enterprise Production Scale)
-> [!IMPORTANT]
-> Required for large-scale operations involving simultaneous SSH gateway tunnels, heavy background provisioning queues, and extensive asset-movement exports.
-
-* **CPU:** Quad-Core (4 vCPUs or more)
-* **System RAM:** 8 GB - 16 GB DDR4/DDR5
-* **Available Disk Storage:** 50+ GB Enterprise NVMe SSD
-* **Network:** Gigabit Ethernet with fixed IP address / secure VPN routing.
-
-### 📦 3. Software Dependencies (For Local Development Setup)
-If running directly on host machines without Docker orchestration, you must fulfill these installations:
-* **Node.js:** v18.x LTS or v20.x LTS (Recommended)
-* **Package Manager:** npm v9.x+ or yarn v1.22+
-* **Database:** PostgreSQL v15+
-* **Cache Key-Store:** Redis v7.x+
+### Software Dependencies (Local Development)
+- Node.js v18.x LTS or v20.x LTS
+- npm v9.x+ or yarn v1.22+
+- PostgreSQL v15+
+- Redis v7.x+
 
 ---
 
-## 💻 Step-by-Step Installation Guides
+## Installation
 
-YATO offers modular deployment pipelines. First, clone the repository from GitHub, then select your desired installation method below.
-
-### 📥 Step 1: Clone the Repository
-First, download the source code from GitHub to your target machine:
+### Step 1: Clone Repository
 
 ```bash
-# Clone the repository via HTTPS
 git clone https://github.com/aannddrrii294/yato.git
-
-# Enter the repository directory
 cd yato
 ```
 
----
+### Step 2: Choose Deployment Method
 
-### 🚀 Step 2: Choose Deployment Option
+#### Option A: Docker (Recommended)
 
-Choose one of the following methods to install and launch YATO:
-
-### Option A: Standard Full-Stack Docker Deployment (Recommended)
-This pipeline deploys isolated containers for Next.js, NestJS, PostgreSQL, Redis, and Nginx.
-
-1. **Make scripts executable:**
-   ```bash
-   chmod +x installer.sh update.sh uninstall.sh
-   ```
-
-2. **Run the Interactive Installer:**
-   ```bash
-   ./installer.sh
-   ```
-   *The installer automatically generates secure random values for JWT keys, database access parameters, and Master KEK passwords, saving them to `.env`.*
-
-3. **Verify running containers:**
-   ```bash
-   docker compose ps
-   ```
-
----
-
-### Option B: Local Developer Workspace Setup (Without Docker Compose)
-If you want to run YATO locally in watch/debug mode with standard live reloads:
-
-#### 1. Setup the Database & Cache
-Ensure PostgreSQL and Redis are running locally on your default ports.
-
-#### 2. Configure Backend Environment
-Navigate to `backend` and set up the environmental parameters:
 ```bash
+chmod +x installer-docker.sh
+./installer-docker.sh
+```
+
+The installer auto-generates JWT secrets, encryption keys, and database passwords. Verifikasi:
+
+```bash
+docker compose ps
+```
+
+#### Option B: Systemd (Standalone)
+
+```bash
+chmod +x installer-systemd.sh
+sudo ./installer-systemd.sh
+```
+
+This installs PostgreSQL, Redis, Node.js, and Nginx as system services. Manage with:
+
+```bash
+sudo systemctl status yato-backend yato-frontend
+sudo journalctl -u yato-backend -f
+```
+
+#### Option C: Local Development
+
+```bash
+# Backend
 cd backend
 cp .env.example .env
-```
-Open `.env` and configure your database string, redis host, and cryptographic KEK:
-```env
-DATABASE_URL="postgresql://yato:yato@localhost:5432/yato?schema=public"
-REDIS_HOST="localhost"
-REDIS_PORT=6379
-ENCRYPTION_KEY="replace-with-a-secure-32-char-key"
-JWT_SECRET="replace-with-a-secure-jwt-secret"
-```
-
-#### 3. Install Backend Dependencies & Run Migrations
-```bash
-# Install NPM modules
+# Edit .env with your database credentials
 npm install
-
-# Generate Prisma Client and apply migrations
 npx prisma generate
 npx prisma migrate dev
-
-# Seed database with default admin accounts, roles, and configuration templates
 npx prisma db seed
-
-# Launch NestJS in local developer watch mode
 npm run start:dev
-```
 
-#### 4. Configure Frontend Environment
-In a new terminal window, configure and launch the Next.js portal:
-```bash
+# Frontend (new terminal)
 cd frontend
-cp .env.example .env.local
-```
-Configure backend routing proxy inside `.env.local`:
-```env
-NEXT_PUBLIC_API_URL="http://localhost:4000"
-```
-
-#### 5. Install Frontend Dependencies & Launch Development Server
-```bash
-# Install modules
 npm install
-
-# Run dev server
 npm run dev
 ```
-Open browser at [http://localhost:3000](http://localhost:3000).
+
+Access at http://localhost:3000
 
 ---
 
-### Option C: Standalone Production Systemd Deployment (Without Docker)
-This pipeline installs local system prerequisites, builds production packages, and deploys both backend and frontend as persistent OS-level **systemd** services.
+## Post-Installation
 
-1. **Make installer executable:**
-   ```bash
-   chmod +x installer.sh
-   ```
+### Access URLs
+- **Frontend Portal:** `http://<server-ip>:9090` (Nginx) or `http://<server-ip>:4001` (direct)
+- **Backend API:** `http://<server-ip>:4000`
+- **Swagger Docs:** `http://<server-ip>:4000/docs`
 
-2. **Run the Standalone Installer:**
-   ```bash
-   ./installer.sh --infra-mode standalone
-   ```
-   *This script detects your Linux package manager (e.g. `apt-get` on Debian/Ubuntu), automatically configures and runs PostgreSQL, Redis, Node.js, applies migrations/seeds, compiles both Next.js/NestJS platforms, and registers standard systemd services.*
+### Default Credentials
+- **Email:** `admin@yato.local`
+- **Password:** `admin123`
 
-3. **Manage the Systemd Services:**
-   You can easily monitor and control the platform services using standard `systemctl` commands:
-   ```bash
-   # Check service health
-   sudo systemctl status yato-backend
-   sudo systemctl status yato-frontend
+**IMPORTANT:** Change the default password immediately after first login.
 
-   # Restart services
-   sudo systemctl restart yato-backend yato-frontend
+### Production with Cloudflare Tunnel
 
-   # Stop services
-   sudo systemctl stop yato-backend yato-frontend
-
-   # View live daemon logs
-   sudo journalctl -u yato-backend -f
-   sudo journalctl -u yato-frontend -f
-   ```
-
----
-
-## 🚀 Post-Installation Network Access Details
-
-Once the platform is bootstrapped, use the target routing endpoints below:
-
-### 🌐 Network Routing
-* **Frontend Web Portal:** `http://<your-server-ip>:4001` (Direct Node Port) or `http://<your-server-ip>:9090` (Nginx Gateway Router)
-* **Backend API Gateway:** `http://<your-server-ip>:4000`
-* **Interactive OpenAPI/Swagger Documentation:** `http://<your-server-ip>:4000/docs`
-
-> [!TIP]
-> **🚀 Production Deployment & Custom Domain (Cloudflare Tunnel)**
-> If you are deploying YATO on a public VPS and want to access it securely using a custom domain (e.g., `yato.example.com`) with automated SSL and zero incoming firewall ports open, it is highly recommended to use a **Cloudflare Tunnel (`cloudflared`)**:
-> 1. Install `cloudflared` on your host server.
-> 2. Create a secure tunnel:
->    ```bash
->    cloudflared tunnel create yato-tunnel
->    ```
-> 3. Route your custom domain traffic directly to the Nginx reverse proxy gateway (Port 9090):
->    ```yaml
->    # cloudflared config.yml sample ingress rule
->    tunnel: yato-tunnel
->    credentials-file: /root/.cloudflared/yato-tunnel.json
->    ingress:
->      - hostname: yato.example.com
->        service: http://localhost:9090
->      - service: http_status:404
->    ```
-> 4. Launch the tunnel daemon:
->    ```bash
->    cloudflared tunnel run yato-tunnel
->    ```
-
-### 🔐 Default Administrator Login
-> [!WARNING]
-> Change the default administrator passwords and credentials immediately in the **Profile settings** panel after your first successful authorization!
-
-* **Username/Email:** `admin@yato.local`
-* **Password:** `admin123`
-
----
-
-## 🔄 Operations & Maintenance
-
-### 🔑 Multi-Factor Authentication (MFA) Troubleshooting & Time Synchronization
-
-If a user or administrator is locked out because their Time-based One-Time Password (TOTP) is rejected (due to timezone drift or clock desynchronization between their mobile device and the VPS host):
-
-#### 1. 🚨 Single-Use Emergency Recovery Codes
-YATO features a secure, Bcrypt-hashed Emergency Recovery Codes system to prevent permanent lockout. When you enable MFA:
-* You are presented with **5 unique emergency recovery codes** in the format `YATO-RC-XXXX-XXXX`.
-* Save these codes in a secure vault. If you lose your authenticator app, input one of these recovery codes into the 2FA token field.
-* Recovery codes are **single-use** (consumed immediately upon a successful verification) and protected inside the database using industry-standard **Bcrypt** hashing to prevent credential leaks.
-
-#### 2. 👥 Disabling MFA via Administrator Panel
-If another Administrator is active:
-* Navigate to **Admin ➔ User Management**.
-* Click the **Edit** icon next to the locked-out user.
-* Toggle off **MFA Secure**, save, or let the user re-enroll.
-
-#### 3. 🕒 Verifying VPS & Container Time Synchronization
-Docker containers derive their clocks directly from the host system. If the host clock drifts, MFA codes will immediately fail:
-* **Verify Host Time:** Run `date` or `timedatectl` on your VPS host to check if the time is correct.
-* **Synchronize Host Clock:** If the host clock is incorrect, sync it using NTP:
-  ```bash
-  # Force immediate NTP clock synchronization
-  sudo systemctl restart systemd-timesyncd
-  # Or if using chrony:
-  sudo chronyd -q 'server pool.ntp.org iburst'
-  ```
-* **Verify Container Clocks:** Check if containers are in perfect sync with the host timezone:
-  ```bash
-  docker compose exec backend date
-  ```
-
-### How to Upgrade YATO (Git Updates & Migrations)
-To pulling updates from upstream repository, rebuild container configurations, and hot-reload database migrations:
 ```bash
-./update.sh
+cloudflared tunnel create yato-tunnel
 ```
 
-### Checking Real-time System Logs
+Config (`~/.cloudflared/config.yml`):
+```yaml
+tunnel: yato-tunnel
+credentials-file: /root/.cloudflared/yato-tunnel.json
+ingress:
+  - hostname: yato.example.com
+    service: http://localhost:9090
+  - service: http_status:404
+```
+
 ```bash
-# Check all container logs
+cloudflared tunnel run yato-tunnel
+```
+
+---
+
+## Operations
+
+### Update
+
+```bash
+./update-versi.sh
+```
+
+Options:
+- `--docker` - Force Docker mode
+- `--systemd` - Force Systemd mode
+- `--skip-pull` - Skip git pull
+- `--skip-validation` - Skip build validation
+
+### View Logs
+
+```bash
+# Docker
 docker compose logs -f
 
-# Check only backend controller outputs
-docker compose logs -f backend
-
-# Check only background provisioning workers
-docker compose logs -f backend | grep -i "VmProvisionWorker"
+# Systemd
+journalctl -u yato-backend -f
 ```
 
-### Uninstalling the Platform
-To cleanly stop, destroy, and permanently remove database persistent volumes:
+### Uninstall
+
 ```bash
 ./uninstall.sh
 ```
 
-## 🗄️ Database Architecture (Schema Topology)
+---
 
-YATO utilizes a highly relational PostgreSQL schema to link identities, access controls, provisioning requests, physical assets, and encrypted credentials. Below is the comprehensive topological map of the platform's core entities:
+## MFA Troubleshooting
 
-```mermaid
-erDiagram
-    %% Core Identity & Access Management (IAM)
-    User ||--o{ UserRole : has
-    Role ||--o{ UserRole : assigned_to
-    User ||--o{ Credential : owns
-    User ||--o{ ApiToken : issues
-    User ||--o{ LoginHistory : logs
-    User ||--o{ AuditLog : performs
+If TOTP codes are rejected due to clock drift:
 
-    %% Provisioning & Orchestration Engine
-    User ||--o{ VMRequest : requests
-    User ||--o{ ServiceRequest : requests
-    VMRequest ||--o| VMInventory : tracks_state
-    ServiceRequest ||--o| ServiceInventory : tracks_state
-    
-    %% Asset & Infrastructure Registry
-    User ||--o{ Asset : manages
-    Asset ||--o{ AssetMovement : movement_log
-    Asset ||--o{ AssetRelationship : source_of
-    Asset ||--o{ AssetRelationship : target_of
-    
-    %% Support Ticketing & Task Management
-    User ||--o{ SupportTicket : opens
-    User ||--o{ Task : creates
-    Task ||--o{ TaskComment : has
-    SupportTicket ||--o{ TicketComment : has
-    VMRequest ||--o{ TicketComment : discussions
-    ServiceRequest ||--o{ TicketComment : discussions
+1. **Recovery Codes:** Use one of the 5 recovery codes (`YATO-RC-XXXX-XXXX`) generated when MFA was enabled.
 
-    %% Platform Integrations
-    Integration {
-        String id PK
-        String name
-        String type "PROVISIONING, MONITORING, NOTIFICATION"
-        String connectorKey UK "proxmox-ve, vmware-vsphere, grafana"
-        Boolean isActive
-    }
+2. **Admin Disable:** Another admin can disable MFA via Admin > User Management.
 
-    VMRequest {
-        String id PK
-        String ticketId UK
-        String status "PENDING, APPROVED, PROVISIONING, COMPLETED"
-        Int cpu
-        Int ram
-        Int disk
-        String environment
-        String requestedBy FK
-    }
-
-    VMInventory {
-        String id PK
-        String requestId FK
-        String ipAddress
-        String sshUser
-        String status
-    }
-
-    Asset {
-        String id PK
-        String assetCode UK "HMS-SRV-000001"
-        String assetType "SERVER, VM, ROUTER, SWITCH"
-        String status
-        String rack
-        Int uPosition
-    }
-
-    AssetRelationship {
-        String id PK
-        String sourceId FK
-        String targetId FK
-        String type "VM_TO_HYPERVISOR, SERVER_TO_RACK"
-    }
-
-    Credential {
-        String id PK
-        String name
-        String type "SSH, DB, API_KEY"
-        String password "AES-256 Encrypted DEK"
-        String ownerId FK
-    }
-
-    Task {
-        String id PK
-        String title
-        String status "NOT_STARTED, IN_PROGRESS, BLOCKED, DONE"
-        String priority
-    }
-
-    User {
-        String id PK
-        String email UK
-        String password "Bcrypt Hashed"
-        Boolean isMfaEnabled
-        DateTime lastLogin
-    }
+3. **Time Sync:**
+```bash
+sudo systemctl restart systemd-timesyncd
+docker compose exec backend date
 ```
 
 ---
 
-## 📂 Project Architecture Tree
+## Database Schema
 
-```text
-YATO/
-├── backend/                     # NestJS REST Gateway
-│   ├── prisma/                  # Relational database models, seeders, and configurations
-│   ├── src/
-│   │   ├── app.module.ts        # Global imports (Throttling, Caches, EventEmitters)
-│   │   ├── main.ts              # System entrypoint (Swagger and CORS initialization)
-│   │   ├── common/              # Global security filters and custom deciphers
-│   │   └── modules/             # High-cohesion modular features (Auth, VM Requests, Storage)
-│   ├── package.json             # Dev and Production NPM script configs
-│   └── tsconfig.json            # Compiler configurations
-│
-├── frontend/                    # Next.js 14 Frontend Portal
-│   ├── public/                  # Static assets and portal graphics
-│   ├── src/
-│   │   ├── app/                 # Next.js App Router folders and routes
-│   │   ├── components/          # Shared components (Buttons, Modals, Forms)
-│   │   └── lib/                 # Communication layers, API, and XLSX exporters
-│   ├── tailwind.config.ts       # Visual configuration system for Tailwind CSS
-│   └── tsconfig.json            # Compiler configurations
-│
-├── nginx/                       # Config definitions for SSL/Reverse proxy routing
-├── installer.sh                 # Modular multi-tier shell installer script
-├── update.sh                    # Database migration & git pull automation script
-└── uninstall.sh                 # Persistent volume cleaner script
+40 tables across 5 modules:
+
+| Module | Tables | Purpose |
+|--------|--------|---------|
+| Auth & Security | 10 | Users, roles, MFA, audit, integrations |
+| HRM & Attendance | 11 | Divisions, shifts, timesheets, leaves |
+| Infrastructure | 9 | VM/service requests, assets, credentials |
+| Productivity | 7 | Projects, tasks, notes, calendar |
+| Helpdesk & Storage | 3 | Tickets, comments, file storage |
+
+See [DATABASE_DOCS.md](DATABASE_DOCS.md) for detailed schema documentation.
+
+---
+
+## API Integration
+
+YATO provides a REST API for third-party integration. See [docs/API_INTEGRATION.md](docs/API_INTEGRATION.md) for:
+- Authentication (JWT + Personal Access Tokens)
+- Full endpoint reference
+- Code examples (cURL, Python, Node.js)
+- Rate limiting and error codes
+
+---
+
+## Project Structure
+
+```
+yato/
+├── backend/                  # NestJS API server
+│   ├── prisma/               # Database schema & migrations
+│   └── src/
+│       ├── modules/          # Feature modules (25 modules)
+│       ├── common/           # Shared utilities
+│       └── config/           # Environment validation
+├── frontend/                 # Next.js portal
+│   └── src/
+│       ├── app/              # Routes (App Router)
+│       ├── components/       # UI components
+│       └── lib/              # Utilities & API client
+├── nginx/                    # Reverse proxy config
+├── docs/                     # Documentation
+├── installer-docker.sh       # Docker installer
+├── installer-systemd.sh      # Systemd installer
+├── update-versi.sh           # Version update script
+└── uninstall.sh              # Uninstaller
 ```
 
 ---
 
-## ⚖️ License
+## License
 
-Distributed under the Apache License Version 2.0. See the [LICENSE](LICENSE) file for more information.
+Apache License 2.0. See [LICENSE](LICENSE).
