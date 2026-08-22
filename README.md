@@ -17,315 +17,294 @@
 
 **YATO** is a unified IT Operations, Task Management, and Asset Registry platform built to streamline communications between development teams, helpdesk support, and system administrators.
 
-The name **YATO** is inspired by **Yato (夜ト)**, the stray god from the anime series ***Noragami***. True to its namesake, YATO acts as the dedicated "helper god" for IT Support, Project Management, and Infrastructure Operations.
-
----
-
-## Core Features
-
-### 1. Helpdesk Ticketing
-- Classify support tickets by category (`GENERAL`, `INFRASTRUCTURE`, `BILLING`, etc.)
-- Threaded comment collaboration with file uploads
-- Multi-channel notifications: Email, WhatsApp, Telegram
-
-### 2. Task & Project Management
-- Kanban task tracking with priorities and checklists
-- Task templates for recurring automation
-- Comment threads with file attachments
-
-### 3. Encrypted Credential Vault
-- AES-256-GCM envelope encryption (DEK/KEK architecture)
-- On-the-fly key rotation with zero downtime
-- Immutable audit logging for every credential access
-
-### 4. Asset Registry & CMDB
-- Physical and digital asset inventory with QR codes
-- Datacenter rack mapping with unit positions
-- Asset dependency graph for infrastructure topology
-
-### 5. Identity & Access Control
-- MFA/2FA with TOTP (Google Authenticator, Authy)
-- Role-Based Access Control (RBAC) with granular permissions
-- Brute-force protection with automatic account lockout
-
-### 6. Production Hardening
-- Docker socket proxy isolation (zero direct Docker access)
-- Non-root containers, private network isolation
-- Dual-layer rate limiting (Nginx + Application)
-
----
-
-## Technology Stack
-
-| Tier | Component | Technology | Purpose |
-|------|-----------|------------|---------|
-| Frontend | Framework | Next.js 14 (App Router) | React portal with SSR |
-| | Styling | Tailwind CSS | Responsive UI |
-| | State | React Query (TanStack) | Server state management |
-| Backend | Framework | NestJS + TypeScript | Modular REST API |
-| | ORM | Prisma | Type-safe database queries |
-| | Queue | BullMQ | Background job processing |
-| | Sockets | Socket.IO | Real-time WebSocket |
-| Database | Primary | PostgreSQL 15 | Relational storage |
-| | Cache | Redis 7 | Cache + queue backend |
-| Proxy | Web Server | Nginx | Reverse proxy + SSL |
-
----
-
-## Architecture
-
-```mermaid
-graph TD
-    User([User]) -->|Port 9090| Nginx[Nginx Gateway]
-
-    subgraph "Gateway"
-        Nginx -->|Static| Frontend[Next.js :3000]
-        Nginx -->|API| Backend[NestJS :3000]
-    end
-
-    subgraph "Application"
-        Backend --> Guards[RBAC / MFA]
-        Backend --> Vault[Encryption Engine]
-        Backend --> Audit[Audit Logger]
-        Backend --> Queue[BullMQ Queue]
-    end
-
-    subgraph "Infrastructure"
-        DB[(PostgreSQL)]
-        Cache[(Redis)]
-    end
-
-    Backend --> DB
-    Queue <--> Cache
-    Backend <--> Cache
-
-    subgraph "External"
-        WAHA[WhatsApp Gateway]
-        SMTP[Email Server]
-        Telegram[Telegram Bot]
-    end
-
-    Backend --> WAHA
-    Backend --> SMTP
-    Backend --> Telegram
-```
-
----
-
-## System Requirements
-
-### Minimum (Development)
-- CPU: 2 vCPUs
-- RAM: 4 GB (8 GB recommended for Docker)
-- Disk: 20 GB SSD
-- OS: Ubuntu 20.04+, Debian 11+, Rocky Linux 8+, macOS, Windows WSL2
-- Docker: v24.0+ with Compose v2.20+
-
-### Recommended (Production)
-- CPU: 4+ vCPUs
-- RAM: 8-16 GB
-- Disk: 50+ GB NVMe SSD
-- Network: Gigabit Ethernet with static IP
-
-### Software Dependencies (Local Development)
-- Node.js v18.x LTS or v20.x LTS
-- npm v9.x+ or yarn v1.22+
-- PostgreSQL v15+
-- Redis v7.x+
-
 ---
 
 ## Installation
 
-### Step 1: Clone Repository
+### Prerequisites
 
+| Requirement | Docker Mode | Systemd Mode |
+|-------------|-------------|--------------|
+| OS | Linux, macOS, Windows WSL2 | Ubuntu 20.04+, Debian 11+, RHEL 8+ |
+| Docker | v24.0+ with Compose v2.20+ | Not required |
+| RAM | 4 GB minimum (8 GB recommended) | 4 GB minimum |
+| Disk | 20 GB free | 20 GB free |
+| Root/Sudo | No (add user to docker group) | Yes |
+
+### Quick Install (One Command)
+
+**Docker mode (recommended):**
 ```bash
-git clone https://github.com/aannddrrii294/yato.git
-cd yato
+curl -fsSL https://raw.githubusercontent.com/honet-labs/yato/staging/installer-docker.sh | bash -s -- --branch staging
 ```
 
-### Step 2: Choose Deployment Method
-
-#### Option A: Docker (Recommended)
-
+**Systemd mode:**
 ```bash
-chmod +x installer-docker.sh
-./installer-docker.sh
+curl -fsSL https://raw.githubusercontent.com/honet-labs/yato/staging/installer-systemd.sh | sudo bash -s -- --branch staging
 ```
-
-The installer auto-generates JWT secrets, encryption keys, and database passwords. Verifikasi:
-
-```bash
-docker compose ps
-```
-
-#### Option B: Systemd (Standalone)
-
-```bash
-chmod +x installer-systemd.sh
-sudo ./installer-systemd.sh
-```
-
-This installs PostgreSQL, Redis, Node.js, and Nginx as system services. Manage with:
-
-```bash
-sudo systemctl status yato-backend yato-frontend
-sudo journalctl -u yato-backend -f
-```
-
-#### Option C: Local Development
-
-```bash
-# Backend
-cd backend
-cp .env.example .env
-# Edit .env with your database credentials
-npm install
-npx prisma generate
-npx prisma migrate dev
-npx prisma db seed
-npm run start:dev
-
-# Frontend (new terminal)
-cd frontend
-npm install
-npm run dev
-```
-
-Access at http://localhost:3000
 
 ---
 
-## Post-Installation
+### Step-by-Step Install
 
-### Access URLs
-- **Frontend Portal:** `http://<server-ip>:9090` (Nginx) or `http://<server-ip>:4001` (direct)
-- **Backend API:** `http://<server-ip>:4000`
-- **Swagger Docs:** `http://<server-ip>:4000/docs`
+#### Step 1: Download Installer
 
-### Default Credentials
+```bash
+# Download Docker installer
+curl -fsSL -o installer-docker.sh https://raw.githubusercontent.com/honet-labs/yato/staging/installer-docker.sh
+chmod +x installer-docker.sh
+
+# OR download Systemd installer
+curl -fsSL -o installer-systemd.sh https://raw.githubusercontent.com/honet-labs/yato/staging/installer-systemd.sh
+chmod +x installer-systemd.sh
+```
+
+#### Step 2: Run Installer
+
+**Docker:**
+```bash
+# Install from main branch (stable)
+./installer-docker.sh --branch main
+
+# Install from staging branch (latest features)
+./installer-docker.sh --branch staging
+
+# Custom Nginx port
+./installer-docker.sh --branch main --port 80
+```
+
+**Systemd:**
+```bash
+# Install from main branch (stable)
+sudo ./installer-systemd.sh --branch main
+
+# Install from staging branch (latest features)
+sudo ./installer-systemd.sh --branch staging
+
+# Custom database password
+sudo ./installer-systemd.sh --branch main --db-pass mySecurePassword
+```
+
+#### Step 3: Access YATO
+
+After installation completes, open your browser:
+
+```
+http://<your-server-ip>
+```
+
+Default login:
 - **Email:** `admin@yato.local`
 - **Password:** `admin123`
 
-**IMPORTANT:** Change the default password immediately after first login.
+**Change the password immediately after first login.**
 
-### Production with Cloudflare Tunnel
+---
+
+### Installer Options
+
+#### installer-docker.sh
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--branch <name>` | `main` | Branch to install (`main` or `staging`) |
+| `--port <port>` | `9090` | Nginx HTTP port |
+| `--help` | - | Show help |
+
+#### installer-systemd.sh
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--branch <name>` | `main` | Branch to install (`main` or `staging`) |
+| `--db-pass <pass>` | auto-generated | PostgreSQL password |
+| `--help` | - | Show help |
+
+---
+
+### What the Installer Does
+
+The installer performs these steps automatically:
+
+1. **Check dependencies** - Verifies git, docker/node, openssl
+2. **Clone repository** - Downloads YATO from selected branch
+3. **Generate config** - Creates `.env` with auto-generated secrets
+4. **Build images** - Compiles backend and frontend
+5. **Start infrastructure** - Launches PostgreSQL, Redis
+6. **Run migrations** - Sets up database schema and seed data
+7. **Start services** - Launches all YATO services
+8. **Display access info** - Shows URLs and credentials
+
+---
+
+## Update
 
 ```bash
-cloudflared tunnel create yato-tunnel
+# Update current branch
+./update-versi.sh
+
+# Switch to staging branch
+./update-versi.sh --branch staging
+
+# Switch back to main branch
+./update-versi.sh --branch main
+
+# Force Docker mode
+./update-versi.sh --docker
+
+# Force Systemd mode
+./update-versi.sh --systemd
 ```
 
-Config (`~/.cloudflared/config.yml`):
-```yaml
-tunnel: yato-tunnel
-credentials-file: /root/.cloudflared/yato-tunnel.json
-ingress:
-  - hostname: yato.example.com
-    service: http://localhost:9090
-  - service: http_status:404
-```
+### Update Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--branch <name>` | current | Branch to update to |
+| `--docker` | auto | Force Docker mode |
+| `--systemd` | auto | Force Systemd mode |
+| `--skip-pull` | false | Skip git pull |
+| `--skip-validation` | false | Skip build validation |
+
+---
+
+## Branches
+
+| Branch | Description | Stability |
+|--------|-------------|-----------|
+| `main` | Stable release | High |
+| `staging` | Latest features, may have bugs | Medium |
+
+---
+
+## Service Management
+
+### Docker Mode
 
 ```bash
-cloudflared tunnel run yato-tunnel
+# View status
+docker compose ps
+
+# View logs
+docker compose logs -f
+docker compose logs -f yato-backend
+
+# Restart services
+docker compose restart
+
+# Stop services
+docker compose down
+
+# Start services
+docker compose up -d
+```
+
+### Systemd Mode
+
+```bash
+# View status
+sudo systemctl status yato-backend yato-frontend
+
+# View logs
+sudo journalctl -u yato-backend -f
+sudo journalctl -u yato-frontend -f
+
+# Restart services
+sudo systemctl restart yato-backend yato-frontend
+
+# Stop services
+sudo systemctl stop yato-backend yato-frontend
+
+# Start services
+sudo systemctl start yato-backend yato-frontend
 ```
 
 ---
 
-## Operations
-
-### Update
-
-```bash
-./update-versi.sh
-```
-
-Options:
-- `--docker` - Force Docker mode
-- `--systemd` - Force Systemd mode
-- `--skip-pull` - Skip git pull
-- `--skip-validation` - Skip build validation
-
-### View Logs
-
-```bash
-# Docker
-docker compose logs -f
-
-# Systemd
-journalctl -u yato-backend -f
-```
-
-### Uninstall
+## Uninstall
 
 ```bash
 ./uninstall.sh
 ```
 
----
-
-## MFA Troubleshooting
-
-If TOTP codes are rejected due to clock drift:
-
-1. **Recovery Codes:** Use one of the 5 recovery codes (`YATO-RC-XXXX-XXXX`) generated when MFA was enabled.
-
-2. **Admin Disable:** Another admin can disable MFA via Admin > User Management.
-
-3. **Time Sync:**
-```bash
-sudo systemctl restart systemd-timesyncd
-docker compose exec backend date
-```
+The uninstaller will ask for confirmation before removing:
+- Containers and networks
+- Database volumes (optional)
+- Docker images (optional)
+- Configuration files (optional)
 
 ---
 
-## Database Schema
+## Access URLs
 
-40 tables across 5 modules:
+After installation:
 
-| Module | Tables | Purpose |
-|--------|--------|---------|
-| Auth & Security | 10 | Users, roles, MFA, audit, integrations |
-| HRM & Attendance | 11 | Divisions, shifts, timesheets, leaves |
-| Infrastructure | 9 | VM/service requests, assets, credentials |
-| Productivity | 7 | Projects, tasks, notes, calendar |
-| Helpdesk & Storage | 3 | Tickets, comments, file storage |
+| Service | Docker URL | Systemd URL |
+|---------|------------|-------------|
+| Frontend | `http://<ip>:9090` | `http://<ip>` |
+| Backend API | `http://<ip>:4000` | `http://<ip>:3000` |
+| Swagger Docs | `http://<ip>:4000/docs` | `http://<ip>:3000/docs` |
 
-See [DATABASE_DOCS.md](DATABASE_DOCS.md) for detailed schema documentation.
+---
+
+## Features
+
+- **Helpdesk Ticketing** - Support tickets with threaded comments
+- **Task Management** - Kanban boards with templates
+- **Credential Vault** - AES-256 encrypted password storage
+- **Asset Registry** - CMDB with QR codes and rack mapping
+- **HRM** - Attendance, shifts, leaves, timesheets
+- **VM Provisioning** - Automated VM deployment via Proxmox
+- **Multi-channel Notifications** - Email, WhatsApp, Telegram
+- **RBAC** - Role-based access control with granular permissions
+- **MFA** - Two-factor authentication with TOTP
+- **Audit Trail** - Immutable logging of all actions
 
 ---
 
 ## API Integration
 
-YATO provides a REST API for third-party integration. See [docs/API_INTEGRATION.md](docs/API_INTEGRATION.md) for:
+See [docs/API_INTEGRATION.md](docs/API_INTEGRATION.md) for:
 - Authentication (JWT + Personal Access Tokens)
 - Full endpoint reference
 - Code examples (cURL, Python, Node.js)
-- Rate limiting and error codes
 
 ---
 
-## Project Structure
+## Troubleshooting
 
+### Docker not starting
+```bash
+sudo systemctl start docker
+sudo systemctl enable docker
 ```
-yato/
-├── backend/                  # NestJS API server
-│   ├── prisma/               # Database schema & migrations
-│   └── src/
-│       ├── modules/          # Feature modules (25 modules)
-│       ├── common/           # Shared utilities
-│       └── config/           # Environment validation
-├── frontend/                 # Next.js portal
-│   └── src/
-│       ├── app/              # Routes (App Router)
-│       ├── components/       # UI components
-│       └── lib/              # Utilities & API client
-├── nginx/                    # Reverse proxy config
-├── docs/                     # Documentation
-├── installer-docker.sh       # Docker installer
-├── installer-systemd.sh      # Systemd installer
-├── update-versi.sh           # Version update script
-└── uninstall.sh              # Uninstaller
+
+### Port already in use
+```bash
+# Check what's using the port
+sudo lsof -i :9090
+
+# Or change port in installer
+./installer-docker.sh --port 8080
+```
+
+### Database connection failed
+```bash
+# Check if PostgreSQL is running
+docker compose ps postgres
+# or
+sudo systemctl status postgresql
+
+# Check logs
+docker compose logs postgres
+```
+
+### MFA codes not working
+```bash
+# Sync system time
+sudo systemctl restart systemd-timesyncd
+
+# Check container time
+docker compose exec yato-backend date
 ```
 
 ---
