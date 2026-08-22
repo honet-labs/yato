@@ -3,97 +3,117 @@
 # YATO Update Script
 set -e
 
-GREEN='\033[0-32m'
-YELLOW='\033[1-33m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
 NC='\033[0m'
-RED='\033[0-31m'
 
-# Check Prerequisites
+log_info()  { echo -e "${GREEN}[INFO]${NC} $1"; }
+log_warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
+SKIP_PULL=false
+SKIP_VALIDATION=false
+for arg in "$@"; do
+  case $arg in
+    --skip-pull|-s)
+      SKIP_PULL=true
+      ;;
+    --skip-validation|--skip-check|-sv|-sc)
+      SKIP_VALIDATION=true
+      ;;
+  esac
+done
+
 check_dependency() {
     if ! command -v $1 >/dev/null 2>&1; then
-        echo -e "${RED}Error: $1 is not installed.${NC}" >&2
+        log_error "$1 is not installed."
         return 1
     fi
     return 0
 }
 
-echo -e "${YELLOW}🔍 Validating environment...${NC}"
+echo ""
+echo "============================================"
+echo "  YATO Update"
+echo "============================================"
+echo ""
+
+log_info "Validating environment..."
 check_dependency "git" || exit 1
 check_dependency "docker" || exit 1
 
-# Check for Docker Compose (V2 plugin or V1 standalone)
 if docker compose version >/dev/null 2>&1; then
   DOCKER_COMPOSE="docker compose"
 elif command -v docker-compose >/dev/null 2>&1; then
   DOCKER_COMPOSE="docker-compose"
 else
-  echo -e "${RED}Error: docker compose is not installed.${NC}" >&2
+  log_error "docker compose is not installed."
   exit 1
 fi
 
-echo -e "${GREEN}🔄 Updating YATO...${NC}"
-
-# Step 1: Pull changes (if using Git)
-if [ -d ".git" ]; then
-  echo -e "${YELLOW}📥 Pulling latest changes from repository...${NC}"
-  git pull || echo -e "${RED}Warning: git pull failed, continuing...${NC}"
+# Step 1: Pull changes
+if [ "$SKIP_PULL" = "true" ]; then
+  log_info "Skipping git pull."
+elif [ -d ".git" ]; then
+  log_info "Pulling latest changes..."
+  GIT_TERMINAL_PROMPT=0 git pull || log_warn "git pull failed, continuing..."
 else
-  echo "   • Not a git repository, skipping pull."
+  log_info "Not a git repository, skipping pull."
 fi
 
-# Step 1.2: Automation Check (CI/CD & Build Validation)
-echo -e "${YELLOW}⚙️  Running automation checking (CI/CD & build validation)...${NC}"
+# Step 2: Build validation
+if [ "$SKIP_VALIDATION" = "true" ]; then
+  log_info "Skipping build validation."
+else
+  log_info "Running build validation..."
 
-echo -e "   • ${YELLOW}Validating Backend (Compiling & Type Checking)...${NC}"
-if ! docker build --target builder -t yato-backend-check ./backend; then
-  echo -e "${RED}❌ Automation Check FAILED: Backend compilation or type checking failed.${NC}" >&2
-  exit 1
+  log_info "Validating backend build..."
+  if ! docker build --target builder -t yato-backend-check ./backend; then
+    log_error "Backend build validation FAILED."
+    exit 1
+  fi
+
+  log_info "Validating frontend build..."
+  if ! docker build --target builder -t yato-frontend-check ./frontend; then
+    log_error "Frontend build validation FAILED."
+    exit 1
+  fi
+
+  log_info "Running backend linter..."
+  if ! docker run --rm yato-backend-check npm run lint; then
+    log_error "Backend lint check FAILED."
+    exit 1
+  fi
+
+  log_info "Running frontend linter..."
+  if ! docker run --rm yato-frontend-check npm run lint; then
+    log_error "Frontend lint check FAILED."
+    exit 1
+  fi
+
+  log_info "Build validation passed."
 fi
 
-echo -e "   • ${YELLOW}Validating Frontend (Compiling & Type Checking)...${NC}"
-if ! docker build --target builder -t yato-frontend-check ./frontend; then
-  echo -e "${RED}❌ Automation Check FAILED: Frontend compilation or type checking failed.${NC}" >&2
-  exit 1
-fi
-
-echo -e "   • ${YELLOW}Running Backend Linter...${NC}"
-if ! docker run --rm yato-backend-check npm run lint; then
-  echo -e "${RED}❌ Automation Check FAILED: Backend linting check failed.${NC}" >&2
-  exit 1
-fi
-
-echo -e "   • ${YELLOW}Running Frontend Linter...${NC}"
-if ! docker run --rm yato-frontend-check npm run lint; then
-  echo -e "${RED}❌ Automation Check FAILED: Frontend linting check failed.${NC}" >&2
-  exit 1
-fi
-
-echo -e "${GREEN}✅ Automation Check PASSED: 100% passed (Build & Lint verification clean).${NC}"
-
-# Step 1.5: Inject Copyright Headers
+# Step 3: Inject Copyright Headers
 if command -v node &> /dev/null; then
-  echo -e "${YELLOW}⚖️  Injecting Apache 2.0 Copyright Headers...${NC}"
-  node add-copyright-header.js || echo -e "${RED}Warning: copyright injection script failed, continuing...${NC}"
-else
-  echo "   • Node.js not available on host, skipping automated copyright injection."
+  log_info "Injecting copyright headers..."
+  node add-copyright-header.js || log_warn "Copyright injection failed."
 fi
 
-# Step 1.7: Detect Host Timezone and sync .env
-echo -e "${YELLOW}⚙️  Synchronizing system timezone...${NC}"
+# Step 4: Sync timezone
 HOST_TZ=$(cat /etc/timezone 2>/dev/null || timedatectl | grep "Time zone" | awk '{print $3}' 2>/dev/null || echo "UTC")
-echo -e "   • System Timezone detected as: ${GREEN}$HOST_TZ${NC}"
+log_info "System timezone: $HOST_TZ"
 
 if [ -f ".env" ]; then
   if grep -q "^TZ=" .env; then
-      sed -i "s|^TZ=.*|TZ=\"$HOST_TZ\"|" .env
+      sed -i "s|^TZ=.*|TZ=$HOST_TZ|" .env
   else
-      echo "TZ=\"$HOST_TZ\"" >> .env
+      echo "TZ=$HOST_TZ" >> .env
   fi
 fi
 
-
-
-# Get Server IP
+# Step 5: Get Server IP
 SERVER_IP=$(hostname -I | awk '{print $1}')
 if [ -z "$SERVER_IP" ]; then
   SERVER_IP=$(ip addr show | grep 'inet ' | grep -v '127.0.0.1' | awk '{print $2}' | cut -d/ -f1 | head -n1)
@@ -103,63 +123,56 @@ if [ -z "$SERVER_IP" ]; then
 fi
 export API_URL="http://$SERVER_IP:4000"
 
-# Step 1.9: Synchronize host dependencies if npm is available
+# Step 6: Sync host dependencies
 if command -v npm &> /dev/null; then
-  echo -e "${YELLOW}📦 Synchronizing host development dependencies...${NC}"
-  echo -e "   • Installing backend dependencies on host..."
-  (cd backend && npm install && npm audit fix) || echo -e "${RED}Warning: backend npm install or audit fix on host failed, continuing...${NC}"
-  echo -e "   • Installing frontend dependencies on host..."
-  (cd frontend && npm install && npm audit fix) || echo -e "${RED}Warning: frontend npm install or audit fix on host failed, continuing...${NC}"
-else
-  echo "   • npm not available on host, skipping host-level node_modules sync."
+  log_info "Syncing host dependencies..."
+  (cd backend && npm install --no-audit --no-fund) || log_warn "Backend npm install failed."
+  (cd frontend && npm install --no-audit --no-fund) || log_warn "Frontend npm install failed."
 fi
 
-# Step 2: Rebuild and Restart
-echo -e "${YELLOW}📦 Rebuilding and restarting containers...${NC}"
+# Step 7: Rebuild and restart
+log_info "Rebuilding and restarting containers..."
 $DOCKER_COMPOSE up -d --build --remove-orphans
 
-# Proactively restart Nginx to flush DNS resolver cache for internal container IPs
-echo -e "${YELLOW}⚡ Flushing Nginx DNS resolver cache...${NC}"
-$DOCKER_COMPOSE restart nginx || echo -e "${RED}Warning: Failed to restart Nginx, continuing...${NC}"
+# Step 8: Restart Nginx
+log_info "Restarting Nginx..."
+$DOCKER_COMPOSE restart nginx || log_warn "Nginx restart failed."
 
-# Step 3: Run migrations and sync schema
-echo -e "${YELLOW}🗄️  Synchronizing database schema...${NC}"
+# Step 9: Database migration
+log_info "Running database migrations..."
 if [ -d "backend/prisma/migrations" ]; then
-    echo -e "   • ${GREEN}Safe migrations directory detected.${NC} Deploying migrations..."
     $DOCKER_COMPOSE exec -T yato-backend npx prisma migrate deploy
 else
-    echo -e "   • ${RED}⚠️  Warning: Migrations directory not found in backend/prisma/migrations.${NC}"
-    echo -e "     Using 'db push' as fallback to synchronize schema changes safely."
     $DOCKER_COMPOSE exec -T yato-backend npx prisma db push
 fi
 $DOCKER_COMPOSE exec -T yato-backend npx prisma db seed
-echo -e "${GREEN}✅ Database synchronized and seeded successfully.${NC}"
+log_info "Database synchronized."
 
-# Detailed Update Success Information Display
+# Display success
 show_update_success() {
-    echo -e ""
-    echo -e "${GREEN}================================================================${NC}"
-    echo -e "   🚀  ${GREEN}YATO Platform Successfully Updated!${NC}"
-    echo -e "${GREEN}================================================================${NC}"
-    echo -e ""
+    echo ""
+    echo "============================================"
+    echo "  YATO Update Complete"
+    echo "============================================"
+    echo ""
     
     if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
-        echo -e "📄 ${YELLOW}RECENT CHANGES:${NC}"
-        git log -n 3 --pretty=format:"   • %h - %s (%cr)" | cat
-        echo -e "\n"
+        echo "  RECENT CHANGES:"
+        git log -n 3 --pretty=format:"    %h - %s (%cr)" | cat
+        echo ""
+        echo ""
     fi
 
-    echo -e "🔐 ${YELLOW}DEFAULT ACCESS CREDENTIALS:${NC}"
-    echo -e "   • ${GREEN}Email:${NC}           admin@yato.local"
-    echo -e "   • ${GREEN}Password:${NC}        admin123"
-    echo -e "   • ${RED}IMPORTANT:${NC}       Please change this default password immediately in your profile settings!"
-    echo -e ""
-
-    echo -e "💡 ${YELLOW}USEFUL COMMANDS:${NC}"
-    echo -e "   • ${GREEN}View Logs:${NC}           $DOCKER_COMPOSE logs -f"
-    echo -e "   • ${GREEN}Restart Services:${NC}    $DOCKER_COMPOSE restart"
-    echo -e "${GREEN}================================================================${NC}"
-    echo -e ""
+    echo "  DEFAULT CREDENTIALS:"
+    echo "    Email:     admin@yato.local"
+    echo "    Password:  admin123"
+    echo ""
+    echo "  COMMANDS:"
+    echo "    Logs:      $DOCKER_COMPOSE logs -f"
+    echo "    Restart:   $DOCKER_COMPOSE restart"
+    echo ""
+    echo "============================================"
+    echo ""
 }
 
 show_update_success

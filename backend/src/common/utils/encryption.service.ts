@@ -5,11 +5,11 @@ import * as crypto from 'crypto';
 
 @Injectable()
 export class EncryptionService implements OnModuleInit {
-  private readonly algorithm = 'aes-256-cbc';
+  private readonly algorithm = 'aes-256-gcm';
+  private readonly legacyAlgorithm = 'aes-256-cbc';
   private readonly masterKey: Buffer;
   private readonly logger = new Logger(EncryptionService.name);
 
-  // In-memory cache of decrypted DEKs
   private deksCache = new Map<string, Buffer>();
   private activeDekId: string | null = null;
   private isInitialized = false;
@@ -18,21 +18,18 @@ export class EncryptionService implements OnModuleInit {
     private configService: ConfigService,
     private prisma: PrismaService,
   ) {
-    let secretKey = this.configService.get<string>('ENCRYPTION_KEY');
+    const secretKey = this.configService.get<string>('ENCRYPTION_KEY');
     if (!secretKey) {
-      this.logger.error('ENCRYPTION_KEY is missing! Using fallback (INSECURE)');
-      secretKey = 'fallback-key-32-chars-long-!!!';
+      this.logger.fatal('ENCRYPTION_KEY environment variable is not set. Application cannot start without it.');
+      throw new Error('ENCRYPTION_KEY is required. Generate one with: openssl rand -hex 32');
     }
-    
-    if (secretKey.length !== 32) {
-      this.logger.warn(`ENCRYPTION_KEY length is ${secretKey.length}, expected 32. Adjusting...`);
-      if (secretKey.length > 32) {
-        secretKey = secretKey.substring(0, 32);
-      } else {
-        secretKey = secretKey.padEnd(32, '0');
-      }
+
+    if (secretKey.length < 32) {
+      this.logger.fatal(`ENCRYPTION_KEY must be at least 32 characters. Current length: ${secretKey.length}`);
+      throw new Error('ENCRYPTION_KEY must be at least 32 characters long.');
     }
-    this.masterKey = Buffer.from(secretKey);
+
+    this.masterKey = Buffer.from(secretKey.substring(0, 32));
   }
 
   async onModuleInit() {
@@ -88,7 +85,6 @@ export class EncryptionService implements OnModuleInit {
 
       this.activeDekId = history.activeKeyId;
       
-      // Decrypt and load all keys in history
       for (const k of history.keys) {
         try {
           const decryptedDekHex = this.decryptWithKek(k.cipherText);
@@ -110,14 +106,33 @@ export class EncryptionService implements OnModuleInit {
     const cipher = crypto.createCipheriv(this.algorithm, this.masterKey, iv);
     let encrypted = cipher.update(text);
     encrypted = Buffer.concat([encrypted, cipher.final()]);
-    return iv.toString('hex') + ':' + encrypted.toString('hex');
+    const authTag = cipher.getAuthTag();
+    return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted.toString('hex');
   }
 
   private decryptWithKek(text: string): string {
     const textParts = text.split(':');
-    const iv = Buffer.from(textParts.shift()!, 'hex');
-    const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-    const decipher = crypto.createDecipheriv(this.algorithm, this.masterKey, iv);
+
+    // Try GCM format first: iv:authTag:ciphertext (3+ parts)
+    if (textParts.length >= 3) {
+      try {
+        const iv = Buffer.from(textParts[0], 'hex');
+        const authTag = Buffer.from(textParts[1], 'hex');
+        const encryptedText = Buffer.from(textParts.slice(2).join(':'), 'hex');
+        const decipher = crypto.createDecipheriv(this.algorithm, this.masterKey, iv);
+        decipher.setAuthTag(authTag);
+        let decrypted = decipher.update(encryptedText);
+        decrypted = Buffer.concat([decrypted, decipher.final()]);
+        return decrypted.toString();
+      } catch {
+        // Fall through to legacy CBC
+      }
+    }
+
+    // Legacy CBC format: iv:ciphertext (2 parts)
+    const iv = Buffer.from(textParts[0], 'hex');
+    const encryptedText = Buffer.from(textParts.slice(1).join(':'), 'hex');
+    const decipher = crypto.createDecipheriv(this.legacyAlgorithm, this.masterKey, iv);
     let decrypted = decipher.update(encryptedText);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
@@ -131,67 +146,93 @@ export class EncryptionService implements OnModuleInit {
     const cipher = crypto.createCipheriv(this.algorithm, key, iv);
     let encrypted = cipher.update(text);
     encrypted = Buffer.concat([encrypted, cipher.final()]);
+    const authTag = cipher.getAuthTag();
 
     if (dekId === 'legacy_kek') {
-      return iv.toString('hex') + ':' + encrypted.toString('hex');
+      return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted.toString('hex');
     }
 
-    return `yv1:${dekId}:${iv.toString('hex')}:${encrypted.toString('hex')}`;
+    return `yv1:${dekId}:${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted.toString('hex')}`;
   }
 
   decrypt(text: string): string {
     if (!text) {
       this.logger.warn('Attempted to decrypt empty/null text');
-      return '********';
+      return null;
+    }
+
+    // If doesn't look like encrypted data, return as plaintext (old records)
+    if (!text.startsWith('yv1:') && !/^[0-9a-f]+:/i.test(text)) {
+      return text;
     }
 
     try {
       if (text.startsWith('yv1:')) {
         const parts = text.split(':');
-        if (parts.length < 4) {
+        if (parts.length < 5) {
           this.logger.warn('Invalid Vault encryption format: missing parts');
-          return '********';
+          return null;
         }
         
         const dekId = parts[1];
         const ivHex = parts[2];
-        const cipherHex = parts[3];
+        const authTagHex = parts[3];
+        const cipherHex = parts[4];
 
         const key = this.deksCache.get(dekId);
         if (!key) {
           this.logger.error(`DEK ${dekId} not found in key history cache. Decryption impossible.`);
-          return '********';
+          return null;
         }
 
         const iv = Buffer.from(ivHex, 'hex');
+        const authTag = Buffer.from(authTagHex, 'hex');
         const encryptedText = Buffer.from(cipherHex, 'hex');
         const decipher = crypto.createDecipheriv(this.algorithm, key, iv);
+        decipher.setAuthTag(authTag);
         let decrypted = decipher.update(encryptedText);
         decrypted = Buffer.concat([decrypted, decipher.final()]);
         return decrypted.toString();
       }
 
+      // Legacy format support: iv:authTag:ciphertext (GCM) or iv:ciphertext (CBC)
       if (typeof text !== 'string' || !text.includes(':')) {
         this.logger.warn(`Invalid encryption format: ${typeof text}`);
-        return '********';
+        return null;
       }
       
       const textParts = text.split(':');
       if (textParts.length < 2) {
         this.logger.warn('Invalid encryption format: missing parts');
-        return '********';
+        return null;
       }
 
+      // Try GCM format first (iv:authTag:ciphertext)
+      if (textParts.length >= 3) {
+        try {
+          const iv = Buffer.from(textParts[0], 'hex');
+          const authTag = Buffer.from(textParts[1], 'hex');
+          const encryptedText = Buffer.from(textParts.slice(2).join(':'), 'hex');
+          const decipher = crypto.createDecipheriv(this.algorithm, this.masterKey, iv);
+          decipher.setAuthTag(authTag);
+          let decrypted = decipher.update(encryptedText);
+          decrypted = Buffer.concat([decrypted, decipher.final()]);
+          return decrypted.toString();
+        } catch {
+          // Fall through to legacy CBC
+        }
+      }
+
+      // Legacy CBC format (iv:ciphertext)
       const iv = Buffer.from(textParts.shift()!, 'hex');
       const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-      
-      const decipher = crypto.createDecipheriv(this.algorithm, this.masterKey, iv);
+      const decipher = crypto.createDecipheriv(this.legacyAlgorithm, this.masterKey, iv);
       let decrypted = decipher.update(encryptedText);
       decrypted = Buffer.concat([decrypted, decipher.final()]);
       return decrypted.toString();
     } catch (error) {
       this.logger.error(`Decryption failed: ${error.message}`);
-      return '********'; 
+      return null;
     }
   }
 
@@ -255,9 +296,6 @@ export class EncryptionService implements OnModuleInit {
     for (const cred of credentials) {
       try {
         const plainPassword = this.decrypt(cred.password);
-        if (plainPassword === '********') {
-          throw new Error('Could not decrypt original password');
-        }
 
         const reEncryptedPassword = this.encrypt(plainPassword);
 

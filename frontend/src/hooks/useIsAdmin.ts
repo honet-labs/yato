@@ -3,7 +3,7 @@ import api from "@/lib/api";
 
 export const ADMIN_ROLES = ["ADMIN", "SYSTEM ADMIN", "SYSTEM_ADMIN", "SUPERADMIN", "PRODUCTION"];
 
-export function useIsAdmin(extraRoles: string[] = []) {
+export function useIsAdmin(extraRoles: string[] = [], requiredPermission?: string) {
   const { data: profile, isLoading, error } = useQuery({
     queryKey: ["user-profile"],
     queryFn: async () => {
@@ -17,10 +17,15 @@ export function useIsAdmin(extraRoles: string[] = []) {
 
   const isAdmin = roles.some((role: string) =>
     [...ADMIN_ROLES, ...extraRoles].map(r => r.toUpperCase()).includes(role.toUpperCase())
-  );
+  ) || permissions.includes('*');
+
+  const hasPermission = requiredPermission
+    ? isAdmin || permissions.includes(requiredPermission)
+    : isAdmin;
 
   return {
     isAdmin,
+    hasPermission,
     isLoading,
     error,
     profile,

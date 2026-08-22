@@ -135,10 +135,7 @@ export class TicketCommentService {
         ticketId = data.supportTicketId;
       }
 
-      const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-        where: { key: 'PLATFORM_URL' }
-      });
-      const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+      const frontendUrl = await this.notificationService.getFrontendUrl();
       const ticketUrl = `${frontendUrl}/tickets?id=${ticketId}&type=${ticketType}`;
 
       const notifyIds = new Set([...followers.map(f => f.id), ticketOwnerId].filter(id => id && id !== data.authorId));

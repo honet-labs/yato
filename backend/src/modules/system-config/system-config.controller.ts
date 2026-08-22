@@ -16,6 +16,12 @@ export class SystemConfigController {
     return this.systemConfigService.getBrandingConfig();
   }
 
+  @Get('debug-dump')
+  @ApiOperation({ summary: 'Debug DB Dump' })
+  debugDump() {
+    return this.systemConfigService.debugDump();
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('MANAGE_CONFIG')

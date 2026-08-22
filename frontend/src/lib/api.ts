@@ -40,3 +40,9 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+export function getFileDownloadUrl(fileId: string): string {
+  if (typeof window === "undefined") return `/api/storage/download/${fileId}`;
+  const token = localStorage.getItem("yato_token");
+  return `/api/storage/download/${fileId}${token ? `?token=${token}` : ""}`;
+}

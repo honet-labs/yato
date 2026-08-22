@@ -1,5 +1,6 @@
 "use client";
 import { PageHeader } from "@/components/PageHeader";
+import { SecurePasswordDisplay } from "@/components/SecurePasswordDisplay";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
@@ -33,7 +34,8 @@ import {
   Lock,
   Eye,
   EyeOff,
-  ShieldCheck
+  ShieldCheck,
+  AlertTriangle
 } from "lucide-react";
 import { exportToCSV } from "@/lib/csvHelper";
 import { motion, AnimatePresence } from "framer-motion";
@@ -77,7 +79,7 @@ export default function VmInventoryPage() {
   const [verifyError, setVerifyError] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [failedVerifyAttempts, setFailedVerifyAttempts] = useState(0);
-  const [verifyPurpose, setVerifyPurpose] = useState("REVEAL" as "REVEAL" | "COPY");
+  const [verifyPurpose, setVerifyPurpose] = useState("REVEAL" as "REVEAL" | "COPY" | "COPY_USER");
   const [pendingRevealVm, setPendingRevealVm] = useState(null as VM | null);
   const [revealedPasswords, setRevealedPasswords] = useState({} as Record<string, string>);
   const [showPassInConsole, setShowPassInConsole] = useState(false);
@@ -106,6 +108,7 @@ export default function VmInventoryPage() {
 
   const { isAdmin, permissions, isLoading: isAuthLoading } = useIsAdmin();
   const canView = isAdmin || permissions.includes("VIEW_VM_INVENTORY") || permissions.includes("MANAGE_VM_INVENTORY");
+  const canEdit = isAdmin || permissions.includes("EDIT_VM_INVENTORY") || permissions.includes("MANAGE_VM_INVENTORY");
   const canAddVm = isAdmin || permissions.includes("PROVISION_VM");
 
   const { data: osTemplates } = useQuery({
@@ -183,12 +186,21 @@ export default function VmInventoryPage() {
     currentPage * itemsPerPage
   );
 
-  const handleRevealVmPassword = async (vm: VM, purpose: "REVEAL" | "COPY") => {
-    if (revealedPasswords[vm.id]) {
+  const handleRevealVmPassword = async (vm: VM, purpose: "REVEAL" | "COPY" | "COPY_USER") => {
+    const isRevealed = vm.id in revealedPasswords;
+    if (isRevealed) {
+      const revealed = revealedPasswords[vm.id];
       if (purpose === "REVEAL") {
-        setShowPassInConsole(!showPassInConsole);
-      } else {
-        copyToClipboard(revealedPasswords[vm.id]);
+        if (showConsole?.id === vm.id) {
+          setShowPassInConsole(!showPassInConsole);
+        } else {
+          setShowPassInConsole(true);
+          setShowConsole(vm);
+        }
+      } else if (purpose === "COPY_USER") {
+        copyToClipboard(vm.sshUser || 'root');
+      } else if (revealed) {
+        copyToClipboard(revealed);
       }
     } else {
       setPendingRevealVm(vm);
@@ -219,12 +231,20 @@ export default function VmInventoryPage() {
   if (!canView) {
     return (
       <div className="flex min-h-screen bg-slate-50 items-center justify-center p-6">
-        <div className="text-center space-y-4 max-w-sm">
+        <div className="text-center space-y-5 max-w-sm">
           <div className="w-20 h-20 bg-rose-500/10 rounded-full border border-rose-500/30 flex items-center justify-center mx-auto mb-6 text-rose-500">
             <Lock className="w-10 h-10" />
           </div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-800">Access Denied</h2>
           <p className="text-sm text-slate-500">You do not have permission to access the VM Inventory.</p>
+          <div className="pt-2">
+            <Link 
+              href="/dashboard" 
+              className="inline-flex items-center justify-center px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all"
+            >
+              Back to Home
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -240,29 +260,8 @@ export default function VmInventoryPage() {
               <div>
                 <PageHeader title="VM Inventory" subtitle="Infrastructure asset registry and orchestration status" />
               </div>
-              <div className="flex gap-3 ml-auto">
-                <div className="relative group">
-                  <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                  <input 
-                    type="text" 
-                    className="bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-sm w-64 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all" 
-                    placeholder="Search hostname..." 
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-                <button 
-                  onClick={handleExport}
-                  className="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Export CSV
-                </button>
-                <button className="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                  Filter
-                </button>
-                {canAddVm && (
+              {canAddVm && (
+                <div className="flex gap-3 md:ml-auto">
                   <button 
                     onClick={() => setIsAddModalOpen(true)}
                     className="btn-primary flex items-center gap-2"
@@ -270,21 +269,43 @@ export default function VmInventoryPage() {
                     <Plus className="w-4 h-4" />
                     Add VM
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </header>
+
+            <div className="flex flex-col md:flex-row gap-4 mb-8">
+              <div className="relative flex-1 group">
+                <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                <input 
+                  type="text" 
+                  className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all placeholder:text-slate-400 placeholder:font-medium" 
+                  placeholder="Search hostname..." 
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <button 
+                onClick={handleExport}
+                className="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Export CSV
+              </button>
+              <button className="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                Filter
+              </button>
+            </div>
 
             <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-visible">
               <div className="overflow-x-auto min-h-[400px]">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/50 border-b border-slate-100">
-                      <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Instance Details</th>
-                      <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Configuration</th>
-                      <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">Network</th>
-                      {isAdmin && (
-                        <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Owner</th>
-                      )}
+                      <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Hostname</th>
+                      <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">IP Address</th>
+                      <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">OS</th>
+                      <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Specifications</th>
                       <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">Environment</th>
                       <th className="px-6 py-4 text-right"></th>
                     </tr>
@@ -293,70 +314,57 @@ export default function VmInventoryPage() {
                     {isLoading ? (
                       [...Array(3)].map((_, i) => (
                         <tr key={i} className="animate-pulse">
-                          <td colSpan={5} className="px-6 py-8 h-20 bg-slate-50/30"></td>
+                          <td colSpan={6} className="px-6 py-8 h-20 bg-slate-50/30"></td>
                         </tr>
                       ))
                     ) : paginatedInventory?.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-20 text-center text-slate-400 font-medium">
+                        <td colSpan={6} className="px-6 py-20 text-center text-slate-400 font-medium">
                           No active instances found.
                         </td>
                       </tr>
                     ) : paginatedInventory?.map((vm) => (
                       <tr key={vm.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-6 py-6">
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 shadow-sm">
                               <Monitor className="w-5 h-5" />
                             </div>
-                            <div>
-                              <p className="font-bold text-slate-900 text-[14px]">{vm.hostname}</p>
-                              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{vm.os || 'Ubuntu 22.04 LTS'}</p>
-                            </div>
+                            <p className="font-bold text-slate-900 text-[14px]">{vm.hostname}</p>
                           </div>
                         </td>
                         <td className="px-6 py-6">
-                          <div className="flex items-center gap-5">
-                            <div className="flex items-center gap-1.5">
-                              <Cpu className="w-3.5 h-3.5 text-slate-400" />
-                              <span className="text-[12px] font-bold text-slate-600 uppercase">CPU: {vm.cpu} CORE</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Database className="w-3.5 h-3.5 text-slate-400" />
-                              <span className="text-[12px] font-bold text-slate-600 uppercase">RAM: {vm.ram}GB</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <HardDrive className="w-3.5 h-3.5 text-slate-400" />
-                              <span className="text-[12px] font-bold text-slate-600 uppercase">STORAGE: {vm.disk}GB</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-6 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-lg group hover:border-blue-200 transition-all cursor-pointer">
-                              <span className="font-mono text-[11px] font-bold text-slate-600 group-hover:text-blue-600">{vm.ip || 'Pending...'}</span>
-                            </div>
+                          <div className="flex items-center gap-2">
+                            <code className="text-[11px] font-mono text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">{vm.ip || 'Pending...'}</code>
                             {vm.ip && (
                               <button 
                                 onClick={() => copyToClipboard(vm.ip)}
-                                className="p-1.5 hover:bg-slate-50 rounded-md text-slate-400 hover:text-blue-600 transition-all border border-transparent hover:border-slate-100"
+                                className="p-1 hover:bg-slate-50 rounded-md text-slate-400 hover:text-blue-600 transition-all border border-transparent hover:border-slate-100"
                               >
-                                <Copy className="w-3.5 h-3.5" />
+                                <Copy className="w-3 h-3" />
                               </button>
                             )}
                           </div>
                         </td>
-                        {isAdmin && (
-                          <td className="px-6 py-6">
-                            <div className="flex flex-col gap-0.5">
-                              <span className="flex items-center gap-1.5 text-[13px] font-bold text-slate-900">
-                                <UserIcon className="w-3.5 h-3.5 text-slate-400" />
-                                {vm.requestedBy || 'Unknown'}
-                              </span>
-                              <p className="text-[10px] text-slate-400 font-bold truncate max-w-[150px]">{vm.notes || 'No notes'}</p>
+                        <td className="px-6 py-6">
+                          <span className="text-[12px] font-bold text-slate-600 uppercase">{vm.os || 'N/A'}</span>
+                        </td>
+                        <td className="px-6 py-6">
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1.5">
+                              <Cpu className="w-3.5 h-3.5 text-slate-400" />
+                              <span className="text-[11px] font-bold text-slate-600">{vm.cpu} vCPU</span>
                             </div>
-                          </td>
-                        )}
+                            <div className="flex items-center gap-1.5">
+                              <Database className="w-3.5 h-3.5 text-slate-400" />
+                              <span className="text-[11px] font-bold text-slate-600">{vm.ram}GB</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <HardDrive className="w-3.5 h-3.5 text-slate-400" />
+                              <span className="text-[11px] font-bold text-slate-600">{vm.disk}GB</span>
+                            </div>
+                          </div>
+                        </td>
                         <td className="px-6 py-6 text-center">
                           <span className={cn(
                             "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-extrabold uppercase tracking-widest border shadow-sm",
@@ -374,18 +382,27 @@ export default function VmInventoryPage() {
                           </span>
                         </td>
                         <td className="px-6 py-6 text-right relative">
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveMenu(activeMenu === vm.id ? null : vm.id);
-                            }}
-                            className={cn(
-                              "p-2.5 rounded-lg transition-all hover:bg-white hover:shadow-md border border-transparent hover:border-slate-100 relative z-20",
-                              activeMenu === vm.id ? "bg-white shadow-md border-slate-100 text-blue-600" : "text-slate-400"
-                            )}
-                          >
-                            <MoreVertical className="w-5 h-5" />
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            <button 
+                              onClick={() => handleRevealVmPassword(vm, "REVEAL")}
+                              className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                              title="View Credentials"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenu(activeMenu === vm.id ? null : vm.id);
+                              }}
+                              className={cn(
+                                "p-2.5 rounded-lg transition-all hover:bg-white hover:shadow-md border border-transparent hover:border-slate-100 relative z-20",
+                                activeMenu === vm.id ? "bg-white shadow-md border-slate-100 text-blue-600" : "text-slate-400"
+                              )}
+                            >
+                              <MoreVertical className="w-5 h-5" />
+                            </button>
+                          </div>
 
                           <AnimatePresence>
                             {activeMenu === vm.id && (
@@ -396,7 +413,7 @@ export default function VmInventoryPage() {
                                 className="absolute right-6 top-[80%] w-48 bg-white rounded-xl shadow-2xl border border-slate-100 p-2 z-[100]"
                               >
                                 <button 
-                                  onClick={() => { setShowConsole(vm); setActiveMenu(null); }}
+                                  onClick={() => { handleRevealVmPassword(vm, "REVEAL"); setActiveMenu(null); }}
                                   className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-lg transition-all"
                                 >
                                   <Terminal className="w-4 h-4" />
@@ -404,18 +421,20 @@ export default function VmInventoryPage() {
                                 </button>
 
                                 <div className="h-px bg-slate-50 my-1" />
-                                <button 
-                                  onClick={() => {
-                                    if (confirm(`Are you sure you want to TERMINATE ${vm.hostname}?`)) {
-                                      terminateMutation.mutate(vm.id);
-                                    }
-                                  }}
-                                  disabled={terminateMutation.isPending}
-                                  className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 rounded-lg transition-all disabled:opacity-50"
-                                >
-                                  {terminateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                                  TERMINATE
-                                </button>
+                                {canEdit && (
+                                  <button 
+                                    onClick={() => {
+                                      if (confirm(`Are you sure you want to TERMINATE ${vm.hostname}?`)) {
+                                        terminateMutation.mutate(vm.id);
+                                      }
+                                    }}
+                                    disabled={terminateMutation.isPending}
+                                    className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 rounded-lg transition-all disabled:opacity-50"
+                                  >
+                                    {terminateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                    TERMINATE
+                                  </button>
+                                )}
                               </motion.div>
                             )}
                           </AnimatePresence>
@@ -439,7 +458,7 @@ export default function VmInventoryPage() {
       {/* Console Access Modal */}
       <AnimatePresence>
         {showConsole && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/80">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -451,15 +470,15 @@ export default function VmInventoryPage() {
                   <Terminal className="w-5 h-5 text-emerald-400" />
                   <span className="text-xs font-bold text-white uppercase tracking-widest">Interactive Console Session — {showConsole.hostname}</span>
                 </div>
-                <button onClick={() => setShowConsole(null)} className="text-white/40 hover:text-white transition-colors">
+                <button onClick={() => { setShowConsole(null); setShowPassInConsole(false); }} className="text-white/40 hover:text-white transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
               <div className="p-8 space-y-8">
                 <div className="font-mono text-[13px] text-emerald-400/90 space-y-2 bg-black/40 p-6 rounded-xl border border-white/5 shadow-inner">
                   <p className="text-white/40 mb-4 tracking-tighter"># System established {new Date().toLocaleString()}</p>
-                  <p>$ ssh {showConsole.sshUser || 'root'}@{showConsole.ip || 'pending'} -p {showConsole.sshPort || 22}</p>
-                  <p className="animate-pulse">Authenticating with encrypted keys...</p>
+                  <p>$ ssh {revealedPasswords[showConsole.id] && showPassInConsole ? (showConsole.sshUser || 'root') : '••••••••'}@{showConsole.ip || 'pending'} -p {showConsole.sshPort || 22}</p>
+                  <p>Authenticating with encrypted keys...</p>
                   <p className="text-emerald-500 font-bold">✓ Secure session established.</p>
                 </div>
 
@@ -488,40 +507,36 @@ export default function VmInventoryPage() {
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Username</p>
                       <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                        <span className="text-[13px] font-bold text-white">{showConsole.sshUser || 'root'}</span>
-                        <button onClick={() => copyToClipboard(showConsole.sshUser || 'root')} className="text-white/20 hover:text-white">
+                        <span className="text-[13px] font-bold text-white">
+                          {revealedPasswords[showConsole.id] && showPassInConsole ? (showConsole.sshUser || 'root') : '••••••••'}
+                        </span>
+                        <button 
+                          onClick={() => {
+                            if (revealedPasswords[showConsole.id]) {
+                              copyToClipboard(showConsole.sshUser || 'root');
+                            } else {
+                              handleRevealVmPassword(showConsole, "COPY_USER");
+                            }
+                          }} 
+                          className="text-white/20 hover:text-white"
+                          title="Copy Username"
+                        >
                           <Copy className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Password</p>
-                      <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
-                        <span className="text-[13px] font-mono text-white">
-                          {revealedPasswords[showConsole.id] && showPassInConsole
-                            ? revealedPasswords[showConsole.id]
-                            : "••••••••••••"}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => handleRevealVmPassword(showConsole, "REVEAL")} 
-                            className="text-white/20 hover:text-white"
-                            title="Reveal Password"
-                          >
-                            {revealedPasswords[showConsole.id] && showPassInConsole ? (
-                              <EyeOff className="w-4 h-4" />
-                            ) : (
-                              <Eye className="w-4 h-4" />
-                            )}
-                          </button>
-                          <button 
-                            onClick={() => handleRevealVmPassword(showConsole, "COPY")} 
-                            className="text-white/20 hover:text-white"
-                            title="Copy Password"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                      <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">Password</p>
+                      <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                        <SecurePasswordDisplay
+                          itemId={showConsole.id}
+                          maskedPlaceholder="••••••••••••"
+                          revealedPassword={revealedPasswords[showConsole.id]}
+                          isVisible={showPassInConsole}
+                          onToggleVisibility={() => setShowPassInConsole(!showPassInConsole)}
+                          onRevealRequest={() => handleRevealVmPassword(showConsole, "REVEAL")}
+                          theme="dark"
+                        />
                       </div>
                     </div>
                   </div>
@@ -555,29 +570,20 @@ export default function VmInventoryPage() {
       {/* Identity Verification Modal */}
       <AnimatePresence>
         {isVerifyModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[200]">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/80">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-slate-100 relative"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm border border-slate-100"
             >
-              <button 
-                onClick={() => { setIsVerifyModalOpen(false); setVerifyPassword(""); }}
-                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="text-center">
+              <div className="p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-5">
                   <ShieldCheck className="w-8 h-8 text-amber-600" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 mb-1">Identity Verification</h3>
                 <p className="text-[11px] font-medium text-slate-400 mb-6">
-                  {verifyPurpose === "COPY" 
-                    ? "Enter your password to copy this secret key" 
-                    : "Enter your account password to reveal this secret"}
+                  Enter your account password to reveal this secret
                 </p>
                 
                 <form onSubmit={async (e) => {
@@ -590,16 +596,21 @@ export default function VmInventoryPage() {
                   try {
                     const res = await api.post(`/vm-inventory/${pendingRevealVm.id}/reveal`, { password: verifyPassword });
                     
+                    const vmForAction = pendingRevealVm;
                     setRevealedPasswords(prev => ({
                       ...prev,
-                      [pendingRevealVm.id]: res.data.sshPassword
+                      [vmForAction.id]: res.data.sshPassword || null
                     }));
                     setIsVerifyModalOpen(false);
+                    setPendingRevealVm(null);
                     setVerifyPassword("");
                     setFailedVerifyAttempts(0);
                     
                     if (verifyPurpose === "REVEAL") {
                       setShowPassInConsole(true);
+                      setShowConsole(vmForAction);
+                    } else if (verifyPurpose === "COPY_USER") {
+                      copyToClipboard(vmForAction.sshUser || 'root');
                     } else {
                       copyToClipboard(res.data.sshPassword || '');
                     }
@@ -619,38 +630,50 @@ export default function VmInventoryPage() {
                   } finally {
                     setIsVerifying(false);
                   }
-                }}>
-                  <div className="space-y-4 mb-6">
+                }} className="space-y-4">
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input 
                       type="password"
-                      placeholder="••••••••"
-                      value={verifyPassword}
-                      onChange={(e) => setVerifyPassword(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-center text-sm font-semibold tracking-widest bg-slate-50"
                       autoFocus
+                      required
+                      placeholder="Enter your password..."
+                      value={verifyPassword}
+                      onChange={(e) => { setVerifyPassword(e.target.value); setVerifyError(""); }}
+                      className={cn(
+                        "input-field pl-12 w-full py-3 bg-slate-50/50 font-medium text-center",
+                        verifyError && "!border-red-300 !ring-red-100"
+                      )}
+                      autoComplete="current-password"
                     />
-                    {verifyError && (
-                      <p className="text-[10px] font-bold text-rose-500 leading-normal bg-rose-50 p-3 rounded-xl border border-rose-100">
-                        {verifyError}
-                      </p>
-                    )}
                   </div>
-
-                  <div className="flex gap-3">
+                  
+                  {verifyError && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-2 text-red-600 text-[11px] font-bold bg-red-50 px-4 py-2.5 rounded-xl border border-red-100"
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      {verifyError}
+                    </motion.div>
+                  )}
+                  
+                  <div className="flex gap-3 pt-2">
                     <button 
                       type="button"
-                      onClick={() => { setIsVerifyModalOpen(false); setVerifyPassword(""); }}
-                      className="flex-1 py-3 border border-slate-200 text-slate-500 rounded-xl text-xs font-bold uppercase transition-all hover:bg-slate-50"
+                      onClick={() => { setIsVerifyModalOpen(false); setVerifyPassword(""); setVerifyError(""); }}
+                      className="btn-secondary flex-1"
                     >
                       Cancel
                     </button>
                     <button 
-                      type="submit"
+                      type="submit" 
                       disabled={isVerifying || !verifyPassword.trim()}
-                      className="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold uppercase transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-amber-600/10"
+                      className="btn-primary flex-1 flex items-center justify-center gap-2"
                     >
-                      {isVerifying && <Loader2 className="w-4 h-4 animate-spin" />}
-                      Verify
+                      {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+                      <span className="text-[11px] font-bold uppercase tracking-wider">Verify & Reveal</span>
                     </button>
                   </div>
                 </form>
@@ -662,7 +685,7 @@ export default function VmInventoryPage() {
 
       <AnimatePresence>
         {isAddModalOpen && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm overflow-y-auto py-12">
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-950/80 overflow-y-auto py-12">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}

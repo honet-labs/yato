@@ -20,15 +20,8 @@ export class CredentialController {
     return this.credentialService.create(dto, req.user.id);
   }
 
-  @Get('db-debug')
-  async dbDebug() {
-    return this.credentialService.dbDebug();
-  }
-
   @Get()
   async findAll(@Request() req: any) {
-    // ABSOLUTE PRIVACY FIX: Credentials are strictly personal.
-    // Even an Administrator cannot see another user's credential vault.
     return this.credentialService.findAll(req.user.id, false);
   }
 
@@ -51,9 +44,7 @@ export class CredentialController {
     @Body('password') password: string,
     @Request() req: any,
   ) {
-    // Step 1: Verify the user's current password
     await this.authService.verifyPassword(req.user.id, password);
-    // Step 2: Return the decrypted credential
     return this.credentialService.revealSecret(id, req.user.id);
   }
 

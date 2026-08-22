@@ -57,10 +57,7 @@ export class SupportTicketService {
       },
     });
 
-    const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-      where: { key: 'PLATFORM_URL' }
-    });
-    const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+    const frontendUrl = await this.notificationService.getFrontendUrl();
     const ticketUrl = `${frontendUrl}/tickets?id=${ticket.id}&type=SUPPORT`;
 
     // Notify requester via BullMQ queue
@@ -202,10 +199,7 @@ export class SupportTicketService {
       }
     });
     // Notify requester
-    const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-      where: { key: 'PLATFORM_URL' }
-    });
-    const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+    const frontendUrl = await this.notificationService.getFrontendUrl();
     const ticketUrl = `${frontendUrl}/tickets?id=${id}&type=SUPPORT`;
     try {
       await this.notificationService.sendToUserQueue(
@@ -246,10 +240,7 @@ export class SupportTicketService {
     }
 
     try {
-      const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-        where: { key: 'PLATFORM_URL' }
-      });
-      const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+      const frontendUrl = await this.notificationService.getFrontendUrl();
       const ticketUrl = `${frontendUrl}/tickets?id=${ticket.id}&type=SUPPORT`;
       await this.notificationService.sendToUserQueue(
         followerUserId,

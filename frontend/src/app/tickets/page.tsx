@@ -64,6 +64,15 @@ interface UnifiedTicket {
   attachments?: string[];
   followers?: { id: string; fullName: string }[];
   comments?: any[];
+  ipAddress?: string;
+  sshUser?: string;
+  sshPassword?: string;
+  sshPort?: number;
+  endpoint?: string;
+  address?: string;
+  port?: number;
+  username?: string;
+  password?: string;
 }
 
 export default function TicketsPage() {
@@ -146,6 +155,27 @@ function TicketsContent() {
         }
       }
     }
+  }, []);
+
+  // Mark ticket-related notifications as read when visiting the tickets page
+  useEffect(() => {
+    const markTicketNotificationsRead = async () => {
+      try {
+        const res = await api.get("/notifications?limit=100");
+        const ticketNotifications = (res.data?.data || res.data || []).filter(
+          (n: any) => !n.isRead && n.link?.includes("/tickets")
+        );
+        for (const n of ticketNotifications) {
+          await api.post(`/notifications/${n.id}/read`);
+        }
+        if (ticketNotifications.length > 0) {
+          queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        }
+      } catch (e) {
+        // Silently fail - badge will remain but is non-critical
+      }
+    };
+    markTicketNotificationsRead();
   }, []);
 
   const handleOpenTicket = (ticket: UnifiedTicket) => {
@@ -300,7 +330,14 @@ function TicketsContent() {
     }
 
     if (ticket.type === 'VM' || ticket.type === 'SERVICE') {
-      setApproveData({ ipAddress: "", sshUser: ticket.type === 'VM' ? "root" : "admin", sshPassword: "", sshPort: ticket.type === 'VM' ? "22" : "" });
+      setApproveData({ 
+        ipAddress: ticket.type === 'VM' ? (ticket.ipAddress || "") : (ticket.address || ""), 
+        sshUser: ticket.type === 'VM' ? (ticket.sshUser || "root") : (ticket.username || "admin"), 
+        sshPassword: ticket.type === 'VM' ? (ticket.sshPassword || "") : (ticket.password || ""), 
+        sshPort: ticket.type === 'VM' 
+          ? (ticket.sshPort ? ticket.sshPort.toString() : "22") 
+          : (ticket.port ? ticket.port.toString() : "") 
+      });
       setShowApproveModal(true);
       return;
     }
@@ -405,7 +442,11 @@ function TicketsContent() {
       requestedById: r.requestedBy,
       actionedBy: r.admin?.fullName,
       followers: r.followers,
-      comments: r.comments
+      comments: r.comments,
+      ipAddress: r.ipAddress,
+      sshUser: r.sshUser,
+      sshPassword: r.sshPassword,
+      sshPort: r.sshPort
     })),
     ...(serviceRequests || []).map((r: any) => ({
       id: r.id,
@@ -420,7 +461,12 @@ function TicketsContent() {
       requestedById: r.requestedBy,
       actionedBy: r.admin?.fullName,
       followers: r.followers,
-      comments: r.comments
+      comments: r.comments,
+      endpoint: r.endpoint,
+      address: r.address,
+      port: r.port,
+      username: r.username,
+      password: r.password
     })),
     ...(supportTickets || []).map((r: any) => ({
       id: r.id,
@@ -622,18 +668,18 @@ function TicketsContent() {
               </div>
             </header>
 
-            <div className="flex gap-4 mb-8">
+            <div className="flex flex-col md:flex-row gap-4 mb-8">
               <div className="relative flex-1 group">
-                <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                 <input 
                   type="text" 
-                  className="bg-white border border-slate-200 rounded-lg pl-11 pr-4 py-2.5 text-sm w-full focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all" 
+                  className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all placeholder:text-slate-400 placeholder:font-medium" 
                   placeholder="Search by Ticket ID, Hostname or Service..." 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <button className="bg-white border border-slate-200 text-slate-600 px-5 py-2.5 rounded-lg font-bold text-[13px] shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
+              <button className="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
                 <Filter className="w-4 h-4" />
                 Filter
               </button>

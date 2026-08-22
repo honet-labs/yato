@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -19,8 +19,8 @@ async function bootstrap() {
     const setting = await prisma.systemSetting.findUnique({ where: { key: 'TUNING_CONFIG' } });
     if (setting && setting.value) {
       const config = setting.value as any;
-      if (config.ramLimit) {
-        process.env.NODE_OPTIONS = `--max-old-space-size=${config.ramLimit}`;
+      if (config.ramLimit && /^\d+$/.test(String(config.ramLimit))) {
+        process.env.NODE_OPTIONS = `--max-old-space-size=${parseInt(String(config.ramLimit), 10)}`;
       }
       if (config.notificationConcurrency) {
         process.env.NOTIFICATION_CONCURRENCY = String(config.notificationConcurrency);
@@ -31,7 +31,7 @@ async function bootstrap() {
       logger.log(`Tuning configurations loaded from database: ${JSON.stringify(config)}`);
     }
   } catch (e) {
-    // Database may not be ready, migrated, or connected yet during initial bootstrap. Ignore.
+    // Database may not be ready during initial bootstrap
   } finally {
     await prisma.$disconnect();
   }
@@ -40,25 +40,46 @@ async function bootstrap() {
     logger: winstonLogger,
   });
 
-  // Enable Graceful Shutdown for Background Workers and Queues
   app.enableShutdownHooks();
 
   // Security & Body Parsing
   const expressInstance = app.getHttpAdapter().getInstance();
-  expressInstance.set('trust proxy', true);
+  expressInstance.set('trust proxy', 1);
   
-  app.use(helmet());
-  app.enableCors();
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://static.cloudflareinsights.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https://static.cloudflareinsights.com"],
+      },
+    },
+  }));
+
+  // CORS Configuration
+  const corsOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',')
+    : ['http://localhost:3000'];
+  app.enableCors({
+    origin: corsOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
   
-  // Increase payload limit for base64 images
+  // Body parser with reasonable limit
   const express = require('express');
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ limit: '50mb', extended: true }));
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   // Global Interceptors & Filters
   const auditContextService = app.get(AuditContextService);
+  const configService = app.get(ConfigService);
   app.useGlobalInterceptors(new LoggingInterceptor(), new AuditInterceptor(auditContextService));
-  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalFilters(new HttpExceptionFilter(configService));
 
   // Validation
   app.useGlobalPipes(
@@ -69,19 +90,22 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger Documentation
-  const config = new DocumentBuilder()
-    .setTitle('YATO API')
-    .setDescription('Infrastructure Platform Management API')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+  // Swagger Documentation - only in non-production
+  if (process.env.NODE_ENV !== 'production') {
+    const { SwaggerModule, DocumentBuilder } = require('@nestjs/swagger');
+    const config = new DocumentBuilder()
+      .setTitle('YATO API')
+      .setDescription('Infrastructure Platform Management API')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs', app, document);
+    logger.log(`Swagger documentation: http://localhost:${process.env.PORT || 3000}/docs`);
+  }
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
   logger.log(`Application is running on: http://localhost:${port}`);
-  logger.log(`Swagger documentation: http://localhost:${port}/docs`);
 }
 bootstrap();

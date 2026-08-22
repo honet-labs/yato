@@ -50,12 +50,6 @@ export class AssetService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Run active monitoring sync simulation (PandoraFMS / Prometheus)
-    // to dynamically check health metric updates on retrieval
-    for (const asset of assets) {
-      await this.syncMonitoringMetrics(asset.id);
-    }
-
     return assets;
   }
 

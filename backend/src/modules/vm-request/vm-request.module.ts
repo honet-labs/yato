@@ -4,6 +4,7 @@ import { VmRequestService } from './vm-request.service';
 import { VmRequestController } from './vm-request.controller';
 import { VmProvisionWorker } from './workers/vm-provision.worker';
 import { IntegrationModule } from '../integration/integration.module';
+import { EncryptionService } from '../../common/utils/encryption.service';
 
 @Module({
   imports: [
@@ -20,6 +21,6 @@ import { IntegrationModule } from '../integration/integration.module';
     }),
   ],
   controllers: [VmRequestController],
-  providers: [VmRequestService, VmProvisionWorker],
+  providers: [VmRequestService, VmProvisionWorker, EncryptionService],
 })
 export class VmRequestModule {}

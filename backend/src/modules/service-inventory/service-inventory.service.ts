@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { EncryptionService } from '../../common/utils/encryption.service';
 
 @Injectable()
 export class ServiceInventoryService {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
+    private encryptionService: EncryptionService,
   ) {}
 
   async findAll(userId?: string) {
@@ -26,11 +28,14 @@ export class ServiceInventoryService {
       serviceName: item.request.serviceName,
       version: item.request.version,
       environment: item.request.environment,
+      category: item.request.category,
+      tags: item.request.tags,
       endpoint: item.endpoint,
       address: item.address,
       port: item.port,
       username: item.username,
       password: item.password ? '••••••••••••' : null,
+      notes: item.request.notes,
       status: item.status,
       requestedBy: item.request.user.fullName,
       createdAt: item.createdAt,
@@ -49,11 +54,14 @@ export class ServiceInventoryService {
       serviceName: item.request.serviceName,
       version: item.request.version,
       environment: item.request.environment,
+      category: item.request.category,
+      tags: item.request.tags,
       endpoint: item.endpoint,
       address: item.address,
       port: item.port,
       username: item.username,
       password: item.password ? '••••••••••••' : null,
+      notes: item.request.notes,
       status: item.status,
       createdAt: item.createdAt,
     };
@@ -63,16 +71,33 @@ export class ServiceInventoryService {
     const item = await this.prisma.serviceInventory.findUnique({ where: { id } });
     if (!item) throw new NotFoundException('Service inventory item not found');
 
+    // Update related ServiceRequest for category, tags, and notes
+    if (data.category !== undefined || data.tags !== undefined || data.notes !== undefined) {
+      await this.prisma.serviceRequest.update({
+        where: { id: item.requestId },
+        data: {
+          ...(data.category !== undefined && { category: data.category || null }),
+          ...(data.tags !== undefined && { tags: data.tags || [] }),
+          ...(data.notes !== undefined && { notes: data.notes || null }),
+        },
+      });
+    }
+
+    const updateData: any = {
+      address: data.address,
+      port: data.port ? parseInt(data.port) : null,
+      username: data.username,
+      endpoint: data.endpoint,
+      status: data.status || 'COMPLETED',
+    };
+
+    if (data.password && data.password !== '••••••••' && data.password !== '••••••••••••' && data.password !== '********' && data.password !== '****************') {
+      updateData.password = this.encryptionService.encrypt(data.password);
+    }
+
     return this.prisma.serviceInventory.update({
       where: { id },
-      data: {
-        address: data.address,
-        port: data.port ? parseInt(data.port) : null,
-        username: data.username,
-        password: data.password,
-        endpoint: data.endpoint,
-        status: data.status || 'COMPLETED',
-      },
+      data: updateData,
     });
   }
 
@@ -104,11 +129,19 @@ export class ServiceInventoryService {
         serviceName: data.serviceName,
         environment: data.environment || 'Production',
         version: data.version || '1.0.0',
+        category: data.category || null,
+        tags: data.tags || [],
         config: data.config || {},
         requestedBy: userId,
         status: 'APPROVED',
         approvedBy: userId,
-        approvedAt: new Date()
+        approvedAt: new Date(),
+        endpoint: data.endpoint || null,
+        address: data.address || null,
+        port: data.port ? parseInt(data.port) : null,
+        username: data.username || null,
+        password: data.password ? this.encryptionService.encrypt(data.password) : null,
+        notes: data.notes || null,
       }
     });
 
@@ -119,7 +152,7 @@ export class ServiceInventoryService {
         address: data.address || null,
         port: data.port ? parseInt(data.port) : null,
         username: data.username || null,
-        password: data.password || null,
+        password: data.password ? this.encryptionService.encrypt(data.password) : null,
         status: 'COMPLETED'
       }
     });
@@ -135,12 +168,13 @@ export class ServiceInventoryService {
     try {
       await this.auditService.log(userId, 'REVEAL_SERVICE_SECRET', 'ServiceInventory', id);
     } catch (auditError) {
-      console.error('Failed to log audit:', auditError.message);
+      // Continue
     }
 
+    const decryptedPassword = item.password ? this.encryptionService.decrypt(item.password) : null;
     return {
       id: item.id,
-      password: item.password,
+      password: decryptedPassword,
     };
   }
 }

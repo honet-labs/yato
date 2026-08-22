@@ -37,11 +37,13 @@ import {
   List,
   ListOrdered,
   Heading1,
-  Heading2
+  Heading2,
+  ImageIcon
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-context";
+import { useBranding } from "@/context/branding-context";
 
 // Google Keep-like standard color options
 const COLOR_PALETTE = [
@@ -64,6 +66,42 @@ function stripHtml(html: string) {
   return html.replace(/<[^>]*>/g, "");
 }
 
+function toTimezoneDateTimeLocal(dateString: string, timezone: string): string {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "";
+
+  try {
+    // The <input type="datetime-local"> always renders in browser-local timezone.
+    // Convert the UTC date to browser-local time for display.
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hour = String(date.getHours()).padStart(2, "0");
+    const minute = String(date.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hour}:${minute}`;
+  } catch (e) {
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  }
+}
+
+function fromTimezoneDateTimeLocal(localString: string, timezone: string): string {
+  if (!localString) return "";
+  const [datePart, timePart] = localString.split("T");
+  if (!datePart || !timePart) return new Date(localString).toISOString();
+  
+  try {
+    // The <input type="datetime-local"> always shows browser-local time.
+    // Convert directly from browser-local to UTC — no intermediate timezone needed.
+    const [year, month, day] = datePart.split("-").map(Number);
+    const [hour, minute] = timePart.split(":").map(Number);
+    const localDate = new Date(year, month - 1, day, hour, minute);
+    return localDate.toISOString();
+  } catch (e) {
+    return new Date(localString).toISOString();
+  }
+}
+
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -73,6 +111,8 @@ interface RichTextEditorProps {
 
 function RichTextEditor({ value, onChange, placeholder, minHeight = "120px" }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Sync internal editor HTML when external value changes
   useEffect(() => {
@@ -99,6 +139,77 @@ function RichTextEditor({ value, onChange, placeholder, minHeight = "120px" }: R
     handleInput();
     if (editorRef.current) {
       editorRef.current.focus();
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploadingImage(true);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          try {
+            const res = await api.post("/storage/upload", {
+              base64Data: reader.result as string,
+              filename: file.name,
+              entityType: "Note",
+            });
+            if (res.data.success && editorRef.current) {
+              const img = `<img src="${res.data.downloadUrl}" alt="${file.name}" style="max-width:100%;border-radius:8px;margin:4px 0" />`;
+              document.execCommand("insertHTML", false, img);
+              handleInput();
+            }
+          } catch (err) {
+            console.error("Image upload failed", err);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    } finally {
+      setIsUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!editorRef.current) return;
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    
+    if (e.key === "Backspace" || e.key === "Delete") {
+      const node = range.startContainer;
+      const offset = range.startOffset;
+      
+      if (e.key === "Backspace" && node === editorRef.current && offset === 0) {
+        const firstChild = editorRef.current.firstChild;
+        if (firstChild && firstChild.nodeName === "IMG") {
+          e.preventDefault();
+          firstChild.remove();
+          handleInput();
+        }
+      }
+      
+      if (e.key === "Backspace" && node.nodeType === Node.TEXT_NODE && offset === 0) {
+        const prev = node.previousSibling;
+        if (prev && prev.nodeName === "IMG") {
+          e.preventDefault();
+          prev.remove();
+          handleInput();
+        }
+      }
+
+      if (e.key === "Delete" && node.nodeType === Node.TEXT_NODE && offset === node.textContent?.length) {
+        const next = node.nextSibling;
+        if (next && next.nodeName === "IMG") {
+          e.preventDefault();
+          next.remove();
+          handleInput();
+        }
+      }
     }
   };
 
@@ -234,6 +345,26 @@ function RichTextEditor({ value, onChange, placeholder, minHeight = "120px" }: R
             <option value="7">Huge</option>
           </select>
         </div>
+
+        <span className="w-[1px] h-4 bg-slate-200 mx-1" />
+
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleImageUpload}
+        />
+        <button
+          type="button"
+          onClick={() => imageInputRef.current?.click()}
+          disabled={isUploadingImage}
+          className="p-1 hover:bg-slate-200 rounded text-slate-600"
+          title="Insert Image"
+        >
+          {isUploadingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
+        </button>
       </div>
 
       {/* Editor Content Area */}
@@ -241,6 +372,16 @@ function RichTextEditor({ value, onChange, placeholder, minHeight = "120px" }: R
         ref={editorRef}
         contentEditable
         onInput={handleInput}
+        onKeyDown={handleKeyDown}
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.tagName === "IMG") {
+            if (confirm("Delete this image?")) {
+              target.remove();
+              handleInput();
+            }
+          }
+        }}
         className="p-3.5 outline-none text-[13px] text-slate-700 bg-white overflow-y-auto rich-note-content"
         data-placeholder={placeholder}
         style={{ minHeight }}
@@ -252,6 +393,7 @@ function RichTextEditor({ value, onChange, placeholder, minHeight = "120px" }: R
 export default function NotesPage() {
   const queryClient = useQueryClient();
   const { lang } = useLanguage();
+  const { appTimezone } = useBranding();
   const [currentView, setCurrentView] = useState("notes" as "notes" | "reminders" | "archive" | "trash" | "calendar");
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -292,7 +434,13 @@ export default function NotesPage() {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: async (data: any) => api.post("/notes", data),
+    mutationFn: async (data: any) => {
+      const payload = { ...data };
+      if (payload.reminderAt && typeof payload.reminderAt === "string" && !payload.reminderAt.includes("Z")) {
+        payload.reminderAt = fromTimezoneDateTimeLocal(payload.reminderAt, appTimezone);
+      }
+      return api.post("/notes", payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notes"] });
       resetCreator();
@@ -300,7 +448,13 @@ export default function NotesPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => api.patch(`/notes/${id}`, data),
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const payload = { ...data };
+      if (payload.reminderAt && typeof payload.reminderAt === "string" && !payload.reminderAt.includes("Z")) {
+        payload.reminderAt = fromTimezoneDateTimeLocal(payload.reminderAt, appTimezone);
+      }
+      return api.patch(`/notes/${id}`, payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notes"] });
       if (editingNote) {
@@ -397,28 +551,40 @@ export default function NotesPage() {
 
   const getNotesForDate = (date: Date) => {
     if (!date) return [];
+    
+    // Format calendar cell date as YYYY-MM-DD in local time
+    const cellYear = date.getFullYear();
+    const cellMonth = String(date.getMonth() + 1).padStart(2, "0");
+    const cellDay = String(date.getDate()).padStart(2, "0");
+    const cellDateStr = `${cellYear}-${cellMonth}-${cellDay}`;
+    
     return notes.filter(note => {
       if (!note.reminderAt || note.isTrashed) return false;
-      const rDate = new Date(note.reminderAt);
-      return (
-        rDate.getDate() === date.getDate() &&
-        rDate.getMonth() === date.getMonth() &&
-        rDate.getFullYear() === date.getFullYear()
-      );
+      
+      // Get the note's reminder date formatted as YYYY-MM-DD in target timezone
+      const noteDateStr = toTimezoneDateTimeLocal(note.reminderAt, appTimezone).slice(0, 10);
+      
+      return noteDateStr === cellDateStr;
     });
   };
 
   const handleCalendarCellClick = (date: Date) => {
     if (!date) return;
-    const formattedDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 16);
-    
-    setNewReminderAt(formattedDate);
+    try {
+      // Use browser-local time for the datetime-local input
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const formattedDate = `${year}-${month}-${day}`;
+      setNewReminderAt(`${formattedDate}T09:00`); // default to 09:00 AM in browser timezone
+    } catch (e) {
+      const formattedDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 10);
+      setNewReminderAt(`${formattedDate}T09:00`);
+    }
     setIsCreatorExpanded(true);
     setCurrentView("notes");
-    // Scroll smoothly to note creator
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -438,14 +604,14 @@ export default function NotesPage() {
             />
             
             {/* Search Bar */}
-            <div className="relative w-full md:w-80">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div className="relative w-full md:w-80 group">
+              <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
               <input 
                 type="text" 
                 placeholder="Search notes..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 text-sm transition-all"
+                className="w-full pl-11 pr-10 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all placeholder:text-slate-400 placeholder:font-medium"
               />
               {searchQuery && (
                 <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -538,6 +704,8 @@ export default function NotesPage() {
                             className="bg-transparent border-none outline-none text-xs text-slate-700 font-bold cursor-pointer"
                           >
                             <option value="NONE">{lang === "EN" ? "Does not repeat" : "Tidak berulang"}</option>
+                            <option value="MINUTELY">{lang === "EN" ? "Every Minute" : "Setiap Menit"}</option>
+                            <option value="HOURLY">{lang === "EN" ? "Hourly" : "Per Jam"}</option>
                             <option value="DAILY">{lang === "EN" ? "Daily" : "Harian"}</option>
                             <option value="WEEKLY">{lang === "EN" ? "Weekly" : "Mingguan"}</option>
                             <option value="MONTHLY">{lang === "EN" ? "Monthly" : "Bulanan"}</option>
@@ -851,7 +1019,7 @@ export default function NotesPage() {
                     <Clock className="w-4 h-4 text-slate-500" />
                     <input 
                       type="datetime-local" 
-                      value={editingNote.reminderAt ? new Date(new Date(editingNote.reminderAt).getTime() - new Date(editingNote.reminderAt).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""}
+                      value={editingNote.reminderAt ? toTimezoneDateTimeLocal(editingNote.reminderAt, appTimezone) : ""}
                       onChange={(e) => {
                         const val = e.target.value || null;
                         setEditingNote({ 
@@ -878,6 +1046,8 @@ export default function NotesPage() {
                         className="bg-transparent border-none outline-none text-xs text-slate-700 font-bold cursor-pointer"
                       >
                         <option value="NONE">{lang === "EN" ? "Does not repeat" : "Tidak berulang"}</option>
+                        <option value="MINUTELY">{lang === "EN" ? "Every Minute" : "Setiap Menit"}</option>
+                        <option value="HOURLY">{lang === "EN" ? "Hourly" : "Per Jam"}</option>
                         <option value="DAILY">{lang === "EN" ? "Daily" : "Harian"}</option>
                         <option value="WEEKLY">{lang === "EN" ? "Weekly" : "Mingguan"}</option>
                         <option value="MONTHLY">{lang === "EN" ? "Monthly" : "Bulanan"}</option>
@@ -970,6 +1140,7 @@ function NoteCard({
   setShowColorPicker 
 }: NoteCardProps) {
   const { lang } = useLanguage();
+  const { appTimezone } = useBranding();
   const formattedReminder = note.reminderAt ? new Date(note.reminderAt).toLocaleString(lang === "EN" ? "en-US" : "id-ID", {
     day: "numeric",
     month: "short",

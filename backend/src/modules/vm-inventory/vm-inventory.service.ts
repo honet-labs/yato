@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { EncryptionService } from '../../common/utils/encryption.service';
 
 @Injectable()
 export class VmInventoryService {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
+    private encryptionService: EncryptionService,
   ) {}
 
   async findAll(userId?: string) {
@@ -154,7 +156,7 @@ export class VmInventoryService {
         requestId: request.id,
         ipAddress: data.ipAddress || null,
         sshUser: data.sshUser || null,
-        sshPassword: data.sshPassword || null,
+        sshPassword: data.sshPassword ? this.encryptionService.encrypt(data.sshPassword) : null,
         sshPort: data.sshPort ? parseInt(data.sshPort) : 22,
         status: 'RUNNING'
       }
@@ -171,12 +173,13 @@ export class VmInventoryService {
     try {
       await this.auditService.log(userId, 'REVEAL_VM_SECRET', 'VMInventory', id);
     } catch (auditError) {
-      console.error('Failed to log audit:', auditError.message);
+      // Continue
     }
 
+    const decryptedPassword = item.sshPassword ? this.encryptionService.decrypt(item.sshPassword) : null;
     return {
       id: item.id,
-      sshPassword: item.sshPassword,
+      sshPassword: decryptedPassword,
     };
   }
 }

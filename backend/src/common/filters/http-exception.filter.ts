@@ -7,10 +7,13 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger('HttpExceptionFilter');
+
+  constructor(private readonly configService: ConfigService) {}
 
   catch(exception: any, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -35,10 +38,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
       ...(typeof message === 'string' ? { message } : (message as object)),
     };
 
-    this.logger.error(
-      `${request.method} ${request.url} ${status} - ${JSON.stringify(message)}`,
-      exception.stack,
-    );
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
+    const logMessage = `${request.method} ${request.url} ${status} - ${JSON.stringify(message)}`;
+
+    if (isProduction) {
+      this.logger.error(logMessage);
+    } else {
+      this.logger.error(logMessage, exception.stack);
+    }
 
     response.status(status).json(errorResponse);
   }

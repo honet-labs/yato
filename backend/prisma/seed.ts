@@ -56,7 +56,7 @@ async function main() {
     },
   });
 
-  const hashedPassword = await bcrypt.hash('admin123', 10);
+  const hashedPassword = await bcrypt.hash('admin123', 12);
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@yato.local' },
     update: {
@@ -68,6 +68,7 @@ async function main() {
       email: 'admin@yato.local',
       password: hashedPassword,
       fullName: 'YATO Admin',
+      forcePasswordChange: true,
       roles: {
         create: {
           roleId: adminRole.id,

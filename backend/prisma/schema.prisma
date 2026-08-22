@@ -15,6 +15,7 @@ model User {
   email             String         @unique
   username          String?        @unique
   password          String
+  previousPasswords String?        // JSON array of last N password hashes for history check
   fullName          String
   phoneNumber       String?
   personalEmail     String?
@@ -28,6 +29,7 @@ model User {
   failedLoginAttempts Int          @default(0)
   lockoutUntil      DateTime?
   lastLogin         DateTime?
+  forcePasswordChange Boolean     @default(false)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
@@ -106,6 +108,11 @@ model VMRequest {
   status       String   @default("PENDING") // PENDING, APPROVED, PROVISIONING, COMPLETED, FAILED
   attachments  String[]
   
+  ipAddress    String?
+  sshUser      String?
+  sshPassword  String?
+  sshPort      Int?     @default(22)
+
   requestedBy  String
   user         User     @relation("UserVMRequests", fields: [requestedBy], references: [id])
   
@@ -117,6 +124,7 @@ model VMRequest {
   updatedAt    DateTime @updatedAt
   
   rejectionReason String?
+  deletedAt   DateTime?
   vmInventory  VMInventory?
   comments     TicketComment[]
   followers    User[]          @relation("VMRequestFollowers")
@@ -124,6 +132,7 @@ model VMRequest {
   @@index([status])
   @@index([requestedBy])
   @@index([ticketId])
+  @@index([deletedAt])
 }
 
 model SupportTicket {
@@ -145,9 +154,12 @@ model SupportTicket {
   
   comments    TicketComment[]
   followers   User[]   @relation("SupportTicketFollowers")
+  deletedAt   DateTime?
 
   @@index([status])
   @@index([requestedBy])
+  @@index([createdAt])
+  @@index([deletedAt])
 }
 
 model Notification {
@@ -162,6 +174,8 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
 }
 
 model VMInventory {
@@ -184,15 +198,26 @@ model ServiceRequest {
   serviceName  String
   version      String
   environment  String
+  category     String?  // e.g., DATABASE, WEB_SERVER, MONITORING, CONTAINER
+  tags         String[]
   config       Json?
   status       String   @default("PENDING")
   attachments  String[]
+
+  endpoint     String?
+  address      String?
+  port         Int?
+  username     String?
+  password     String?
+  notes        String?
+
   requestedBy  String
   user         User     @relation("UserServiceRequests", fields: [requestedBy], references: [id])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @default(now()) @updatedAt
   
   rejectionReason String?
+  deletedAt   DateTime?
   
   approvedBy   String?
   admin        User?    @relation("AdminServiceApprovals", fields: [approvedBy], references: [id])
@@ -205,6 +230,7 @@ model ServiceRequest {
   @@index([status])
   @@index([requestedBy])
   @@index([ticketId])
+  @@index([deletedAt])
 }
 
 model ServiceInventory {
@@ -222,21 +248,23 @@ model ServiceInventory {
 }
 
 model Credential {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   userId      String?
-  user        User?    @relation("UserCredentials", fields: [userId], references: [id])
+  user        User?     @relation("UserCredentials", fields: [userId], references: [id])
   name        String
-  type        String   // SSH, DB, API_KEY
-  address     String?  // IP, Domain, or Service Name
+  type        String    // SSH, DB, API_KEY
+  address     String?   // IP, Domain, or Service Name
   username    String?
-  password    String?  // AES-256 Encrypted
+  password    String?   // AES-256-GCM Encrypted
   description String?
-  tags        String[] // Array of tagging
-  metadata    Json?    // Stores custom field values
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  tags        String[]  // Array of tagging
+  metadata    Json?     // Stores custom field values
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([userId])
+  @@index([deletedAt])
 }
 
 model AuditLog {
@@ -276,6 +304,7 @@ model LoginHistory {
   timestamp DateTime @default(now())
 
   @@index([userId])
+  @@index([timestamp])
 }
 
 model Catalog {
@@ -288,6 +317,8 @@ model Catalog {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([category, isActive])
 }
 
 model SystemSetting {
@@ -339,6 +370,7 @@ model TicketComment {
   @@index([serviceRequestId])
   @@index([supportTicketId])
   @@index([parentId])
+  @@index([createdAt])
 }
 
 model Otp {
@@ -464,6 +496,9 @@ model Task {
   @@index([status])
   @@index([priority])
   @@index([parentId])
+  @@index([createdAt])
+  @@index([createdById, createdAt])
+  @@index([dueDate])
 }
 
 model TaskComment {

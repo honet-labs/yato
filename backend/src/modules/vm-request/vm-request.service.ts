@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateVmRequestDto } from './dto/vm-request.dto';
 import { AuditService } from '../audit/audit.service';
 import { NotificationService } from '../notification/notification.service';
+import { EncryptionService } from '../../common/utils/encryption.service';
 
 @Injectable()
 export class VmRequestService {
@@ -14,6 +15,7 @@ export class VmRequestService {
     private prisma: PrismaService,
     private auditService: AuditService,
     private notificationService: NotificationService,
+    private encryptionService: EncryptionService,
     @InjectQueue('vm-provisioning') private vmQueue: Queue,
   ) {}
 
@@ -37,10 +39,7 @@ export class VmRequestService {
   }
 
   private async getFrontendUrl() {
-    const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-      where: { key: 'PLATFORM_URL' }
-    });
-    return (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+    return this.notificationService.getFrontendUrl();
   }
 
   async create(dto: CreateVmRequestDto, userId: string) {
@@ -59,6 +58,10 @@ export class VmRequestService {
         environment: dto.environment,
         notes: dto.notes,
         status: 'PENDING',
+        ipAddress: dto.ipAddress,
+        sshUser: dto.sshUser,
+        sshPassword: dto.sshPassword ? this.encryptionService.encrypt(dto.sshPassword) : undefined,
+        sshPort: dto.sshPort ? parseInt(dto.sshPort as any) : undefined,
         user: { connect: { id: userId } } // Correct Prisma relation connection
       },
     });
@@ -190,15 +193,26 @@ export class VmRequestService {
         : !!autoProv.value
       : true;
 
+    const ipAddress = dto?.ipAddress || request.ipAddress;
+    const sshUser = dto?.sshUser || request.sshUser;
+    const sshPort = dto?.sshPort ? parseInt(dto.sshPort) : (request.sshPort || 22);
+
+    let finalSshPassword = null;
+    if (dto?.sshPassword && dto.sshPassword !== '••••••••' && dto.sshPassword !== '••••••••••••' && dto.sshPassword !== '********' && dto.sshPassword !== '****************') {
+      finalSshPassword = this.encryptionService.encrypt(dto.sshPassword);
+    } else if (request.sshPassword) {
+      finalSshPassword = request.sshPassword;
+    }
+
     // Create Inventory Entry
     await this.prisma.vMInventory.create({
       data: {
         requestId: id,
-        ipAddress: dto?.ipAddress,
-        sshUser: dto?.sshUser,
-        sshPassword: dto?.sshPassword,
-        sshPort: dto?.sshPort ? parseInt(dto.sshPort) : 22,
-        status: isAutoEnabled ? 'PROVISIONING' : (dto?.ipAddress ? 'RUNNING' : 'AWAITING_CONFIG')
+        ipAddress: ipAddress || null,
+        sshUser: sshUser || null,
+        sshPassword: finalSshPassword,
+        sshPort: sshPort,
+        status: isAutoEnabled ? 'PROVISIONING' : (ipAddress ? 'RUNNING' : 'AWAITING_CONFIG')
       }
     });
 

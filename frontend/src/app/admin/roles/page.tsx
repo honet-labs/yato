@@ -1,5 +1,7 @@
 "use client";
+import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
+import { AccessDenied } from "@/components/AccessDenied";
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -37,23 +39,23 @@ interface Role {
 
 const staticPermissionGroups = [
   { 
-    group: "Main & Dashboard", 
+    group: "Main Menu", 
     perms: ["VIEW_DASHBOARD", "VIEW_COMMUNITY"] 
   },
   { 
-    group: "Support Ticketing", 
+    group: "Support Tickets", 
     perms: ["VIEW_SUPPORT_TICKETS", "MANAGE_SUPPORT_TICKETS", "APPROVE_REQUESTS"] 
   },
   { 
-    group: "Infrastructure (VM)", 
-    perms: ["VIEW_VM_INVENTORY", "PROVISION_VM", "MANAGE_VM_INVENTORY"] 
+    group: "VM Inventory", 
+    perms: ["VIEW_VM_INVENTORY", "EDIT_VM_INVENTORY", "PROVISION_VM", "MANAGE_VM_INVENTORY"] 
   },
   { 
-    group: "Infrastructure (Service)", 
-    perms: ["VIEW_SERVICE_INVENTORY", "PROVISION_SERVICE", "MANAGE_SERVICE_INVENTORY"] 
+    group: "Service Inventory", 
+    perms: ["VIEW_SERVICE_INVENTORY", "EDIT_SERVICE_INVENTORY", "PROVISION_SERVICE", "MANAGE_SERVICE_INVENTORY"] 
   },
   { 
-    group: "Security & Secrets", 
+    group: "Credential Vault", 
     perms: ["VIEW_CREDENTIALS", "MANAGE_CREDENTIALS"] 
   },
   { 
@@ -65,11 +67,11 @@ const staticPermissionGroups = [
     perms: ["VIEW_TASKS", "MANAGE_TASKS"] 
   },
   { 
-    group: "File Manager & Storage", 
+    group: "File Manager", 
     perms: ["VIEW_FILES", "MANAGE_FILES"] 
   },
   { 
-    group: "Human Resource Management", 
+    group: "Attendance & Timesheet", 
     perms: [
       "VIEW_HRM", 
       "MANAGE_HRM", 
@@ -86,22 +88,42 @@ const staticPermissionGroups = [
     perms: ["VIEW_NOTES", "MANAGE_NOTES"] 
   },
   { 
-    group: "PMO Calendar & Timeline", 
+    group: "PMO Calendar", 
     perms: ["VIEW_PMO_CALENDAR", "MANAGE_PMO_CALENDAR"] 
   },
   { 
-    group: "Integrations & Broadcast", 
-    perms: ["VIEW_INTEGRATIONS", "VIEW_BROADCAST"] 
+    group: "Integration Hub", 
+    perms: ["VIEW_INTEGRATIONS"] 
   },
   { 
-    group: "System & Governance", 
-    perms: ["VIEW_AUDIT_LOGS", "VIEW_SYSTEM_STATUS", "MANAGE_USERS", "MANAGE_ROLES", "MANAGE_CONFIG"] 
+    group: "Broadcast Message", 
+    perms: ["VIEW_BROADCAST"] 
+  },
+  { 
+    group: "System Status", 
+    perms: ["VIEW_SYSTEM_STATUS"] 
+  },
+  { 
+    group: "Log Activity", 
+    perms: ["VIEW_AUDIT_LOGS"] 
+  },
+  { 
+    group: "User Management", 
+    perms: ["MANAGE_USERS"] 
+  },
+  { 
+    group: "Access Control", 
+    perms: ["MANAGE_ROLES"] 
+  },
+  { 
+    group: "Platform Settings", 
+    perms: ["MANAGE_CONFIG"] 
   }
 ];
 
 export default function RolesManagementPage() {
   const queryClient = useQueryClient();
-  const { isAdmin, isLoading: isProfileLoading } = useIsAdmin();
+  const { hasPermission, isLoading: isProfileLoading } = useIsAdmin([], 'MANAGE_ROLES');
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -209,6 +231,7 @@ export default function RolesManagementPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-roles"] });
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
       setIsModalOpen(false);
       resetForm();
     },
@@ -221,6 +244,7 @@ export default function RolesManagementPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-roles"] });
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
       setIsDeleteModalOpen(false);
     },
   });
@@ -275,18 +299,8 @@ export default function RolesManagementPage() {
     );
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="flex min-h-screen bg-white items-center justify-center p-6">
-        <div className="text-center space-y-4 max-w-sm">
-          <div className="w-20 h-20 bg-rose-50 rounded-full border border-rose-200 flex items-center justify-center mx-auto mb-6 text-rose-500">
-            <Lock className="w-10 h-10" />
-          </div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-800">Access Denied</h2>
-          <p className="text-sm text-slate-400">You must hold administrative privileges to access Access Control.</p>
-        </div>
-      </div>
-    );
+  if (!hasPermission) {
+    return <AccessDenied pageName="Access Control" />;
   }
 
   return (

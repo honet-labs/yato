@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "@/lib/api";
+import api, { getFileDownloadUrl } from "@/lib/api";
 import { 
   X, 
   Send, 
@@ -94,6 +94,10 @@ export function TicketDetailModal({ isOpen, onClose, ticket, isAdmin = false, on
 
   const sanitizeDataUrl = (url: string | undefined | null) => {
     if (!url) return "";
+    if (url.includes('/api/storage/download/')) {
+      const fileId = url.split('/api/storage/download/')[1]?.split('?')[0];
+      return fileId ? getFileDownloadUrl(fileId) : url;
+    }
     return url.replace(/;name=[^;,\s]+/i, '');
   };
 
@@ -115,6 +119,8 @@ export function TicketDetailModal({ isOpen, onClose, ticket, isAdmin = false, on
   const isImageAttachment = (at: string | undefined | null) => {
     if (!at) return false;
     if (at.startsWith('data:image/')) return true;
+    // Storage proxy URLs are always inline-served (images set Content-Disposition: inline by backend)
+    if (at.includes('/api/storage/download/')) return true;
     if (at.startsWith('http://') || at.startsWith('https://') || at.startsWith('/')) {
       const cleanUrl = at.split('?')[0];
       const ext = cleanUrl.split('.').pop()?.toLowerCase();

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationService } from '../notification/notification.service';
+import { EncryptionService } from '../../common/utils/encryption.service';
 import { ApproveServiceRequestDto, CreateServiceRequestDto } from './dto/service-request.dto';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class ServiceRequestService {
     private prisma: PrismaService,
     private auditService: AuditService,
     private notificationService: NotificationService,
+    private encryptionService: EncryptionService,
   ) {}
 
   private async generateTicketId() {
@@ -40,16 +42,20 @@ export class ServiceRequestService {
         serviceName: dto.serviceName,
         environment: dto.environment,
         version: dto.type,
+        category: (dto as any).category || null,
+        tags: (dto as any).tags || [],
         config: dto.config || {},
         requestedBy: userId,
         status: 'PENDING',
+        endpoint: dto.endpoint,
+        address: dto.address,
+        port: dto.port ? parseInt(dto.port as any) : undefined,
+        username: dto.username,
+        password: dto.password ? this.encryptionService.encrypt(dto.password) : undefined,
       },
     });
 
-    const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-      where: { key: 'PLATFORM_URL' }
-    });
-    const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+    const frontendUrl = await this.notificationService.getFrontendUrl();
     const ticketUrl = `${frontendUrl}/tickets?id=${request.id}&type=SERVICE`;
 
     // Notify requester
@@ -126,10 +132,7 @@ export class ServiceRequestService {
     try {
       const ticket = await this.prisma.serviceRequest.findUnique({ where: { id: ticketId } });
       if (ticket) {
-        const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-          where: { key: 'PLATFORM_URL' }
-        });
-        const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+        const frontendUrl = await this.notificationService.getFrontendUrl();
         const ticketUrl = `${frontendUrl}/tickets?id=${ticket.id}&type=SERVICE`;
         await this.notificationService.sendToUserQueue(
           followerUserId,
@@ -202,15 +205,28 @@ export class ServiceRequestService {
         : !!autoProv.value
       : true;
 
+    const address = dto?.address || request.address;
+    const port = dto?.port ? parseInt(dto.port as any) : (request.port || null);
+    const username = dto?.username || request.username;
+    const endpoint = request.endpoint;
+
+    let finalPassword = null;
+    if (dto?.password && dto.password !== '••••••••' && dto.password !== '••••••••••••' && dto.password !== '********' && dto.password !== '****************') {
+      finalPassword = this.encryptionService.encrypt(dto.password);
+    } else if (request.password) {
+      finalPassword = request.password;
+    }
+
     // Create Inventory Entry
     await this.prisma.serviceInventory.create({
       data: {
         requestId: id,
-        address: dto?.address,
-        port: dto?.port,
-        username: dto?.username,
-        password: dto?.password,
-        status: dto?.address ? 'COMPLETED' : (isAutoEnabled ? 'PROVISIONING' : 'AWAITING_CONFIG')
+        endpoint: endpoint || null,
+        address: address || null,
+        port: port,
+        username: username || null,
+        password: finalPassword,
+        status: address ? 'COMPLETED' : (isAutoEnabled ? 'PROVISIONING' : 'AWAITING_CONFIG')
       }
     });
 
@@ -229,10 +245,7 @@ export class ServiceRequestService {
     });
 
     // Notify requester
-    const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-      where: { key: 'PLATFORM_URL' }
-    });
-    const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+    const frontendUrl = await this.notificationService.getFrontendUrl();
     const ticketUrl = `${frontendUrl}/tickets?id=${id}&type=SERVICE`;
     try {
       await this.notificationService.sendToUserQueue(
@@ -273,10 +286,7 @@ export class ServiceRequestService {
     });
 
     // Notify requester
-    const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-      where: { key: 'PLATFORM_URL' }
-    });
-    const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+    const frontendUrl = await this.notificationService.getFrontendUrl();
     const ticketUrl = `${frontendUrl}/tickets?id=${id}&type=SERVICE`;
     try {
       await this.notificationService.sendToUserQueue(
@@ -335,7 +345,7 @@ export class ServiceRequestService {
     });
     if (!request) throw new NotFoundException('Service Request not found');
 
-    // 1. Delete associated ServiceInventory if it exists
+    // 1. Soft delete associated ServiceInventory
     await this.prisma.serviceInventory.deleteMany({
       where: { requestId: id },
     });
@@ -361,9 +371,10 @@ export class ServiceRequestService {
       },
     });
 
-    // 3. Delete the Service Request (comments cascade-delete automatically via prisma)
-    await this.prisma.serviceRequest.delete({
+    // 3. Soft delete the Service Request
+    await this.prisma.serviceRequest.update({
       where: { id },
+      data: { deletedAt: new Date() },
     });
 
     // 4. Log deletion to audit activity
@@ -375,6 +386,6 @@ export class ServiceRequestService {
       { ticketId: request.ticketId, serviceName: request.serviceName, environment: request.environment },
     );
 
-    return { success: true, message: `Service Request ${request.ticketId} has been permanently deleted.` };
+    return { success: true, message: `Service Request ${request.ticketId} has been soft deleted.` };
   }
 }

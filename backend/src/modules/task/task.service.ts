@@ -391,10 +391,7 @@ export class TaskService {
       // Safe catch
     }
 
-    const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-      where: { key: 'PLATFORM_URL' }
-    });
-    const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+    const frontendUrl = await this.notificationService.getFrontendUrl();
     const taskUrl = task.projectId ? `${frontendUrl}/tasks?projectId=${task.projectId}&taskId=${task.id}` : `${frontendUrl}/tasks?taskId=${task.id}`;
 
     // Notify assignees
@@ -581,10 +578,7 @@ export class TaskService {
       // Safe catch
     }
 
-    const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-      where: { key: 'PLATFORM_URL' }
-    });
-    const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+    const frontendUrl = await this.notificationService.getFrontendUrl();
     const taskUrl = updatedTask.projectId ? `${frontendUrl}/tasks?projectId=${updatedTask.projectId}&taskId=${updatedTask.id}` : `${frontendUrl}/tasks?taskId=${updatedTask.id}`;
 
     // Notify any new assignees
@@ -653,17 +647,22 @@ export class TaskService {
     return deletedTask;
   }
 
-  private async syncSubtasksStatus(taskId: string, status: string) {
+  private async syncSubtasksStatus(taskId: string, status: string, depth: number = 0) {
+    if (depth > 10) return; // Prevent infinite recursion
+
     const subtasks = await this.prisma.task.findMany({
       where: { parentId: taskId },
       select: { id: true },
     });
+    if (subtasks.length === 0) return;
+
+    await this.prisma.task.updateMany({
+      where: { id: { in: subtasks.map(s => s.id) } },
+      data: { status },
+    });
+
     for (const subtask of subtasks) {
-      await this.prisma.task.update({
-        where: { id: subtask.id },
-        data: { status },
-      });
-      await this.syncSubtasksStatus(subtask.id, status);
+      await this.syncSubtasksStatus(subtask.id, status, depth + 1);
     }
   }
 
@@ -740,10 +739,7 @@ export class TaskService {
       });
 
       if (task) {
-        const platformUrlSetting = await this.prisma.systemSetting.findUnique({
-          where: { key: 'PLATFORM_URL' }
-        });
-        const frontendUrl = (platformUrlSetting?.value as string) || process.env.FRONTEND_URL || 'https://yato.honet.web.id';
+        const frontendUrl = await this.notificationService.getFrontendUrl();
         const taskUrl = task.projectId ? `${frontendUrl}/tasks?projectId=${task.projectId}&taskId=${task.id}` : `${frontendUrl}/tasks?taskId=${task.id}`;
 
         if (matches.length > 0) {

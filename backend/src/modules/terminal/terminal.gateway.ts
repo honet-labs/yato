@@ -11,10 +11,14 @@ import { Server, Socket } from 'socket.io';
 import { Client } from 'ssh2';
 import { PrismaService } from '../prisma/prisma.service';
 import { Injectable, Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { EncryptionService } from '../../common/utils/encryption.service';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000'],
+    credentials: true,
   },
   namespace: 'terminal',
 })
@@ -23,10 +27,44 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
   private logger = new Logger('TerminalGateway');
   private sshClients = new Map<string, Client>();
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+    private configService: ConfigService,
+    private encryptionService: EncryptionService,
+  ) {}
 
-  handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
+  async handleConnection(client: Socket) {
+    try {
+      const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', '');
+      if (!token) {
+        this.logger.warn(`Client ${client.id} rejected: No token provided`);
+        client.disconnect();
+        return;
+      }
+
+      const payload = this.jwtService.verify(token, {
+        secret: this.configService.get('JWT_SECRET'),
+      });
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { id: true, email: true },
+      });
+
+      if (!user) {
+        this.logger.warn(`Client ${client.id} rejected: User not found`);
+        client.disconnect();
+        return;
+      }
+
+      (client as any).userId = user.id;
+      (client as any).userEmail = user.email;
+      this.logger.log(`Client connected: ${client.id} (user: ${user.email})`);
+    } catch (err) {
+      this.logger.warn(`Client ${client.id} rejected: ${err.message}`);
+      client.disconnect();
+    }
   }
 
   handleDisconnect(client: Socket) {
@@ -41,9 +79,15 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
   @SubscribeMessage('startTerminal')
   async handleStartTerminal(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { vmId: string; username?: string; password?: string },
+    @MessageBody() data: { vmId: string },
   ) {
-    const { vmId, username: overrideUser, password: overridePassword } = data;
+    const userId = (client as any).userId;
+    if (!userId) {
+      client.emit('terminalError', 'Unauthorized');
+      return;
+    }
+
+    const { vmId } = data;
     const vm = await this.prisma.vMInventory.findUnique({
       where: { requestId: vmId },
     });
@@ -53,7 +97,6 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
       return;
     }
 
-    // Check if we already have a client for this socket, if so close it
     const existingClient = this.sshClients.get(client.id);
     if (existingClient) {
       existingClient.end();
@@ -62,6 +105,17 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     const ssh = new Client();
     this.sshClients.set(client.id, ssh);
+
+    let sshPassword = vm.sshPassword || '';
+    if (sshPassword && !sshPassword.startsWith('yv1:') && !sshPassword.includes(':')) {
+      // Legacy unencrypted password - use as-is for backward compatibility
+    } else if (sshPassword) {
+      try {
+        sshPassword = this.encryptionService.decrypt(sshPassword);
+      } catch {
+        // Use as-is if decryption fails (legacy format)
+      }
+    }
 
     ssh
       .on('ready', () => {
@@ -81,7 +135,6 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
             client.disconnect();
           });
 
-          // Clean up old listeners to prevent duplication on reconnect
           client.removeAllListeners('terminalInput');
           client.removeAllListeners('terminalResize');
 
@@ -101,8 +154,8 @@ export class TerminalGateway implements OnGatewayConnection, OnGatewayDisconnect
       .connect({
         host: vm.ipAddress || '',
         port: vm.sshPort || 22,
-        username: overrideUser || vm.sshUser || 'root',
-        password: overridePassword || vm.sshPassword || '',
+        username: vm.sshUser || 'root',
+        password: sshPassword,
         readyTimeout: 10000,
       });
   }

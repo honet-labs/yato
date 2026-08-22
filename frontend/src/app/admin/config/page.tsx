@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 
 import { useState, useEffect } from "react";
@@ -14,7 +15,6 @@ import {
   Save, 
   Mail,
   Server,
-  Lock,
   Loader2,
   CheckCircle2,
   AlertCircle,
@@ -42,11 +42,12 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { AccessDenied } from "@/components/AccessDenied";
 
 
 export default function SystemConfigPage() {
   const { refreshBranding } = useBranding();
-  const { isAdmin, isLoading: isProfileLoading } = useIsAdmin();
+  const { hasPermission, isLoading: isProfileLoading } = useIsAdmin([], 'MANAGE_CONFIG');
   const [activeTab, setActiveTab] = useState("notifications" as "notifications" | "identity" | "database" | "catalogs" | "api-portal" | "tuning" | "hrm-security");
   const [isAddCatalogModalOpen, setIsAddCatalogModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -553,18 +554,8 @@ export default function SystemConfigPage() {
     );
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="flex min-h-screen bg-white items-center justify-center p-6">
-        <div className="text-center space-y-4 max-w-sm">
-          <div className="w-20 h-20 bg-rose-50 rounded-full border border-rose-200 flex items-center justify-center mx-auto mb-6 text-rose-500">
-            <Lock className="w-10 h-10" />
-          </div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-800">Access Denied</h2>
-          <p className="text-sm text-slate-400">You must hold administrative privileges to access System Parameters.</p>
-        </div>
-      </div>
-    );
+  if (!hasPermission) {
+    return <AccessDenied pageName="System Parameters" />;
   }
 
   return (

@@ -8,6 +8,7 @@ import { MobileNav } from "@/components/MobileNav";
 import { Pagination } from "@/components/Pagination";
 import { ConfirmationModal } from "@/components/ConfirmationModal";
 import { PageHeader } from "@/components/PageHeader";
+import { SecurePasswordDisplay } from "@/components/SecurePasswordDisplay";
 import { 
   Key, 
   Plus, 
@@ -60,6 +61,7 @@ export default function CredentialsPage() {
   const [showPassInForm, setShowPassInForm] = useState(false);
   const [showPassInDetail, setShowPassInDetail] = useState(false);
   const [copiedField, setCopiedField] = useState(null as string | null);
+  const [revealedPasswords, setRevealedPasswords] = useState({} as Record<string, string>);
   
   // Password verification state for revealing secrets
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
@@ -69,7 +71,6 @@ export default function CredentialsPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [pendingRevealCredId, setPendingRevealCredId] = useState(null as string | null);
   const [pendingEditCred, setPendingEditCred] = useState(null as Credential | null);
-  const [secretVerified, setSecretVerified] = useState(false);
   const [failedVerifyAttempts, setFailedVerifyAttempts] = useState(0);
   
   const [tagInput, setTagInput] = useState("");
@@ -180,20 +181,19 @@ export default function CredentialsPage() {
     setIsModalOpen(true);
   };
 
-  const handleView = (cred: Credential) => {
-    if (cred.password) {
-      setPendingRevealCredId(cred.id);
-      setVerifyPassword("");
-      setVerifyError("");
-      setVerifyPurpose("REVEAL");
-      setIsVerifyModalOpen(true);
-    } else {
-      setSelectedCred(cred);
-      setShowPassInDetail(false);
-      setSecretVerified(false);
-      setIsDetailOpen(true);
-    }
-  };
+const handleView = (cred: Credential) => {
+  setSelectedCred(cred);
+  if (cred.id in revealedPasswords) {
+    setShowPassInDetail(!!revealedPasswords[cred.id]);
+    setIsDetailOpen(true);
+  } else {
+    setPendingRevealCredId(cred.id);
+    setVerifyPassword("");
+    setVerifyError("");
+    setVerifyPurpose("REVEAL");
+    setIsVerifyModalOpen(true);
+  }
+};
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -351,21 +351,8 @@ export default function CredentialsPage() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button 
-              onClick={() => {
-                setVerifyPurpose("EXPORT");
-                setVerifyPassword("");
-                setVerifyError("");
-                setIsVerifyModalOpen(true);
-              }}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 flex items-center justify-center gap-2.5 px-6 py-3 rounded-2xl font-bold cursor-pointer transition-all shadow-sm"
-              title="Export Vault details into multi-sheet Excel file"
-            >
-              <Download className="w-5 h-5 text-blue-600" />
-              <span className="font-bold uppercase tracking-widest text-[11px]">Export Vault</span>
-            </button>
-            <button 
               onClick={() => { resetForm(); setIsModalOpen(true); }}
-              className="btn-primary flex items-center justify-center gap-2.5 px-6 shadow-xl shadow-blue-600/20"
+              className="btn-primary flex items-center justify-center gap-2.5 px-6 shadow-xl shadow-blue-600/20 animate-fade-in"
             >
               <Plus className="w-5 h-5" />
               <span className="font-bold uppercase tracking-widest text-[11px]">Add Security Secret</span>
@@ -373,17 +360,30 @@ export default function CredentialsPage() {
           </div>
         </header>
 
-        <div className="flex gap-3 mb-6">
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-1 group">
-            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
             <input 
               type="text" 
-              className="input-field pl-11 w-full bg-slate-50 border-slate-50 focus:bg-white transition-all shadow-none" 
+              className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all placeholder:text-slate-400 placeholder:font-medium" 
               placeholder="Search by name, user, IP or resource..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+          <button 
+            onClick={() => {
+              setVerifyPurpose("EXPORT");
+              setVerifyPassword("");
+              setVerifyError("");
+              setIsVerifyModalOpen(true);
+            }}
+            className="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
+            title="Export Vault details into multi-sheet Excel file"
+          >
+            <Download className="w-4 h-4" />
+            Export Vault
+          </button>
         </div>
 
         {/* Identity Type Dropdown Filter */}
@@ -494,7 +494,7 @@ export default function CredentialsPage() {
                         <button 
                           onClick={() => handleView(cred)}
                           className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                          title={cred.password ? "View Secret" : "View Details"}
+                          title="Verify & View"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -797,7 +797,6 @@ export default function CredentialsPage() {
                   onClick={() => {
                     setIsDetailOpen(false);
                     setShowPassInDetail(false);
-                    setSecretVerified(false);
                   }} 
                   className="absolute top-8 right-8 p-3 bg-white/10 hover:bg-white/20 rounded-2xl transition-all"
                 >
@@ -885,28 +884,21 @@ export default function CredentialsPage() {
 
                   {selectedCred.password && (
                     <div className="flex items-center justify-between p-5 bg-indigo-50/30 rounded-2xl border border-indigo-100 group">
-                      <div className="flex-1">
-                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Secure Secret / Password</p>
-                        <p className="text-sm font-mono font-bold text-slate-900 break-all pr-4">
-                          {showPassInDetail ? selectedCred.password : "••••••••••••••••••••••••"}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => setShowPassInDetail(!showPassInDetail)}
-                          className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm"
-                        >
-                          {showPassInDetail ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                        </button>
-                        <button 
-                          onClick={() => handleCopy(selectedCred.password || "", 'password')}
-                          className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-white rounded-xl transition-all shadow-sm"
-                        >
-                          {copiedField === 'password' ? <Check className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
-                        </button>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2">Secure Secret / Password</p>
+                        <SecurePasswordDisplay
+                          itemId={selectedCred.id}
+                          maskedPlaceholder="••••••••••••"
+                          revealedPassword={revealedPasswords[selectedCred.id]}
+                          isVisible={showPassInDetail}
+                          onToggleVisibility={() => setShowPassInDetail(!showPassInDetail)}
+                          onRevealRequest={() => handleView(selectedCred)}
+                          onCopySuccess={() => setCopiedField('password')}
+                        />
                       </div>
                     </div>
                   )}
+
                 </div>
                 
                 <div className="pt-4">
@@ -914,7 +906,6 @@ export default function CredentialsPage() {
                     onClick={() => {
                       setIsDetailOpen(false);
                       setShowPassInDetail(false);
-                      setSecretVerified(false);
                     }}
                     className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-slate-800 transition-all"
                   >
@@ -978,13 +969,18 @@ export default function CredentialsPage() {
                     } else {
                       // Verify password then reveal secret
                       const res = await api.post(`/credentials/${pendingRevealCredId}/reveal`, { password: verifyPassword });
-                      setSelectedCred(res.data);
-                      setSecretVerified(true);
+                      const credId = pendingRevealCredId as string;
+                      setRevealedPasswords(prev => ({
+                        ...prev,
+                        [credId]: res.data.password || null
+                      }));
+                      setSelectedCred((prev: any) => prev ? { ...prev, ...res.data, password: res.data.password ?? prev.password } : res.data);
                       setShowPassInDetail(true);
                       setIsVerifyModalOpen(false);
+                      setPendingRevealCredId(null);
                       setVerifyPassword("");
-                      setFailedVerifyAttempts(0); // Reset attempts on success
-                      setIsDetailOpen(true); // Open the detail modal after verification
+                      setFailedVerifyAttempts(0);
+                      setIsDetailOpen(true);
                     }
                   } catch (err: any) {
                     const nextAttempts = failedVerifyAttempts + 1;

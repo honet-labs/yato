@@ -1,5 +1,6 @@
 "use client";
 import { PageHeader } from "@/components/PageHeader";
+import { SecurePasswordDisplay } from "@/components/SecurePasswordDisplay";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
@@ -29,13 +30,15 @@ import {
   Download,
   Trash2,
   Eye,
-  EyeOff
+  EyeOff,
+  AlertTriangle
 } from "lucide-react";
 import { exportToCSV } from "@/lib/csvHelper";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { cn } from "@/lib/utils";
 
 
 interface ServiceInventory {
@@ -43,6 +46,8 @@ interface ServiceInventory {
   serviceName: string;
   version: string;
   environment: string;
+  category?: string;
+  tags?: string[];
   endpoint: string;
   status: string;
   requestedBy?: string;
@@ -51,6 +56,7 @@ interface ServiceInventory {
   port?: number;
   username?: string;
   password?: string;
+  notes?: string;
   createdAt: string;
 }
 
@@ -75,11 +81,14 @@ export default function ServiceInventoryPage() {
     serviceName: "",
     version: "1.0.0",
     environment: "Production",
+    category: "",
+    tags: [] as string[],
     endpoint: "",
     address: "",
     port: 3306,
     username: "",
-    password: ""
+    password: "",
+    notes: ""
   });
   
   const [editData, setEditData] = useState({
@@ -88,11 +97,15 @@ export default function ServiceInventoryPage() {
     port: 22,
     username: "",
     password: "",
+    category: "",
+    tags: [] as string[],
+    notes: "",
     status: ""
   });
 
   const { isAdmin, permissions, isLoading: isAuthLoading } = useIsAdmin();
   const canView = isAdmin || permissions.includes("VIEW_SERVICE_INVENTORY") || permissions.includes("MANAGE_SERVICE_INVENTORY");
+  const canEdit = isAdmin || permissions.includes("EDIT_SERVICE_INVENTORY") || permissions.includes("MANAGE_SERVICE_INVENTORY");
   const canAddService = isAdmin || permissions.includes("PROVISION_SERVICE");
 
   const { data: serviceTypes } = useQuery({
@@ -112,11 +125,14 @@ export default function ServiceInventoryPage() {
         serviceName: "",
         version: "1.0.0",
         environment: "Production",
+        category: "",
+        tags: [],
         endpoint: "",
         address: "",
         port: 3306,
         username: "",
-        password: ""
+        password: "",
+        notes: ""
       });
     }
   });
@@ -164,12 +180,13 @@ export default function ServiceInventoryPage() {
   const itemsPerPage = 30;
 
   const handleViewServiceCredentials = (item: ServiceInventory) => {
-    if (revealedPasswords[item.id]) {
+    if (item.id in revealedPasswords) {
+      const revealed = revealedPasswords[item.id];
       setViewingDetails({
         ...item,
-        password: revealedPasswords[item.id]
+        password: revealed || item.password || '••••••••••••'
       });
-      setShowPassInDetail(false);
+      setShowPassInDetail(!!revealed);
     } else {
       setPendingRevealService(item);
       setVerifyPassword("");
@@ -209,12 +226,20 @@ export default function ServiceInventoryPage() {
   if (!canView) {
     return (
       <div className="flex min-h-screen bg-slate-50 items-center justify-center p-6">
-        <div className="text-center space-y-4 max-w-sm">
+        <div className="text-center space-y-5 max-w-sm">
           <div className="w-20 h-20 bg-rose-500/10 rounded-full border border-rose-500/30 flex items-center justify-center mx-auto mb-6 text-rose-500">
             <Lock className="w-10 h-10" />
           </div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-800">Access Denied</h2>
           <p className="text-sm text-slate-500">You do not have permission to access the Service Assets.</p>
+          <div className="pt-2">
+            <Link 
+              href="/dashboard" 
+              className="inline-flex items-center justify-center px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all"
+            >
+              Back to Home
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -230,15 +255,8 @@ export default function ServiceInventoryPage() {
           <div>
             <PageHeader title="Service Assets" subtitle="Active infrastructure services and endpoints" />
           </div>
-          <div className="flex gap-3">
-            <button 
-              onClick={handleExport}
-              className="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Export CSV
-            </button>
-            {canAddService && (
+          {canAddService && (
+            <div className="flex gap-3">
               <button 
                 onClick={() => setIsAddModalOpen(true)}
                 className="btn-primary flex items-center gap-2"
@@ -246,21 +264,28 @@ export default function ServiceInventoryPage() {
                 <Plus className="w-4 h-4" />
                 Add Service
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </header>
 
-        <div className="flex gap-4 mb-8">
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1 group">
-            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
             <input 
               type="text" 
-              className="input-field pl-11 py-3 w-full bg-slate-50 border-slate-50 focus:bg-white transition-all shadow-none" 
+              className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all placeholder:text-slate-400 placeholder:font-medium" 
               placeholder="Search by service name or endpoint..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+          <button 
+            onClick={handleExport}
+            className="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
         </div>
 
         <div className="bg-white border border-slate-50 rounded-2xl overflow-visible shadow-sm">
@@ -268,9 +293,14 @@ export default function ServiceInventoryPage() {
             <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Service Asset</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Environment</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Service Name</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Category</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tags</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">IP Address</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Port</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Environment</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Notes</th>
                 {isAdmin && <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Owner</th>}
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
               </tr>
@@ -281,6 +311,9 @@ export default function ServiceInventoryPage() {
                   <tr key={i} className="animate-pulse">
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-32" /></td>
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-20" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-24" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-24" /></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-16" /></td>
                     <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-40" /></td>
                     <td className="px-6 py-4"><div className="h-6 bg-slate-100 rounded-full w-20 mx-auto" /></td>
                     {isAdmin && <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-24" /></td>}
@@ -289,7 +322,7 @@ export default function ServiceInventoryPage() {
                 ))
               ) : paginatedItems?.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 6 : 5} className="py-24 text-center">
+                  <td colSpan={isAdmin ? 9 : 8} className="py-24 text-center">
                     <Box className="w-12 h-12 text-slate-100 mx-auto mb-4" />
                     <p className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">No provisioned services found</p>
                   </td>
@@ -304,9 +337,78 @@ export default function ServiceInventoryPage() {
                         </div>
                         <div>
                           <p className="text-[13px] font-semibold text-slate-900">{item.serviceName}</p>
-                          <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-tighter">{item.version}</p>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {item.category ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                          {item.category}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-[11px]">N/A</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {item.tags && item.tags.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {item.tags.slice(0, 3).map((tag, idx) => (
+                            <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
+                              {tag}
+                            </span>
+                          ))}
+                          {item.tags.length > 3 && (
+                            <span className="text-[10px] text-slate-400">+{item.tags.length - 3}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 text-[11px]">N/A</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {item.address ? (
+                        <div className="flex items-center gap-2">
+                          <code className="text-[11px] font-mono text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">{item.address}</code>
+                          <button 
+                            onClick={() => handleCopy(item.address, item.id + '-address')}
+                            className="p-1 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-all"
+                          >
+                            {copiedId === (item.id + '-address') ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 text-[11px]">N/A</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {item.port ? (
+                        <code className="text-[11px] font-mono text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">{item.port}</code>
+                      ) : (
+                        <span className="text-slate-400 text-[11px]">N/A</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {item.endpoint ? (
+                        <div className="flex items-center gap-2">
+                          <a 
+                            href={item.endpoint.startsWith('http') ? item.endpoint : `http://${item.endpoint}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-[11px] font-mono text-blue-600 hover:text-blue-700 hover:underline bg-blue-50/50 px-2 py-0.5 rounded border border-blue-100 transition-all flex items-center gap-1.5"
+                          >
+                            {item.endpoint}
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                          <button 
+                            onClick={() => handleCopy(item.endpoint, item.id + '-endpoint')}
+                            className="p-1 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-all"
+                          >
+                            {copiedId === (item.id + '-endpoint') ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 font-mono text-[11px]">N/A</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className={cn(
@@ -325,37 +427,11 @@ export default function ServiceInventoryPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          {item.endpoint ? (
-                            <>
-                              <a 
-                                href={item.endpoint.startsWith('http') ? item.endpoint : `http://${item.endpoint}`} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-[11px] font-mono text-blue-600 hover:text-blue-700 hover:underline bg-blue-50/50 px-2 py-0.5 rounded border border-blue-100 transition-all flex items-center gap-1.5"
-                              >
-                                {item.endpoint}
-                                <ExternalLink className="w-2.5 h-2.5" />
-                              </a>
-                              <button 
-                                onClick={() => handleCopy(item.endpoint, item.id + '-endpoint')}
-                                className="p-1.5 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-                              >
-                                {copiedId === (item.id + '-endpoint') ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                              </button>
-                            </>
-                          ) : (
-                            <span className="text-slate-400 font-mono">N/A</span>
-                          )}
-                        </div>
-                        {item.address && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">IP Address:</span>
-                            <code className="text-[10px] font-mono text-slate-500">{item.address}:{item.port}</code>
-                          </div>
-                        )}
-                      </div>
+                      {item.notes ? (
+                        <span className="text-[11px] text-slate-600 truncate max-w-[150px] block" title={item.notes}>{item.notes}</span>
+                      ) : (
+                        <span className="text-slate-400 text-[11px]">N/A</span>
+                      )}
                     </td>
                     {isAdmin && (
                       <td className="px-6 py-4">
@@ -374,9 +450,9 @@ export default function ServiceInventoryPage() {
                             className="p-2 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                             title="View Credentials"
                           >
-                            <Lock className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </button>
-                          {isAdmin && (
+                          {canEdit && (
                             <>
                               <button 
                                 onClick={() => {
@@ -387,6 +463,9 @@ export default function ServiceInventoryPage() {
                                     port: item.port || 22,
                                     username: item.username || "",
                                     password: item.password || "",
+                                    category: item.category || "",
+                                    tags: item.tags || [],
+                                    notes: item.notes || "",
                                     status: item.status
                                   });
                                 }}
@@ -427,7 +506,7 @@ export default function ServiceInventoryPage() {
         {/* Edit Modal */}
         <AnimatePresence>
           {showEditModal && (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/80">
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -451,13 +530,61 @@ export default function ServiceInventoryPage() {
 
                 <div className="p-8 space-y-6">
                   <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Category</label>
+                        <select 
+                          className="input-field w-full py-3 bg-slate-50 border-slate-200 font-bold text-sm"
+                          value={editData.category}
+                          onChange={e => setEditData({...editData, category: e.target.value})}
+                        >
+                          <option value="">Select Category</option>
+                          <option value="DATABASE">Database</option>
+                          <option value="WEB_SERVER">Web Server</option>
+                          <option value="MONITORING">Monitoring</option>
+                          <option value="CONTAINER">Container</option>
+                          <option value="CACHE">Cache</option>
+                          <option value="MESSAGE_QUEUE">Message Queue</option>
+                          <option value="STORAGE">Storage</option>
+                          <option value="NETWORK">Network</option>
+                          <option value="OTHER">Other</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Status</label>
+                        <select 
+                          className="input-field w-full py-3 bg-slate-50 border-slate-200 font-bold text-sm"
+                          value={editData.status}
+                          onChange={e => setEditData({...editData, status: e.target.value})}
+                        >
+                          <option value="PROVISIONING">PROVISIONING</option>
+                          <option value="COMPLETED">COMPLETED / ACTIVE</option>
+                          <option value="DECOMMISSIONED">DECOMMISSIONED</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Tags</label>
+                      <input 
+                        type="text" 
+                        className="input-field w-full py-3 bg-slate-50 border-slate-200 text-sm" 
+                        placeholder="Comma-separated tags (e.g. production, critical, pci)"
+                        value={editData.tags.join(', ')}
+                        onChange={e => {
+                          const tags = e.target.value.split(',').map(t => t.trim()).filter(t => t);
+                          setEditData({...editData, tags});
+                        }}
+                      />
+                    </div>
+
                     <div className="space-y-2">
                       <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">URL</label>
                       <div className="relative group">
                         <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
                         <input 
                           type="text" 
-                          className="input-field pl-12 w-full py-4 bg-slate-50 border-slate-200" 
+                          className="input-field pl-12 w-full py-3 bg-slate-50 border-slate-200 text-sm" 
                           placeholder="e.g. http://10.10.1.50:5678"
                           value={editData.endpoint}
                           onChange={e => setEditData({...editData, endpoint: e.target.value})}
@@ -470,7 +597,7 @@ export default function ServiceInventoryPage() {
                         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">IP Address</label>
                         <input 
                           type="text" 
-                          className="input-field w-full py-4 bg-slate-50 border-slate-200" 
+                          className="input-field w-full py-3 bg-slate-50 border-slate-200 text-sm" 
                           placeholder="10.10.1.50"
                           value={editData.address}
                           onChange={e => setEditData({...editData, address: e.target.value})}
@@ -480,7 +607,7 @@ export default function ServiceInventoryPage() {
                         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Port</label>
                         <input 
                           type="number" 
-                          className="input-field w-full py-4 bg-slate-50 border-slate-200" 
+                          className="input-field w-full py-3 bg-slate-50 border-slate-200 text-sm" 
                           placeholder="5678"
                           value={editData.port}
                           onChange={e => setEditData({...editData, port: parseInt(e.target.value)})}
@@ -488,17 +615,38 @@ export default function ServiceInventoryPage() {
                       </div>
                     </div>
 
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Username</label>
+                        <input 
+                          type="text" 
+                          className="input-field w-full py-3 bg-slate-50 border-slate-200 text-sm" 
+                          placeholder="e.g. admin"
+                          value={editData.username}
+                          onChange={e => setEditData({...editData, username: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Password</label>
+                        <input 
+                          type="password" 
+                          className="input-field w-full py-3 bg-slate-50 border-slate-200 text-sm" 
+                          placeholder="••••••••"
+                          value={editData.password}
+                          onChange={e => setEditData({...editData, password: e.target.value})}
+                        />
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
-                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Status Override</label>
-                      <select 
-                        className="input-field w-full py-4 bg-slate-50 border-slate-200 font-bold"
-                        value={editData.status}
-                        onChange={e => setEditData({...editData, status: e.target.value})}
-                      >
-                        <option value="PROVISIONING">PROVISIONING</option>
-                        <option value="COMPLETED">COMPLETED / ACTIVE</option>
-                        <option value="DECOMMISSIONED">DECOMMISSIONED</option>
-                      </select>
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Notes</label>
+                      <textarea 
+                        rows={3}
+                        className="input-field w-full py-3 bg-slate-50 border-slate-200 text-sm resize-none" 
+                        placeholder="Configuration notes or business purpose..."
+                        value={editData.notes}
+                        onChange={e => setEditData({...editData, notes: e.target.value})}
+                      />
                     </div>
                   </div>
 
@@ -521,7 +669,7 @@ export default function ServiceInventoryPage() {
         {/* Add Service Modal */}
         <AnimatePresence>
           {isAddModalOpen && (
-            <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm overflow-y-auto py-12">
+            <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-950/80 overflow-y-auto py-12">
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -575,18 +723,43 @@ export default function ServiceInventoryPage() {
                       </select>
                     </div>
 
-                    {/* Version */}
+                    {/* Category */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Version</label>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Category</label>
+                      <select 
+                        className="input-field w-full py-2.5 text-sm font-bold"
+                        value={addFormData.category}
+                        onChange={e => setAddFormData({...addFormData, category: e.target.value})}
+                      >
+                        <option value="">Select Category</option>
+                        <option value="DATABASE">Database</option>
+                        <option value="WEB_SERVER">Web Server</option>
+                        <option value="MONITORING">Monitoring</option>
+                        <option value="CONTAINER">Container</option>
+                        <option value="CACHE">Cache</option>
+                        <option value="MESSAGE_QUEUE">Message Queue</option>
+                        <option value="STORAGE">Storage</option>
+                        <option value="NETWORK">Network</option>
+                        <option value="OTHER">Other</option>
+                      </select>
+                    </div>
+
+                    {/* Tags */}
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tags</label>
                       <input 
                         type="text" 
-                        required
                         className="input-field w-full py-2.5 text-sm" 
-                        placeholder="e.g. 1.0.0"
-                        value={addFormData.version}
-                        onChange={e => setAddFormData({...addFormData, version: e.target.value})}
+                        placeholder="Comma-separated tags (e.g. production, critical, pci)"
+                        value={addFormData.tags.join(', ')}
+                        onChange={e => {
+                          const tags = e.target.value.split(',').map(t => t.trim()).filter(t => t);
+                          setAddFormData({...addFormData, tags});
+                        }}
                       />
                     </div>
+
+
 
                     {/* Endpoint / URL */}
                     <div className="space-y-1.5">
@@ -648,6 +821,17 @@ export default function ServiceInventoryPage() {
                     </div>
                   </div>
 
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Notes</label>
+                    <textarea 
+                      rows={3}
+                      className="input-field w-full py-2.5 text-sm resize-none" 
+                      placeholder="Configuration notes or business purpose..."
+                      value={addFormData.notes}
+                      onChange={e => setAddFormData({...addFormData, notes: e.target.value})}
+                    />
+                  </div>
+
                   <div className="pt-6 border-t border-slate-50 flex gap-4">
                     <button 
                       type="button"
@@ -674,7 +858,7 @@ export default function ServiceInventoryPage() {
         {/* Detail Modal for Users */}
         <AnimatePresence>
           {viewingDetails && (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/80">
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -691,7 +875,7 @@ export default function ServiceInventoryPage() {
                       <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">{viewingDetails.serviceName}</p>
                     </div>
                   </div>
-                  <button onClick={() => setViewingDetails(null)} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm">
+                  <button onClick={() => { setViewingDetails(null); setShowPassInDetail(false); }} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm">
                     <X className="w-6 h-6 text-slate-400" />
                   </button>
                 </div>
@@ -750,33 +934,21 @@ export default function ServiceInventoryPage() {
 
                       <div className="h-px bg-slate-200/50 mx-[-1.25rem]" />
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Lock className="w-4 h-4 text-slate-400" />
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Password</span>
-                            <span className="text-sm font-mono text-slate-900">
-                              {viewingDetails.password 
-                                ? (showPassInDetail ? viewingDetails.password : '••••••••') 
-                                : '---'}
-                            </span>
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3 flex-1">
+                          <Lock className="w-4 h-4 text-slate-400 shrink-0" />
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Password</span>
+                            <SecurePasswordDisplay
+                              itemId={viewingDetails.id}
+                              maskedPlaceholder="••••••••••••"
+                              revealedPassword={revealedPasswords[viewingDetails.id]}
+                              isVisible={showPassInDetail}
+                              onToggleVisibility={() => setShowPassInDetail(!showPassInDetail)}
+                              onRevealRequest={() => handleViewServiceCredentials(viewingDetails)}
+                              onCopySuccess={() => setCopiedId('detail-pass')}
+                            />
                           </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button 
-                            onClick={() => setShowPassInDetail(!showPassInDetail)}
-                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all"
-                            title={showPassInDetail ? "Hide Password" : "Show Password"}
-                          >
-                            {showPassInDetail ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                          </button>
-                          <button 
-                            onClick={() => handleCopy(viewingDetails.password || '', 'detail-pass')}
-                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all"
-                            title="Copy Password"
-                          >
-                            {copiedId === 'detail-pass' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                          </button>
                         </div>
                       </div>
                     </div>
@@ -796,27 +968,20 @@ export default function ServiceInventoryPage() {
         {/* Identity Verification Modal */}
         <AnimatePresence>
           {isVerifyModalOpen && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[200]">
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/80">
               <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-slate-100 relative"
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm border border-slate-100"
               >
-                <button 
-                  onClick={() => { setIsVerifyModalOpen(false); setVerifyPassword(""); }}
-                  className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-
-                <div className="text-center">
+                <div className="p-8 text-center">
                   <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-5">
                     <ShieldCheck className="w-8 h-8 text-amber-600" />
                   </div>
                   <h3 className="text-lg font-bold text-slate-900 mb-1">Identity Verification</h3>
                   <p className="text-[11px] font-medium text-slate-400 mb-6">
-                    Enter your account password to reveal this service's credentials
+                    Enter your account password to reveal this secret
                   </p>
                   
                   <form onSubmit={async (e) => {
@@ -829,19 +994,18 @@ export default function ServiceInventoryPage() {
                     try {
                       const res = await api.post(`/service-inventory/${pendingRevealService.id}/reveal`, { password: verifyPassword });
                       
+                      const svcForAction = pendingRevealService;
                       setRevealedPasswords(prev => ({
                         ...prev,
-                        [pendingRevealService.id]: res.data.password
+                        [svcForAction.id]: res.data.password || null
                       }));
                       setIsVerifyModalOpen(false);
+                      setPendingRevealService(null);
                       setVerifyPassword("");
                       setFailedVerifyAttempts(0);
                       
-                      setViewingDetails({
-                        ...pendingRevealService,
-                        password: res.data.password
-                      });
-                      setShowPassInDetail(false);
+                      setViewingDetails({ ...svcForAction, password: svcForAction.password || '••••••••••••' });
+                      setShowPassInDetail(true);
                     } catch (err: any) {
                       const nextAttempts = failedVerifyAttempts + 1;
                       setFailedVerifyAttempts(nextAttempts);
@@ -858,38 +1022,50 @@ export default function ServiceInventoryPage() {
                     } finally {
                       setIsVerifying(false);
                     }
-                  }}>
-                    <div className="space-y-4 mb-6">
+                  }} className="space-y-4">
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input 
                         type="password"
-                        placeholder="••••••••"
-                        value={verifyPassword}
-                        onChange={(e) => setVerifyPassword(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-center text-sm font-semibold tracking-widest bg-slate-50"
                         autoFocus
+                        required
+                        placeholder="Enter your password..."
+                        value={verifyPassword}
+                        onChange={(e) => { setVerifyPassword(e.target.value); setVerifyError(""); }}
+                        className={cn(
+                          "input-field pl-12 w-full py-3 bg-slate-50/50 font-medium text-center",
+                          verifyError && "!border-red-300 !ring-red-100"
+                        )}
+                        autoComplete="current-password"
                       />
-                      {verifyError && (
-                        <p className="text-[10px] font-bold text-rose-500 leading-normal bg-rose-50 p-3 rounded-xl border border-rose-100">
-                          {verifyError}
-                        </p>
-                      )}
                     </div>
-
-                    <div className="flex gap-3">
+                    
+                    {verifyError && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center gap-2 text-red-600 text-[11px] font-bold bg-red-50 px-4 py-2.5 rounded-xl border border-red-100"
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        {verifyError}
+                      </motion.div>
+                    )}
+                    
+                    <div className="flex gap-3 pt-2">
                       <button 
                         type="button"
-                        onClick={() => { setIsVerifyModalOpen(false); setVerifyPassword(""); }}
-                        className="flex-1 py-3 border border-slate-200 text-slate-500 rounded-xl text-xs font-bold uppercase transition-all hover:bg-slate-50"
+                        onClick={() => { setIsVerifyModalOpen(false); setVerifyPassword(""); setVerifyError(""); }}
+                        className="btn-secondary flex-1"
                       >
                         Cancel
                       </button>
                       <button 
-                        type="submit"
+                        type="submit" 
                         disabled={isVerifying || !verifyPassword.trim()}
-                        className="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold uppercase transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-amber-600/10"
+                        className="btn-primary flex-1 flex items-center justify-center gap-2"
                       >
-                        {isVerifying && <Loader2 className="w-4 h-4 animate-spin" />}
-                        Verify
+                        {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Verify & Reveal</span>
                       </button>
                     </div>
                   </form>
@@ -904,4 +1080,3 @@ export default function ServiceInventoryPage() {
   );
 }
 
-import { cn } from "@/lib/utils";

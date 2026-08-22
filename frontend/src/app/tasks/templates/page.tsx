@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-context";
 
 function TaskTemplatesPageContent() {
-  const { lang, t } = useLanguage();
+  const { lang, t, showToast } = useLanguage();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   
@@ -102,11 +102,11 @@ function TaskTemplatesPageContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["task-templates"] });
       setIsTemplateEditorOpen(false);
-      queryClient.setQueryData(["toast"], { message: "Template blueprint created successfully!", type: "success" });
+      showToast("Template blueprint created successfully!", "success");
     },
     onError: (error: any) => {
       const errMsg = error.response?.data?.message || "Failed to create template blueprint";
-      queryClient.setQueryData(["toast"], { message: errMsg, type: "error" });
+      showToast(errMsg, "error");
     }
   });
 
@@ -118,11 +118,11 @@ function TaskTemplatesPageContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["task-templates"] });
       setIsTemplateEditorOpen(false);
-      queryClient.setQueryData(["toast"], { message: "Template blueprint updated successfully!", type: "success" });
+      showToast("Template blueprint updated successfully!", "success");
     },
     onError: (error: any) => {
       const errMsg = error.response?.data?.message || "Failed to update template blueprint";
-      queryClient.setQueryData(["toast"], { message: errMsg, type: "error" });
+      showToast(errMsg, "error");
     }
   });
 
@@ -132,7 +132,11 @@ function TaskTemplatesPageContent() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["task-templates"] });
-      queryClient.setQueryData(["toast"], { message: "Template blueprint deleted successfully!", type: "success" });
+      showToast("Template blueprint deleted successfully!", "success");
+    },
+    onError: (error: any) => {
+      const errMsg = error.response?.data?.message || "Failed to delete template blueprint";
+      showToast(errMsg, "error");
     }
   });
 
@@ -163,7 +167,11 @@ function TaskTemplatesPageContent() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.setQueryData(["toast"], { message: "Tasks successfully generated from template!", type: "success" });
+      showToast("Tasks successfully generated from template!", "success");
+    },
+    onError: (error: any) => {
+      const errMsg = error.response?.data?.message || "Failed to generate tasks from template";
+      showToast(errMsg, "error");
     }
   });
 
@@ -211,26 +219,20 @@ function TaskTemplatesPageContent() {
   const handleSaveTemplate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!templateForm.templateName.trim()) {
-      queryClient.setQueryData(["toast"], {
-        message: lang === "ID" ? "Nama templat tidak boleh kosong!" : "Template name cannot be empty!",
-        type: "error"
-      });
+      showToast(lang === "ID" ? "Nama templat tidak boleh kosong!" : "Template name cannot be empty!", "error");
       return;
     }
     if (!templateForm.title.trim()) {
-      queryClient.setQueryData(["toast"], {
-        message: lang === "ID" ? "Judul tugas default tidak boleh kosong!" : "Default task title blueprint cannot be empty!",
-        type: "error"
-      });
+      showToast(lang === "ID" ? "Judul tugas default tidak boleh kosong!" : "Default task title blueprint cannot be empty!", "error");
       return;
     }
     if (!templateForm.projectIds || templateForm.projectIds.length === 0) {
-      queryClient.setQueryData(["toast"], {
-        message: lang === "ID" 
+      showToast(
+        lang === "ID" 
           ? "Anda harus memilih setidaknya satu Tracker Workspace!" 
           : "You must select at least one Tracker Workspace!",
-        type: "error"
-      });
+        "error"
+      );
       return;
     }
 

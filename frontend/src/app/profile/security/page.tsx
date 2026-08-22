@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
@@ -9,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/Skeleton";
 
 export default function SecurityPage() {
+  const queryClient = useQueryClient();
   const [step, setStep] = useState("initial" as "initial" | "setup" | "verify" | "completed");
   const [mfaData, setMfaData] = useState(null as { secret: string; qrCode: string } | null);
   const [token, setToken] = useState("");
@@ -55,6 +57,7 @@ export default function SecurityPage() {
       if (response.data.recoveryCodes) {
         setRecoveryCodes(response.data.recoveryCodes);
       }
+      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
       setStep("completed");
     } catch (err: any) {
       setError(err.response?.data?.message || "Invalid verification code. Please try again.");
@@ -68,6 +71,7 @@ export default function SecurityPage() {
     setLoading(true);
     try {
       await api.post("/auth/mfa/disable");
+      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
       setStep("initial");
       setToken("");
       setMfaData(null);

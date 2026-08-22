@@ -1,13 +1,15 @@
 "use client";
+import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useLanguage } from "@/context/language-context";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
-import api from "@/lib/api";
+import api, { getFileDownloadUrl } from "@/lib/api";
 import { useSearchParams, useRouter } from "next/navigation";
 import { 
   Plus, 
@@ -214,6 +216,7 @@ function TasksPageContent() {
   const projectIdParam = searchParams.get("projectId");
   const queryClient = useQueryClient();
   const { profile, isAdmin, permissions, isLoading: isAuthLoading } = useIsAdmin();
+  const { lang, t, showToast } = useLanguage();
   const canView = isAdmin || permissions.includes("VIEW_TASKS");
   const [editingCommentId, setEditingCommentId] = useState(null as string | null);
   const [editingCommentText, setEditingCommentText] = useState("");
@@ -258,6 +261,10 @@ function TasksPageContent() {
       setNewProjectColor("#4F46E5");
       // Open the new project tracker immediately
       router.push(`/tasks?projectId=${data.id}`);
+    },
+    onError: (error: any) => {
+      const errMsg = error.response?.data?.message || "Failed to create tracker";
+      showToast(errMsg, "error");
     }
   });
 
@@ -280,9 +287,14 @@ function TasksPageContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      showToast("Tracker deleted successfully!", "success");
       if (projectIdParam) {
         router.push("/tasks");
       }
+    },
+    onError: (error: any) => {
+      const errMsg = error.response?.data?.message || "Failed to delete tracker";
+      showToast(errMsg, "error");
     }
   });
 
@@ -403,7 +415,7 @@ function TasksPageContent() {
     if (file.driver === "DATABASE" && file.path) {
       return file.path;
     }
-    return `/api/storage/download/${file.id}`;
+    return getFileDownloadUrl(file.id);
   };
 
   // Premium Mentions States
@@ -505,6 +517,11 @@ function TasksPageContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["task-templates"] });
       setIsTemplateEditorOpen(false);
+      showToast("Template blueprint created successfully!", "success");
+    },
+    onError: (error: any) => {
+      const errMsg = error.response?.data?.message || "Failed to create template blueprint";
+      showToast(errMsg, "error");
     }
   });
 
@@ -517,6 +534,11 @@ function TasksPageContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["task-templates"] });
       setIsTemplateEditorOpen(false);
+      showToast("Template blueprint updated successfully!", "success");
+    },
+    onError: (error: any) => {
+      const errMsg = error.response?.data?.message || "Failed to update template blueprint";
+      showToast(errMsg, "error");
     }
   });
 
@@ -527,6 +549,11 @@ function TasksPageContent() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["task-templates"] });
+      showToast("Template blueprint deleted successfully!", "success");
+    },
+    onError: (error: any) => {
+      const errMsg = error.response?.data?.message || "Failed to delete template blueprint";
+      showToast(errMsg, "error");
     }
   });
 
@@ -746,8 +773,8 @@ function TasksPageContent() {
   const handleEditTemplateStart = (template: any) => {
     setEditingTemplateId(template.id);
     setTemplateForm({
-      templateName: template.templateName,
-      title: template.title,
+      templateName: template.templateName || "",
+      title: template.title || "",
       description: template.description || "",
       priority: template.priority || "MEDIUM",
       taskType: template.taskType || "TASK",
@@ -764,7 +791,23 @@ function TasksPageContent() {
 
   const handleSaveTemplate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!templateForm.templateName.trim() || !templateForm.title.trim()) return;
+    if (!templateForm.templateName || !templateForm.templateName.trim()) {
+      showToast(lang === "ID" ? "Nama templat tidak boleh kosong!" : "Template name cannot be empty!", "error");
+      return;
+    }
+    if (!templateForm.title || !templateForm.title.trim()) {
+      showToast(lang === "ID" ? "Judul tugas default tidak boleh kosong!" : "Default task title blueprint cannot be empty!", "error");
+      return;
+    }
+    if (!templateForm.projectIds || templateForm.projectIds.length === 0) {
+      showToast(
+        lang === "ID" 
+          ? "Anda harus memilih setidaknya satu Tracker Workspace!" 
+          : "You must select at least one Tracker Workspace!",
+        "error"
+      );
+      return;
+    }
 
     if (editingTemplateId) {
       updateTemplateMutation.mutate({
@@ -944,10 +987,10 @@ function TasksPageContent() {
   };
 
   // Get all unique tags from active tasks
-  const uniqueTags = Array.from(new Set(tasks?.flatMap((t: any) => t.tags || []) || [])) as string[];
+  const uniqueTags = useMemo(() => Array.from(new Set(tasks?.flatMap((t: any) => t.tags || []) || [])) as string[], [tasks]);
 
   // Filtering tasks locally
-  const filteredTasks = tasks?.filter((task: any) => {
+  const filteredTasks = useMemo(() => tasks?.filter((task: any) => {
     if (projectIdParam && task.projectId !== projectIdParam) {
       return false;
     }
@@ -957,20 +1000,20 @@ function TasksPageContent() {
     const matchesType = typeFilter === "ALL" || task.taskType === typeFilter;
     const matchesTag = tagFilter === "ALL" || (task.tags && task.tags.includes(tagFilter));
     return matchesSearch && matchesPriority && matchesType && matchesTag;
-  }) || [];
+  }) || [], [tasks, projectIdParam, searchQuery, priorityFilter, typeFilter, tagFilter]);
 
   // Helper to find immediate subtasks of a task
-  const getSubtasksOf = (taskId: string) => {
+  const getSubtasksOf = useCallback((taskId: string) => {
     return tasks?.filter((t: any) => t.parentId === taskId) || [];
-  };
+  }, [tasks]);
 
   // Helper to check recursively if a task or any of its descendants matches the filter
-  const taskOrDescendantMatches = (task: any): boolean => {
+  const taskOrDescendantMatches = useCallback((task: any): boolean => {
     const matchesThis = filteredTasks.some((ft: any) => ft.id === task.id);
     if (matchesThis) return true;
     const children = getSubtasksOf(task.id);
     return children.some((child: any) => taskOrDescendantMatches(child));
-  };
+  }, [filteredTasks, getSubtasksOf]);
   if (isAuthLoading) {
     return (
       <div className="flex min-h-screen bg-slate-50 items-center justify-center p-6">
@@ -985,12 +1028,20 @@ function TasksPageContent() {
   if (!canView) {
     return (
       <div className="flex min-h-screen bg-slate-50 items-center justify-center p-6">
-        <div className="text-center space-y-4 max-w-sm">
+        <div className="text-center space-y-5 max-w-sm">
           <div className="w-20 h-20 bg-rose-500/10 rounded-full border border-rose-500/30 flex items-center justify-center mx-auto mb-6 text-rose-500">
             <Lock className="w-10 h-10" />
           </div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-850">Access Denied</h2>
           <p className="text-sm text-slate-500">You do not have permission to access the Tasks Tracker.</p>
+          <div className="pt-2">
+            <Link 
+              href="/dashboard" 
+              className="inline-flex items-center justify-center px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all"
+            >
+              Back to Home
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -1049,8 +1100,7 @@ function TasksPageContent() {
                     return (
                       <div
                         key={project.id}
-                        onClick={() => router.push(`/tasks?projectId=${project.id}`)}
-                        className="group relative flex flex-col justify-between bg-white border border-slate-100 hover:border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 min-h-[160px]"
+                        className="group relative flex flex-col justify-between bg-white border border-slate-100 hover:border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 min-h-[160px]"
                       >
                         {/* Top Indicator Line */}
                         <div 
@@ -1061,41 +1111,50 @@ function TasksPageContent() {
                         <div className="pl-2.5 flex-1 flex flex-col justify-between">
                           <div>
                             <div className="flex items-start justify-between gap-3 mb-2">
-                              <h3 className="text-sm font-bold text-slate-800 mb-0 group-hover:text-blue-600 transition-colors truncate">
+                              <h3 
+                                className="text-sm font-bold text-slate-800 mb-0 group-hover:text-blue-600 transition-colors truncate cursor-pointer"
+                                onClick={() => router.push(`/tasks?projectId=${project.id}`)}
+                              >
                                 {project.name}
                               </h3>
                               
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-1">
                                 <button
+                                  onPointerDown={(e) => e.stopPropagation()}
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    e.preventDefault();
                                     setEditingProjectId(project.id);
                                     setEditProjectName(project.name);
                                     setEditProjectDesc(project.description || "");
                                     setEditProjectColor(project.colorCode || "#4F46E5");
                                     setIsEditProjectOpen(true);
                                   }}
-                                  className="p-1 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-slate-700 transition-colors"
+                                  className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-colors"
                                   title="Rename Workspace"
                                 >
-                                  <Edit className="w-3.5 h-3.5" />
+                                  <Edit className="w-4 h-4" />
                                 </button>
                                 <button
+                                  onPointerDown={(e) => e.stopPropagation()}
                                   onClick={(e) => handleDeleteProject(project.id, e)}
-                                  className="p-1 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
+                                  className="p-1.5 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
                                   title="Delete Workspace"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
                               </div>
                             </div>
 
-                            <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4">
+                            <p 
+                              className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4 cursor-pointer"
+                              onClick={() => router.push(`/tasks?projectId=${project.id}`)}
+                            >
                               {project.description || "No description provided."}
                             </p>
                           </div>
 
-                          <div className="space-y-2 mt-auto">
+                          <div className="space-y-2 mt-auto cursor-pointer" onClick={() => router.push(`/tasks?projectId=${project.id}`)}>
                             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
                               <span>Tasks: {completedTasks}/{totalTasks}</span>
                               <span>{percentComplete}%</span>
@@ -1151,6 +1210,7 @@ function TasksPageContent() {
                       >
                         <Edit className="w-3.5 h-3.5" />
                       </button>
+                      {isAdmin && (
                       <button
                         onClick={(e) => activeProject && handleDeleteProject(activeProject.id, e)}
                         className="p-1 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
@@ -1158,6 +1218,7 @@ function TasksPageContent() {
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
+                      )}
                     </div>
                   </div>
                   <p className="text-xs text-slate-400 font-medium">{activeProject?.description || "No description provided."}</p>
@@ -1727,19 +1788,12 @@ function TasksPageContent() {
                   {/* Parent Task Selector */}
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Parent Task</label>
-                    <div className="relative">
-                      <select 
-                        value={newTaskParentId}
-                        onChange={(e) => setNewTaskParentId(e.target.value)}
-                        className="input-field pr-10 w-full bg-white cursor-pointer appearance-none"
-                      >
-                        <option value="">None (Root Task)</option>
-                        {tasks?.filter((t: any) => !t.parentId && (!projectIdParam || t.projectId === projectIdParam)).map((t: any) => (
-                          <option key={t.id} value={t.id}>{t.title}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                    </div>
+                    <ParentTaskSelector
+                      tasks={tasks || []}
+                      value={newTaskParentId}
+                      onChange={setNewTaskParentId}
+                      projectIdParam={projectIdParam}
+                    />
                   </div>
 
                   <div className="space-y-1.5">
@@ -1833,6 +1887,8 @@ function TasksPageContent() {
                       <Check className="w-3.5 h-3.5 text-amber-700 stroke-[3]" />
                       <input 
                         type="text"
+                        required
+                        form="template-editor-form"
                         value={templateForm.templateName}
                         onChange={(e) => setTemplateForm(prev => ({ ...prev, templateName: e.target.value }))}
                         className="bg-transparent border-none focus:outline-none focus:ring-0 p-0 text-xs font-black text-amber-900 w-36 outline-none"
@@ -1884,7 +1940,7 @@ function TasksPageContent() {
                   </div>
                 </div>
 
-                <form onSubmit={handleSaveTemplate} className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+                <form id="template-editor-form" onSubmit={handleSaveTemplate} className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 block">Default Task Title Blueprint</label>
                     <input 
@@ -2555,21 +2611,17 @@ function TasksPageContent() {
                     {/* Parent Task Input */}
                     <div className="grid grid-cols-3 items-center gap-4">
                       <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><CornerDownRight className="w-3.5 h-3.5" /> Parent Task</span>
-                      <div className="col-span-2 relative">
-                        <select 
+                      <div className="col-span-2">
+                        <ParentTaskSelector
+                          tasks={tasks || []}
                           value={detailParentId}
-                          onChange={(e) => {
-                            setDetailParentId(e.target.value);
-                            handleFieldUpdate("parentId", e.target.value || null);
+                          onChange={(id) => {
+                            setDetailParentId(id);
+                            handleFieldUpdate("parentId", id || null);
                           }}
-                          className="input-field pr-10 w-full bg-white cursor-pointer appearance-none !py-2"
-                        >
-                          <option value="">None (Root Task)</option>
-                          {tasks?.filter((t: any) => t.id !== taskDetail.id && !t.parentId && (!projectIdParam || t.projectId === projectIdParam)).map((t: any) => (
-                            <option key={t.id} value={t.id}>{t.title}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                          excludeTaskId={taskDetail?.id}
+                          projectIdParam={projectIdParam}
+                        />
                       </div>
                     </div>
 
@@ -3539,6 +3591,113 @@ function TasksPageContent() {
         
         </main>
       </div>
+    </div>
+  );
+}
+
+interface ParentTaskSelectorProps {
+  tasks: any[];
+  value: string;
+  onChange: (id: string) => void;
+  excludeTaskId?: string;
+  projectIdParam?: string;
+}
+
+function ParentTaskSelector({ tasks, value, onChange, excludeTaskId, projectIdParam }: ParentTaskSelectorProps) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const allowedStatuses = ["NOT_STARTED", "IN_PROGRESS", "HOLD_ON"];
+
+  const eligibleTasks = useMemo(() => {
+    return (tasks || []).filter((t: any) => {
+      if (excludeTaskId && t.id === excludeTaskId) return false;
+      if (t.parentId) return false;
+      if (projectIdParam && t.projectId !== projectIdParam) return false;
+      if (!allowedStatuses.includes(t.status)) return false;
+      return true;
+    });
+  }, [tasks, excludeTaskId, projectIdParam]);
+
+  const filteredTasks = useMemo(() => {
+    if (!search.trim()) return eligibleTasks;
+    const q = search.toLowerCase();
+    return eligibleTasks.filter((t: any) => t.title?.toLowerCase().includes(q));
+  }, [eligibleTasks, search]);
+
+  const selectedTask = eligibleTasks.find((t: any) => t.id === value);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setSearch("");
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => { setOpen(!open); setTimeout(() => inputRef.current?.focus(), 50); }}
+        className="input-field w-full bg-white cursor-pointer text-left flex items-center justify-between pr-3"
+      >
+        <span className={selectedTask ? "text-slate-800" : "text-slate-400"}>
+          {selectedTask ? selectedTask.title : "None (Root Task)"}
+        </span>
+        <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div className="absolute z-[200] mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-[280px] overflow-hidden flex flex-col">
+          <div className="p-2 border-b border-slate-100">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="Search tasks..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-400"
+              />
+            </div>
+          </div>
+          <div className="overflow-y-auto custom-scrollbar">
+            <button
+              type="button"
+              onClick={() => { onChange(""); setOpen(false); setSearch(""); }}
+              className={cn(
+                "w-full text-left px-3 py-2 text-xs hover:bg-slate-50 transition-colors border-b border-slate-50",
+                !value ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600"
+              )}
+            >
+              None (Root Task)
+            </button>
+            {filteredTasks.length === 0 ? (
+              <div className="px-3 py-4 text-center text-xs text-slate-400">No matching tasks</div>
+            ) : (
+              filteredTasks.map((t: any) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => { onChange(t.id); setOpen(false); setSearch(""); }}
+                  className={cn(
+                    "w-full text-left px-3 py-2 text-xs hover:bg-slate-50 transition-colors flex items-center gap-2",
+                    value === t.id ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-700"
+                  )}
+                >
+                  <span className="truncate">{t.title}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

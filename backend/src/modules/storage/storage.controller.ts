@@ -6,12 +6,18 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 import { UpdateStorageConfigDto } from './dto/storage.dto';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @ApiTags('storage')
 @ApiBearerAuth()
 @Controller('storage')
 export class StorageController {
-  constructor(private storageService: StorageService) {}
+  constructor(
+    private storageService: StorageService,
+    private jwtService: JwtService,
+    private configService: ConfigService,
+  ) {}
 
   @Get('files')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -53,6 +59,32 @@ export class StorageController {
     return this.storageService.saveConfig(dto);
   }
 
+  @Post('upload')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Upload a file (base64) and return file ID and download URL' })
+  async uploadFile(
+    @Body('base64Data') base64Data: string,
+    @Body('filename') filename: string,
+    @Body('entityType') entityType: string,
+    @Body('entityId') entityId: string,
+    @Request() req: any,
+  ) {
+    if (!base64Data) {
+      return { success: false, message: 'base64Data is required' };
+    }
+    const fileRecord = await this.storageService.uploadFile(
+      base64Data,
+      req.user.id,
+      entityId || undefined,
+      entityType || 'Note',
+    );
+    return {
+      success: true,
+      fileId: fileRecord.id,
+      downloadUrl: `/api/storage/download/${fileRecord.id}`,
+    };
+  }
+
   @Delete('files/:id')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('MANAGE_FILES')
@@ -61,15 +93,37 @@ export class StorageController {
     return this.storageService.deleteFile(id);
   }
 
-  // PUBLIC STREAMING DOWNLOAD GATEWAY
   @Get('download/:id')
   @ApiOperation({ summary: 'Secure proxy download gateway for S3/Drive/NAS/Database' })
-  async download(@Param('id') id: string, @Res() res: Response) {
+  async download(
+    @Param('id') id: string,
+    @Query('token') token: string,
+    @Request() req: any,
+    @Res() res: Response,
+  ) {
     try {
+      // Support token via query param for <img> tags that cannot send Authorization header
+      let userId: string;
+      if (token) {
+        try {
+          const payload = this.jwtService.verify(token, {
+            secret: this.configService.get('JWT_SECRET'),
+          });
+          userId = payload.sub;
+        } catch {
+          return res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Invalid or expired token' });
+        }
+      } else if (req.user?.id) {
+        userId = req.user.id;
+      } else {
+        return res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Authentication required' });
+      }
+
       const file = await this.storageService.downloadFile(id);
       
       res.setHeader('Content-Type', file.mimeType);
       res.setHeader('Content-Length', file.size);
+      res.setHeader('Cache-Control', 'private, max-age=3600');
       
       const isImage = file.mimeType.toLowerCase().startsWith('image/');
       res.setHeader('Content-Disposition', `${isImage ? 'inline' : 'attachment'}; filename="${encodeURIComponent(file.filename)}"`);

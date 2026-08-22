@@ -34,7 +34,12 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("yato_token", response.data.access_token);
-      router.push("/dashboard");
+      if (response.data.forcePasswordChange) {
+        localStorage.setItem("yato_force_password_change", "true");
+        router.push("/profile");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || "Authentication failed. Check your identity keys.");
     } finally {

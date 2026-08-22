@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class DashboardService {
+  private readonly logger = new Logger(DashboardService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async getStats(userId?: string) {
@@ -23,9 +25,9 @@ export class DashboardService {
       this.prisma.serviceRequest.count({ where: { ...filter, status: 'APPROVED' } }),
       this.prisma.serviceRequest.count({ where: { ...filter, status: 'REJECTED' } }),
       this.prisma.serviceRequest.count({ where: { ...filter, status: 'PENDING' } }),
-      this.prisma.supportTicket.count({ where: filter }), // Count Support Tickets!
+      this.prisma.supportTicket.count({ where: filter }),
       this.prisma.vMInventory.count({ where: inventoryFilter }),
-      this.prisma.vMInventory.count({ where: inventoryFilter }) // Simple proxy for assets
+      this.prisma.vMInventory.count({ where: inventoryFilter })
     ]);
 
     const activeServiceCount = await this.prisma.serviceInventory.count({ where: inventoryFilter });

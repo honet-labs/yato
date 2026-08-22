@@ -36,7 +36,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
@@ -85,6 +85,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
   const queryClient = useQueryClient();
   const { appName, appLogo } = useBranding();
   const { lang, setLang, t } = useLanguage();
+  const navRef = useRef<HTMLElement>(null);
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -106,7 +107,23 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
           setQuickAccess(JSON.parse(savedQuick));
         } catch (e) {}
       }
+      // Restore sidebar scroll position
+      const savedScroll = sessionStorage.getItem("yato_sidebar_scroll");
+      if (savedScroll && navRef.current) {
+        navRef.current.scrollTop = parseInt(savedScroll, 10);
+      }
     }
+  }, []);
+
+  // Save sidebar scroll position before unload
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const handleScroll = () => {
+      sessionStorage.setItem("yato_sidebar_scroll", nav.scrollTop.toString());
+    };
+    nav.addEventListener("scroll", handleScroll, { passive: true });
+    return () => nav.removeEventListener("scroll", handleScroll);
   }, []);
 
   const toggleSection = (title: string) => {
@@ -133,8 +150,8 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
       const response = await api.get("/notifications");
       return response.data;
     },
-    refetchInterval: 15000,
-    staleTime: 60000,
+    refetchInterval: 30000,
+    staleTime: 120000,
   });
 
   const markReadMutation = useMutation({
@@ -157,8 +174,8 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
         return [];
       }
     },
-    refetchInterval: 15000,
-    staleTime: 60000,
+    refetchInterval: 60000,
+    staleTime: 120000,
   });
 
   const { data: sidebarProjects } = useQuery({
@@ -171,8 +188,8 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
         return [];
       }
     },
-    refetchInterval: 30000,
-    staleTime: 120000,
+    refetchInterval: 120000,
+    staleTime: 300000,
   });
 
   const [pathnameQueryProjectId, setPathnameQueryProjectId] = useState<string | null>(null);
@@ -184,12 +201,8 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
     }
   }, [pathname]);
 
-  const notStartedTasksCount = (sidebarTasks || [])
-    .filter((t: any) => t.status === "NOT_STARTED" && t.projectId && (sidebarProjects || []).some((p: any) => p.id === t.projectId))
-    .length || 0;
-
-  const unreadCount = (notifications?.data || []).filter((n: any) => !n.isRead).length || 0;
-  const ticketUnreadCount = (notifications?.data || []).filter((n: any) => !n.isRead && n.link?.includes("/tickets")).length || 0;
+  const unreadCount = useMemo(() => (notifications?.data || []).filter((n: any) => !n.isRead).length || 0, [notifications]);
+  const ticketUnreadCount = useMemo(() => (notifications?.data || []).filter((n: any) => !n.isRead && n.link?.includes("/tickets")).length || 0, [notifications]);
   const displayNotifications = notifications?.data || [];
 
   useEffect(() => {
@@ -272,7 +285,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
       title: "Inventory Assets",
       items: [
         { icon: Server, label: "VM Inventory", href: "/vm/inventory", permission: "VIEW_VM_INVENTORY" },
-        { icon: Layers, label: "Inventory Services", href: "/service/inventory", permission: "VIEW_SERVICE_INVENTORY" },
+        { icon: Layers, label: "Service Inventory", href: "/service/inventory", permission: "VIEW_SERVICE_INVENTORY" },
         { icon: Key, label: "Credential Vault", href: "/credentials", permission: "VIEW_CREDENTIALS" },
       ]
     },
@@ -320,7 +333,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
         <span className="font-bold text-lg text-slate-900 tracking-tight">{appName}</span>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto custom-scrollbar">
+      <nav ref={navRef} className="flex-1 px-3 py-4 space-y-6 overflow-y-auto custom-scrollbar">
         {/* Quick Access Section */}
         {quickAccess.length > 0 && (
           <div className="space-y-1.5 pb-4 border-b border-slate-100/50">
@@ -356,11 +369,6 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                         {item.href === "/tickets" && ticketUnreadCount > 0 && (
                           <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
                             {ticketUnreadCount}
-                          </span>
-                        )}
-                        {item.href === "/tasks" && notStartedTasksCount > 0 && (
-                          <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
-                            {notStartedTasksCount}
                           </span>
                         )}
                       </Link>
@@ -434,11 +442,6 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                                   {ticketUnreadCount}
                                 </span>
                               )}
-                              {item.href === "/tasks" && notStartedTasksCount > 0 && (
-                                <span className="ml-auto flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
-                                  {notStartedTasksCount}
-                                </span>
-                              )}
                             </Link>
 
                             <button
@@ -464,13 +467,16 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                             <div className="pl-6 mt-1.5 mb-1.5 space-y-1 border-l border-slate-100 ml-5">
                               {sidebarProjects.map((project: any) => {
                                 const isProjectActive = pathname === "/tasks" && pathnameQueryProjectId === project.id;
+                                const projectTasksCount = (sidebarTasks || [])
+                                  .filter((t: any) => t.status === "NOT_STARTED" && t.projectId === project.id)
+                                  .length || 0;
                                 return (
                                   <Link
                                     key={project.id}
                                     href={`/tasks?projectId=${project.id}`}
                                     onClick={() => onNavItemClick?.()}
                                     className={cn(
-                                      "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all cursor-pointer truncate",
+                                      "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all cursor-pointer truncate pr-8",
                                       isProjectActive
                                         ? "text-blue-600 font-bold bg-blue-50/40"
                                         : "text-slate-500 hover:bg-slate-50/50 hover:text-slate-900"
@@ -481,7 +487,12 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                                       className="w-1.5 h-1.5 rounded-full shrink-0" 
                                       style={{ backgroundColor: project.colorCode || "#4F46E5" }}
                                     />
-                                    <span className="truncate">{project.name}</span>
+                                    <span className="truncate flex-1">{project.name}</span>
+                                    {projectTasksCount > 0 && (
+                                      <span className="ml-auto flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white shadow-sm shadow-rose-500/25 animate-pulse shrink-0">
+                                        {projectTasksCount}
+                                      </span>
+                                    )}
                                   </Link>
                                 );
                               })}
@@ -546,8 +557,8 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                       </div>
                     ) : (
                       displayNotifications?.map((n: any) => {
-                        // Strip "Link: ..." text from message to keep it clean and simple
-                        const cleanMsg = (n.message || "").split("Link:")[0].trim();
+                        // Strip "Link: ..." text and HTML tags from message to keep it clean and simple
+                        const cleanMsg = (n.message || "").split("Link:")[0].replace(/<[^>]*>/g, "").trim();
                         
                         // Parse absolute link URLs to relative paths for fast Next.js client-side navigation
                         let targetLink = n.link;
@@ -579,7 +590,7 @@ export function Sidebar({ isMobile, onNavItemClick }: SidebarProps) {
                                   <p className="text-[14px] font-bold text-slate-900 leading-tight">{n.title}</p>
                                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">{formatNotificationTime(n.createdAt)}</span>
                                 </div>
-                                <p className="text-[13px] text-slate-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: cleanMsg }} />
+                                <p className="text-[13px] text-slate-600 leading-relaxed line-clamp-3 break-all">{cleanMsg}</p>
                               </div>
                             </div>
                           </div>
